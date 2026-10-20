@@ -1,0 +1,5 @@
+action: open /
+action: click Switch to dark
+data-theme: dark
+action: click Switch to light
+data-theme: light
