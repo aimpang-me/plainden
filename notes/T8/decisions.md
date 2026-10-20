@@ -1,0 +1,8 @@
+- A subtitle file is a list of cues. Each cue has a start time, an end time, and text. SRT, WebVTT, and ASS are only the read and write edges.
+- Times are whole milliseconds. ASS stores centiseconds, so an ASS download rounds to the nearest 10 ms.
+- A positive shift delays every cue. A negative shift moves cues earlier. A cue that would end at or before 0 is dropped. A cue that would start before 0 starts at 0.
+- The free cap is 1 file and the paid cap is 50 files, from `lib/catalog/planned.ts`. The check is the number of files in that run.
+- `/srt-to-vtt` always writes WebVTT. `/srt-converter` lets the user pick SRT, WebVTT, ASS, or the same format as the file.
+- Bytes are read as UTF-8, as UTF-16 when a BOM is present, or as Windows-1252 when UTF-8 is invalid. The download is UTF-8.
+- No new packages. The parser lives in `tools/subtitles/`.
+- Subagent spawn returned "On-demand usage is required", so this session wrote the code.
