@@ -30,6 +30,7 @@ const featureIds = [
   "pdf",
   "qr",
   "seo",
+  "privacy-policy",
 ];
 
 function fail(message) {
@@ -204,24 +205,74 @@ async function driveLanding(page, dir) {
 }
 
 async function drivePlanned(page, dir) {
-  const hidden = await page.getByRole("link", { name: "Privacy and terms generator" }).count();
-  const renamed = await page.getByRole("link", { name: "Privacy policy generator" }).count();
-  if (hidden > 0 || renamed > 0) fail("landing linked a hidden legal tool");
+  const names = [
+    "Privacy and terms generator",
+    "Privacy policy generator",
+    "Image tools",
+    "Video compressor",
+    "Data converter",
+    "Subtitle converter",
+    "Cookie and refund policy generator",
+    "Receipt generator",
+  ];
+  for (const name of names) {
+    if ((await page.getByRole("link", { name }).count()) > 0) fail(`landing linked hidden ${name}`);
+  }
   await page.goto(`${base}/privacy-policy-generator`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
   const heading = await page.getByRole("heading", { level: 1 }).innerText();
   const copy = await page.getByText("This tool is not built yet.").count();
-  const check = await page.getByRole("button", { name: "Check" }).count();
+  const business = await page.getByLabel("Business name").count();
   if (heading !== "Privacy policy generator") fail(`heading was ${heading}`);
-  if (copy < 1) fail("placeholder copy was missing");
-  if (check > 0) fail("placeholder exposed a Check button");
+  if (copy > 0) fail("built legal page still showed the placeholder");
+  if (business < 1) fail("legal form was missing");
   const lines = [
     "action: open /",
-    "absent: link Privacy and terms generator",
+    "absent: hidden wave links",
     "action: open /privacy-policy-generator",
     "url: /privacy-policy-generator",
     `heading: ${heading}`,
-    "visible: This tool is not built yet.",
+    "visible: Business name",
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function drivePrivacy(page, dir) {
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const cookie = await page.getByText("The cookie named in this draft is cart_id.").count();
+  if (cookie < 1) fail("cookie answer was missing");
+  await page.goto(`${base}/refund-policy-generator-for-services`);
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const refund = await page.getByText("Refunds are paid by bank transfer.").count();
+  if (refund < 1) fail("refund answer was missing");
+  await page.goto(`${base}/privacy-policy-generator-for-app`);
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  await page.getByLabel("Business name").fill("Ada Studio");
+  await page.getByText("This service is run by Ada Studio.").waitFor();
+  const notice = await page.getByText("This draft is not legal advice.").count();
+  if (notice < 1) fail("notice was missing");
+  await page.getByRole("button", { name: "Download Markdown" }).click();
+  const status = await page.getByRole("status").innerText();
+  if (status !== "Markdown and PDF need the legal plan.") fail(`status was ${status}`);
+  const pricing = await page.getByRole("link", { name: "See pricing" }).count();
+  if (pricing < 1) fail("upgrade link was missing");
+  const missing = await page.request.get(`${base}/p/not-a-policy`);
+  if (missing.status() !== 404) fail(`missing policy status ${missing.status()}`);
+  const lines = [
+    "action: open /cookie-policy-generator-for-shop",
+    "visible: The cookie named in this draft is cart_id.",
+    "action: open /refund-policy-generator-for-services",
+    "visible: Refunds are paid by bank transfer.",
+    "action: open /privacy-policy-generator-for-app",
+    "action: fill Business name Ada Studio",
+    "visible: This service is run by Ada Studio.",
+    "visible: This draft is not legal advice.",
+    "action: click Download Markdown",
+    `status: ${status}`,
+    "visible: See pricing",
+    "action: GET /p/not-a-policy",
+    "status: 404",
   ];
   await snap(page, dir, "aria.txt", "page.png");
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
@@ -512,6 +563,7 @@ const drivers = {
   pdf: { path: "/compress-pdf-to-4mb", run: drivePdf },
   qr: { path: "/qr-code-generator-no-expiration", run: driveQr },
   seo: { path: "/", run: driveSeo },
+  "privacy-policy": { path: "/cookie-policy-generator-for-shop", run: drivePrivacy },
 };
 
 async function drive(featureId) {
