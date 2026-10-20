@@ -7,3 +7,4 @@ ts	phase	decision	why	evidence	result
 2026-10-20T18:34:06Z	verify	sitemap test matches every resolved path	the done line is that the sitemap lists every page	lib/seo/seo.test.ts	9 passed
 2026-10-20T18:34:06Z	verify	next build, eslint, and vitest pass with app env unset	PLAN done rule	local shell	build ok, eslint ok, 25 tests passed
 2026-10-20T18:34:06Z	verify	browser drive of landing and scaffold-tool	verify-plainden is the user-facing proof	notes/S/verify/	doctor ok, drives ok, sitemap 404
+2026-10-20T18:34:41Z	audit	subagents could not start, so this session wrote the design and the code	the Task tool returned on-demand usage required	notes/S/decisions.md	no arena and no comment-sicko
