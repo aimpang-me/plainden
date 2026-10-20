@@ -11,7 +11,7 @@ One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with
 3. Test mode only. No real keys, no real accounts, no live payments, no deploying. Agents cannot create accounts.
 4. Never commit secrets. `.env.development` holds only test values (section 3).
 5. Edit only the paths you own (section 5). Need a change elsewhere? Write it in `notes/<id>/requests.md` and work around it. Test sample files go in `tools/<x>/fixtures/` (you own it).
-6. Never commit `package.json` changes or `package-lock.json` (except F). Install what you need in your own worktree, and list each library (name, version, why) in `notes/<id>/deps.md`. F adds them all and regenerates the lockfile at merge. Libraries used by more than one tool (`pdf-lib`, Playwright) are installed by F1 at a pinned version; use those, do not install your own copy.
+6. Never commit `package.json` changes or `package-lock.json` (except F). Install what you need with `npm install --no-save <pkg>@<version> ...` (this leaves `package.json` and the lockfile untouched, so rebase works). Put every library you need in ONE such command line at the top of `notes/<id>/deps.md`, with a why for each, and re-run that whole line after every rebase (npm prunes no-save packages when you install another one, so never run it in pieces). F adds them all and regenerates the lockfile at merge. Libraries used by more than one tool (`pdf-lib`, Playwright) are installed by F1 at a pinned version; use those, do not install your own copy.
 7. Notes go only in `notes/<your-id>/`. Never edit another worker's notes or the shared `notes/` root.
 8. Done = your check passes, `next build` and `eslint .` pass, and `notes/<id>/report.md` (10 lines max) says what works and what doesn't.
 9. Branch `worker/<id>`, own worktree, commit often, rebase on `main` before you finish. Never merge to `main` yourself (except F).
@@ -102,7 +102,7 @@ Library notes (workers follow these):
 
 **Phase 3: F only, three fresh sessions.** Each reads `notes/F/` and the workers' `report.md` and `deps.md` files.
 - **F-c:** add batch A's libraries to `package.json`, regenerate the lockfile, merge in this order with build + tests after each: V, S, T1, T3, T4.
-- **F-d:** (after batch B is done) same for T2, T5, T6, T7, T8, then run the Lighthouse SEO check (95+ on 3 sample pages).
+- **F-d:** (after batch B is done) same for T2, T5, T6, T7, T8, then run `drizzle-kit generate` (the first point where every `tools/<x>/schema.ts` exists), check the migration applies on PGlite, and run the Lighthouse SEO check (95+ on 3 sample pages).
 - **F-e:** F8.
 
 ### F's steps
@@ -111,7 +111,7 @@ Library notes (workers follow these):
 |---|---|---|
 | F1 | Scaffold, git init, lint, Vitest, Playwright, shared libraries (`pdf-lib` and any other used by 2+ tools, pinned), `.env.development`, `.env.example`, port config, `notes/` | `next build` and tests pass on an empty app |
 | F2 | Tool registry and `CONTRACT.md` (below), tool page template, landing, layout, nav, light/dark, UI primitives | A dummy tool renders at its slug |
-| F3 | **All** database tables: Better Auth's own, plus subscriptions, usage, saved_invoices, qr_codes, policy_docs. Tool-specific extras go in `tools/<x>/schema.ts` (drizzle.config globs these). Only F runs `drizzle-kit generate` (in phase 3). | Schema applies on PGlite |
+| F3 | **All** database tables: Better Auth's own, plus subscriptions, usage, saved_invoices, qr_codes, policy_docs. Tool-specific extras go in `tools/<x>/schema.ts` (drizzle.config globs these). Only F runs `drizzle-kit generate` (in F-d, after every schema file is merged). Until then, workers apply schemas to PGlite directly in tests and dev. | Schema applies on PGlite |
 | F4 | Stubs: `getCurrentUser()`, `getEntitlement`, `checkLimit`, `useEntitlement()`, `<UpgradePrompt>`, payments interface | Tool workers can import all of them |
 | F5 | Real auth: magic link, Turnstile, account page | Playwright: sign in via `.dev-mail/` link |
 | F6 | Real entitlements and usage counters | Unit tests: free blocks, paid passes, counters reset |
