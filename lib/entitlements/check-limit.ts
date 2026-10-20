@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { usage } from "../../db/schema";
-import type { LimitKind } from "../contract/limits";
+import { LimitKind } from "../contract/limits";
 import type { LimitDecision, Subject } from "../contract/types";
 import { getDb } from "../db/client";
 import { decideLimit } from "./decide-limit";
@@ -19,6 +19,9 @@ export async function checkLimit(
   const limits = limitsFor(entitlementKey);
   if (!limits) return { ok: false, limit: 0, reason: `unknown entitlement ${entitlementKey}` };
   const entitlement = await getEntitlement(subject, entitlementKey);
+  if (kind === LimitKind.savedItems) {
+    return decideLimit({ plan: entitlement.plan, limits, kind, amount });
+  }
   const period = usagePeriod(kind, new Date());
   const table = entitlement.plan === "paid" ? limits.paid : limits.free;
   const cap = table[kind];

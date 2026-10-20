@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { PDFDocument } from "pdf-lib";
 import { chromium } from "playwright";
 
 const root = process.cwd();
@@ -17,7 +18,19 @@ const base = `http://127.0.0.1:${port}`;
 const dataDir = path.join(root, ".data/verify-pglite");
 const readyText = "Small tools that run in the browser";
 
-const featureIds = ["scaffold-tool", "landing", "planned-tool", "pricing", "theme", "sign-in"];
+const featureIds = [
+  "scaffold-tool",
+  "landing",
+  "planned-tool",
+  "pricing",
+  "theme",
+  "sign-in",
+  "invoice-generator",
+  "receipt-generator",
+  "pdf",
+  "qr",
+  "seo",
+];
 
 function fail(message) {
   console.error(message);
@@ -190,21 +203,95 @@ async function driveLanding(page, dir) {
 }
 
 async function drivePlanned(page, dir) {
-  await page.getByRole("link", { name: "Invoice generator" }).click();
-  await page.waitForURL("**/invoice-generator");
+  await page.getByRole("link", { name: "Privacy and terms generator" }).click();
+  await page.waitForURL("**/privacy-policy-generator");
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
   const heading = await page.getByRole("heading", { level: 1 }).innerText();
   const copy = await page.getByText("This tool is not built yet.").count();
   const check = await page.getByRole("button", { name: "Check" }).count();
-  if (heading !== "Invoice generator") fail(`heading was ${heading}`);
+  if (heading !== "Privacy and terms generator") fail(`heading was ${heading}`);
   if (copy < 1) fail("placeholder copy was missing");
   if (check > 0) fail("placeholder exposed a Check button");
   const lines = [
     "action: open /",
-    "action: click link Invoice generator",
-    "url: /invoice-generator",
+    "action: click link Privacy and terms generator",
+    "url: /privacy-policy-generator",
     `heading: ${heading}`,
     "visible: This tool is not built yet.",
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function fillDocument(page, fields) {
+  for (const [label, value] of fields) {
+    await page.getByLabel(label).fill(value);
+  }
+}
+
+async function driveInvoice(page, dir) {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const fields = [
+    ["Your name", "Ada"],
+    ["Client name", "Bea"],
+    ["Invoice number", "100"],
+    ["Description", "Consulting"],
+    ["Quantity", "2"],
+    ["Unit price", "10"],
+  ];
+  await fillDocument(page, fields);
+  await page.getByText("Total $20.00", { exact: true }).waitFor({ timeout: 10_000 });
+  const footer = await page.getByText("made with plainden").count();
+  if (footer < 1) fail("free invoice footer was missing");
+  const lines = fields.map(([label, value]) => `action: fill ${label} ${value}`);
+  lines.push("visible: Total $20.00");
+  lines.push("visible: made with plainden");
+  for (let count = 1; count <= 3; count += 1) {
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download PDF" }).click();
+    const download = await downloadPromise;
+    lines.push(`action: click Download PDF`);
+    lines.push(`download: ${download.suggestedFilename()}`);
+  }
+  await page.getByRole("button", { name: "Download PDF" }).click();
+  lines.push("action: click Download PDF");
+  const blocked = "free perMonth allows 3";
+  await page.getByRole("status").filter({ hasText: blocked }).waitFor({ timeout: 10_000 });
+  const status = await page.getByRole("status").innerText();
+  lines.push(`status: ${status}`);
+  if (status !== blocked) fail(`invoice status was ${JSON.stringify(status)}`);
+  if ((await page.getByRole("link", { name: "See pricing" }).count()) < 1) fail("See pricing link was missing");
+  lines.push("visible: link See pricing");
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function driveReceipt(page, dir) {
+  const fields = [
+    ["Your name", "Ada"],
+    ["Client name", "Bea"],
+    ["Receipt number", "R-9"],
+    ["Description", "Rent"],
+    ["Quantity", "1"],
+    ["Unit price", "10"],
+  ];
+  await fillDocument(page, fields);
+  await page.getByLabel("Payment method").selectOption("card");
+  await page.getByText("Total $10.00", { exact: true }).waitFor({ timeout: 10_000 });
+  const stamp = await page.getByText("PAID", { exact: true }).count();
+  if (stamp < 1) fail("PAID stamp was missing");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF" }).click();
+  const download = await downloadPromise;
+  const lines = [
+    ...fields.map(([label, value]) => `action: fill ${label} ${value}`),
+    "action: select Payment method card",
+    "visible: Total $10.00",
+    "visible: PAID",
+    "action: click Download PDF",
+    `download: ${download.suggestedFilename()}`,
   ];
   await snap(page, dir, "aria.txt", "page.png");
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
@@ -288,6 +375,116 @@ async function driveSignIn(page, dir) {
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
 }
 
+async function blankPdf(file) {
+  const doc = await PDFDocument.create();
+  doc.addPage([40, 50]);
+  writeFileSync(file, await doc.save());
+}
+
+async function drivePdf(page, dir) {
+  const intro = await page.locator("main").innerText();
+  if (!intro.includes("up to 4 MB")) fail("4mb page did not say up to 4 MB");
+  if (!intro.includes("does not promise a 4 MB file")) fail("4mb page promised or omitted the refusal");
+  const temp = path.join(root, ".data/verify-pdf");
+  mkdirSync(temp, { recursive: true });
+  const left = path.join(temp, "left.pdf");
+  const right = path.join(temp, "right.pdf");
+  await blankPdf(left);
+  await blankPdf(right);
+  await page.goto(`${base}/merge-pdf`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  await page.getByLabel("PDF files").setInputFiles([left, right]);
+  await page.getByRole("button", { name: "Merge PDFs" }).click();
+  const merged = "Merged 2 files into 2 pages.";
+  await page.getByRole("status").filter({ hasText: merged }).waitFor({ timeout: 20_000 });
+  const status = await page.getByRole("status").innerText();
+  if (status !== merged) fail(`pdf status was ${JSON.stringify(status)}`);
+  if ((await page.locator('a[download="merged.pdf"]').count()) < 1) fail("merged.pdf link was missing");
+  const lines = [
+    "action: open /compress-pdf-to-4mb",
+    "visible: up to 4 MB",
+    "visible: does not promise a 4 MB file",
+    "action: open /merge-pdf",
+    "action: add left.pdf and right.pdf",
+    "action: click Merge PDFs",
+    `status: ${status}`,
+    "visible: merged.pdf",
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function driveQr(page, dir) {
+  const linkValue = await page.getByRole("textbox", { name: "Link" }).inputValue();
+  await page.getByRole("button", { name: "Create" }).click();
+  const downloaded = "Downloaded PNG.";
+  await page.getByRole("status").filter({ hasText: downloaded }).waitFor({ timeout: 15_000 });
+  const staticStatus = await page.getByRole("status").innerText();
+  if (staticStatus !== downloaded) fail(`qr status was ${JSON.stringify(staticStatus)}`);
+  await page.goto(`${base}/dynamic-qr-code`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  await page.getByRole("button", { name: "Create" }).click();
+  const blocked = "free savedItems allows 0";
+  await page.getByRole("status").filter({ hasText: blocked }).waitFor({ timeout: 10_000 });
+  const dynamicStatus = await page.getByRole("status").innerText();
+  if (dynamicStatus !== blocked) fail(`dynamic status was ${JSON.stringify(dynamicStatus)}`);
+  const missing = await page.request.get(`${base}/q/not-a-code`, { maxRedirects: 0 });
+  if (missing.status() !== 404) fail(`missing qr status was ${missing.status()}`);
+  const lines = [
+    "action: open /qr-code-generator-no-expiration",
+    `link: ${linkValue}`,
+    "action: click Create",
+    `status: ${staticStatus}`,
+    "action: open /dynamic-qr-code",
+    "action: click Create",
+    `status: ${dynamicStatus}`,
+    "action: GET /q/not-a-code",
+    "status: 404",
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function driveSeo(page, dir) {
+  const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
+  if (canonical !== "https://plainden.com") fail(`canonical was ${canonical}`);
+  const jsonLd = await page.locator('script[type="application/ld+json"]').first().innerText();
+  if (!jsonLd.includes('"@type":"WebSite"') && !jsonLd.includes('"@type": "WebSite"')) {
+    fail("home JSON-LD missed WebSite");
+  }
+  const sitemap = await page.request.get(`${base}/sitemap.xml`);
+  const sitemapBody = await sitemap.text();
+  if (sitemap.status() !== 200) fail(`sitemap status ${sitemap.status()}`);
+  const required = [
+    "https://plainden.com/invoice-generator",
+    "https://plainden.com/merge-pdf",
+    "https://plainden.com/qr-code-generator",
+    "https://plainden.com/privacy-policy-generator",
+  ];
+  for (const loc of required) {
+    if (!sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap missed ${loc}`);
+  }
+  const robots = await page.request.get(`${base}/robots.txt`);
+  const robotsBody = await robots.text();
+  if (robots.status() !== 200) fail(`robots status ${robots.status()}`);
+  if (!robotsBody.includes("Allow: /")) fail(`robots missed Allow: ${robotsBody}`);
+  if (!robotsBody.includes("Sitemap: https://plainden.com/sitemap.xml")) fail(`robots missed sitemap: ${robotsBody}`);
+  const lines = [
+    "action: open /",
+    `canonical: ${canonical}`,
+    "visible: JSON-LD WebSite",
+    "action: GET /sitemap.xml",
+    "status: 200",
+    ...required.map((loc) => `loc: ${loc}`),
+    "action: GET /robots.txt",
+    "status: 200",
+    "visible: Allow: /",
+    "visible: Sitemap: https://plainden.com/sitemap.xml",
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
 const drivers = {
   "scaffold-tool": { path: "/scaffold-check", run: driveScaffold },
   landing: { path: "/", run: driveLanding },
@@ -295,6 +492,11 @@ const drivers = {
   pricing: { path: "/pricing", run: drivePricing },
   theme: { path: "/", run: driveTheme },
   "sign-in": { path: "/account", run: driveSignIn },
+  "invoice-generator": { path: "/invoice-generator", run: driveInvoice },
+  "receipt-generator": { path: "/receipt-generator", run: driveReceipt },
+  pdf: { path: "/compress-pdf-to-4mb", run: drivePdf },
+  qr: { path: "/qr-code-generator-no-expiration", run: driveQr },
+  seo: { path: "/", run: driveSeo },
 };
 
 async function drive(featureId) {

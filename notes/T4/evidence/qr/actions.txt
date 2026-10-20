@@ -1,0 +1,6 @@
+link value https://example.com
+static status Downloaded PNG.
+upgrade href /pricing
+dynamic status free savedItems allows 0
+first status 302 location https://example.com/landed scans 1
+second status 302 location https://example.com/landed scans 2

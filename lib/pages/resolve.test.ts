@@ -20,9 +20,10 @@ test("a long tail slug carries its preset", () => {
 });
 
 test("a planned slug renders the placeholder data", () => {
-  expect(resolveSlug("invoice-generator")).toMatchObject({
+  expect(resolveSlug("privacy-policy-generator")).toMatchObject({
     kind: "planned",
-    tool: { name: "Invoice generator", id: "invoice" },
+    tool: { name: "Privacy and terms generator", id: "legal" },
   });
+  expect(resolveSlug("invoice-generator")?.kind).toBe("tool");
   expect(resolveSlug("no-such-page")).toBeNull();
 });

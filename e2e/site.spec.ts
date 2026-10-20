@@ -16,14 +16,14 @@ test("scaffold check blocks a count of 4 and allows a count of 1", async ({ page
   await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
 });
 
-test("the landing page opens the invoice placeholder", async ({ page }) => {
+test("the landing page opens a tool that is not built yet", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("link", { name: "support@plainden.com" })).toHaveAttribute(
     "href",
     "mailto:support@plainden.com",
   );
-  await page.getByRole("link", { name: "Invoice generator" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Invoice generator" })).toBeVisible();
+  await page.getByRole("link", { name: "Privacy and terms generator" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Privacy and terms generator" })).toBeVisible();
   await expect(page.getByText("This tool is not built yet.")).toBeVisible();
 });
 

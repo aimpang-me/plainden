@@ -25,3 +25,16 @@
 - `checkout.session.completed` inserts an active row and does not rewrite a later status. `customer.subscription.updated` replaces status, price, and period. `customer.subscription.deleted` sets `canceled`. `invoice.payment_failed` sets `past_due`.
 - Webhook tests sign fixtures with `stripe.webhooks.generateTestHeaderString`. `scripts/stripe/sync-prices.ts` was not run.
 - `.env.development` sets `BETTER_AUTH_SECRET` to `plainden-dev-secret-0123456789abcdef`. `getAuth` throws in production when that secret is missing. It does not read the secret at import time.
+
+## F-c
+
+- Merge order was V, then S, then T1, then T3, then T4, onto main at e145f66. Landing, pricing, and theme screenshots stayed with F-b. The planned-tool proof stayed with T1 because invoice is now a real tool.
+- The branch is `worker/F-c` because the operator named that branch.
+- qrcode is pinned at 1.5.4 and `@types/qrcode` at 1.5.5. V, S, T1, and T3 added no packages.
+- `/sitemap.xml` and `/robots.txt` call `buildSitemap` and `buildRobots`. Home, pricing, and tool pages return `metadataFor` and render `JsonLd`. `metadataBase` is `siteOrigin()`.
+- `proxy.ts` is not in this session. V asked F8 to import `securityHeaders` and `unenforcedRateLimit` there, and PLAN step F8 owns that wiring. `rateLimitFlag.enforced` stays false.
+- `useEntitlement` stays synchronous. It returns free, then replaces the plan from `GET /api/entitlement`. A signed-out visitor stays on the free plan. The invoice Save button and QR publish follow that plan.
+- `checkLimit` treats `savedItems` as the occupancy the caller already counted. `perDay` and `perMonth` still add a usage row. Twenty sequential QR publishes are the lock for the cap of 20.
+- `GET /q/[id]` runs `parseTargetUrl` on the stored target before it counts a scan. Only http and https redirect. A `javascript:` target returns 404 and does not increment `scanCount`. There is no interstitial and no blocklist. PLAN and the T4 notes do not ask for either.
+- The registry id list is invoice, pdf, qr, receipt, and scaffold.
+- `FileDrop` takes optional `multiple` and `accept`. Merge and JPG pass them.

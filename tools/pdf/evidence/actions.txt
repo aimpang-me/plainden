@@ -1,0 +1,32 @@
+action: open /compress-pdf-to-4mb
+visible: up to 4 MB
+visible: does not promise a 4 MB file
+action: open /split-pdf-pages
+pages: 1
+action: add oversize.bin
+action: click Merge PDFs
+status: free fileSize allows 26214400
+visible: link See pricing
+action: remove oversize.bin
+action: open /jpg-to-pdf
+action: click Make PDF
+status: Made a PDF with 1 page.
+download: images.pdf %PDF-
+action: open /compress-pdf
+action: click Compress PDF
+status: Checked 1 JPEG image. Encoded 1. Recompressed 0.
+download: compressed.pdf %PDF-
+action: open /split-pdf
+action: click Split PDF
+status: Split into 2 PDFs.
+download: page-1.pdf %PDF-
+download: page-2.pdf %PDF-
+action: open /merge-pdf
+action: click Merge PDFs
+status: Merged 2 files into 2 pages.
+download: merged.pdf %PDF-
+action: click Merge PDFs
+status: Merged 2 files into 2 pages.
+action: click Merge PDFs
+status: free perDay allows 5
+visible: link See pricing
