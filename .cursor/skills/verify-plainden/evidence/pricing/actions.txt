@@ -1,0 +1,6 @@
+action: open /pricing
+heading: Pricing
+visible: $5/mo
+visible: $9/mo
+visible: plainden_invoice_month
+absent: plainden_scaffold_month
