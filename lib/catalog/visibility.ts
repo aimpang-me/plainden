@@ -1,4 +1,13 @@
-const defaultDisabled = ["scaffold", "legal", "image", "video", "data", "subtitles", "cookie-refund"] as const;
+const defaultDisabled = [
+  "scaffold",
+  "image",
+  "legal",
+  "receipt",
+  "video",
+  "data",
+  "subtitles",
+  "cookie-refund",
+] as const;
 
 export function disabledToolIds(raw?: string): readonly string[] {
   const value = raw !== undefined ? raw : process.env.TOOLS_DISABLED;

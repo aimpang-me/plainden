@@ -1,0 +1,61 @@
+- main:
+  - article:
+    - heading "Image tools" [level=1]
+    - paragraph: Compress, resize, or convert images in the browser.
+    - heading "Compress" [level=2]
+    - text: Images
+    - button "Images"
+    - list:
+      - listitem:
+        - text: frame.png, 801 bytes
+        - button "Remove frame.png"
+    - text: Target
+    - combobox "Target":
+      - option "20 KB"
+      - option "100 KB" [selected]
+      - option "200 KB"
+    - button "Compress images"
+    - status: Closest is 1212 bytes, outside 10% of 102400 bytes.
+    - list:
+      - listitem:
+        - link "frame.jpg":
+          - /url: blob:http://127.0.0.1:3100/7b4d9a3a-7f57-4578-8ef7-50abb28a3773
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Add your images. HEIC and WebP to PNG have their own pages.
+        - listitem: Set the target, the size, or the format when this page asks for one.
+        - listitem: Download the new files. A free plan allows 10 images, and each file can be up to 10 MB.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Do my files leave this browser?" [level=3]
+          - paragraph: No. Compress, resize, and convert run in this browser.
+        - listitem:
+          - heading "What is the free file limit?" [level=3]
+          - paragraph: The free plan allows 10 images at a time. Each file can be up to 10 MB. The cap is per file, and the tool does not add the batch together.
+        - listitem:
+          - heading "What does the paid plan change?" [level=3]
+          - paragraph: The paid plan allows 100 images at a time, and each file can be up to 50 MB.
+        - listitem:
+          - heading "Does compress hit a specific byte count?" [level=3]
+          - paragraph: No. Compress aims within 10% of the target and does not promise an exact byte count.
+        - listitem:
+          - heading "What does the 20 KB page do?" [level=3]
+          - paragraph: That page compresses toward 20 KB. It is a file size target. Pixel size stays on the resize page.
+        - listitem:
+          - heading "Which images can I add?" [level=3]
+          - paragraph: JPEG, PNG, and WebP work on compress, resize, and convert. The HEIC page accepts HEIC. The WebP page accepts WebP and writes PNG.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator

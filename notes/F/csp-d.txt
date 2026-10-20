@@ -1,0 +1,9 @@
+url http://127.0.0.1:3210
+server next start, env cleared
+video /compress-video-for-discord HTTP 200
+heading Compress a video for Discord
+download compressed.mp4 137533 bytes
+heic /heic-to-jpg HTTP 200
+heading Image tools
+download frame.jpg 1212 bytes
+csp refusals 0

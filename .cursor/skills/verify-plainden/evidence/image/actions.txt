@@ -1,0 +1,5 @@
+action: open /compress-image
+heading: Image tools
+action: add frame.png
+action: click Compress images
+download: frame.jpg

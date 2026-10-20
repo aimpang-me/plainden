@@ -1,0 +1,6 @@
+action: open /csv-to-json
+heading: CSV, JSON, and Excel converter
+action: add sample.csv
+action: click Convert
+visible: cell Ada
+status: Converted 2 rows.

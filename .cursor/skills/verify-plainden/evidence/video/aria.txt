@@ -1,0 +1,43 @@
+- main:
+  - article:
+    - heading "Compress a video for Discord" [level=1]
+    - paragraph: Discord uploads on a free account run out of room quickly. This page opens on an 8 MB target. Add a video, press Compress video, and download an MP4 aimed under that size.
+    - heading "Compress" [level=2]
+    - paragraph: This page starts on the Discord preset. The target is under 8 MB.
+    - text: Video file
+    - button "Video file"
+    - paragraph: clip.mp4, 31732 bytes
+    - text: Preset
+    - combobox "Preset":
+      - option "Discord 8 MB" [selected]
+      - option "WhatsApp 16 MB"
+      - option "720p"
+      - option "480p"
+    - button "Compress video"
+    - status: Compressed to 137533 bytes, under the Discord 8 MB limit.
+    - link "compressed.mp4":
+      - /url: blob:http://127.0.0.1:3100/6c2a8949-0bf2-4d5d-9a8d-ffea8cd0e346
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Add one video file.
+        - listitem: Pick a preset. Discord targets 8 MB, WhatsApp targets 16 MB, and 720p or 480p change the height.
+        - listitem: Press Compress video and download the MP4. A free plan allows a 100 MB file.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Does this page hand back a file over 8 MB?" [level=3]
+          - paragraph: No. If the encode cannot fit, the page says so and does not offer the download.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator

@@ -1,0 +1,8 @@
+ts	phase	decision	why	evidence	result
+2026-10-20T20:04:10Z	start	T7 data converter on worker/T7	First run. No earlier decision log.	branch worker/T7	open
+2026-10-20T20:04:10Z	shape	One convert function over a string grid	Three format modules would repeat the grid rules in the page.	notes/T7/design.md	chosen
+2026-10-20T20:04:11Z	storage	Presets stay in localStorage	T7 does not own an API route. A table with no route cannot be read by the page.	notes/T7/requests.md	flagged
+2026-10-20T20:04:11Z	verify	Browser proof on the verify server	Sample csv, json, and xlsx round tripped. Free size and free save showed See pricing.	tools/data/evidence/actions.txt	passed
+2026-10-20T20:04:25Z	start	T7 data converter on worker/T7	First run. No earlier decision log.	branch worker/T7	open
+2026-10-20T20:04:40Z	excel	Refuse bytes that are not zip or OLE before SheetJS	SheetJS accepted the text not a workbook as a one cell sheet.	tools/data/convert.test.ts	tests green
+2026-10-20T20:04:40Z	supersede	The second start row is the same run, not a new run.	The first start already opened this log. Ignore the later start row.	notes/T7/decisions.tsv	same run

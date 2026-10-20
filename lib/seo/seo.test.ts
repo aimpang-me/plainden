@@ -61,10 +61,14 @@ test("a long-tail page uses its own title, intro, and faq", () => {
   });
 });
 
-test("a primary tool page keeps the tool faq and a planned page has no faq", () => {
+test("a primary tool page keeps the tool faq and an unregistered slug has no faq", () => {
   const tool = pageByPath("/scaffold-check", listed);
   expect(jsonLdScript(tool!, origin)).toContain("What does this page check?");
-  const planned = pageByPath("/privacy-policy-generator", listed);
+  const legal = pageByPath("/privacy-policy-generator", listed);
+  expect(legal).toMatchObject({ kind: "tool", title: "Privacy policy generator", toolId: "legal" });
+  expect(jsonLdScript(legal!, origin)).toContain("FAQPage");
+  expect(jsonLdScript(legal!, origin)).toContain("Is this legal advice?");
+  const planned = pageByPath("/privacy-policy-generator", { ...listed, tools: [] });
   expect(planned).toMatchObject({ kind: "planned", title: "Privacy policy generator", toolId: "legal" });
   const plannedScript = jsonLdScript(planned!, origin);
   expect(plannedScript).toContain("SoftwareApplication");
@@ -109,10 +113,14 @@ test("the default tool list hides unbuilt tools and keeps the built ones", () =>
   expect(xml).toContain("https://plainden.com/invoice-generator");
   expect(xml).toContain("https://plainden.com/merge-pdf");
   expect(xml).toContain("https://plainden.com/qr-code-generator");
-  expect(xml).toContain("https://plainden.com/receipt-generator");
+  expect(xml).not.toContain("https://plainden.com/receipt-generator");
   expect(xml).not.toContain("https://plainden.com/privacy-policy-generator");
   expect(xml).not.toContain("https://plainden.com/scaffold-check");
   expect(xml).not.toContain("https://plainden.com/compress-image");
+  expect(xml).not.toContain("https://plainden.com/compress-video");
+  expect(xml).not.toContain("https://plainden.com/csv-to-json");
+  expect(xml).not.toContain("https://plainden.com/srt-to-vtt");
+  expect(xml).not.toContain("https://plainden.com/cookie-policy-generator");
   expect(pageByPath("/merge-pdf", { origin })?.title).toBe("Merge PDF");
   expect(pageByPath("/terms-and-conditions-generator", { origin })?.title).toBe("Terms and conditions generator");
 });

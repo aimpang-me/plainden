@@ -1,6 +1,6 @@
 action: open /
-absent: link Privacy and terms generator
+absent: hidden wave links
 action: open /privacy-policy-generator
 url: /privacy-policy-generator
 heading: Privacy policy generator
-visible: This tool is not built yet.
+visible: Business name

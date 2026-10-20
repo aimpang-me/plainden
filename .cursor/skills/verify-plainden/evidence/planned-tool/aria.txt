@@ -2,7 +2,60 @@
   - article:
     - heading "Privacy policy generator" [level=1]
     - paragraph: Answer a questionnaire and copy a privacy policy or terms draft.
-    - paragraph: This tool is not built yet.
+    - heading "Privacy policy" [level=2]
+    - text: Business name
+    - textbox "Business name"
+    - text: Contact email
+    - textbox "Contact email"
+    - text: Website
+    - textbox "Website"
+    - text: Jurisdiction
+    - combobox "Jurisdiction":
+      - option "Select a jurisdiction" [selected]
+      - option "US"
+      - option "Canada"
+      - option "EU/UK"
+      - option "Australia"
+      - option "Other"
+    - text: Data collected
+    - textbox "Data collected"
+    - text: Purpose
+    - textbox "Purpose"
+    - text: Retention
+    - textbox "Retention"
+    - button "Copy text"
+    - button "Copy HTML"
+    - button "Download Markdown"
+    - button "Download PDF"
+    - button "Publish"
+    - status
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Name the business, the contact email, the website, and a jurisdiction.
+        - listitem: Read the draft under the buttons. Every draft says it is not legal advice.
+        - listitem: Copy the text or the HTML. Markdown, PDF, and a public link need the legal plan.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Is this legal advice?" [level=3]
+          - paragraph: No. Every draft says it is not legal advice. Have a lawyer read it before you rely on it.
+        - listitem:
+          - heading "Which jurisdictions can I pick?" [level=3]
+          - paragraph: US, Canada, EU/UK, Australia, or Other.
+        - listitem:
+          - heading "What does the free copy include?" [level=3]
+          - paragraph: The draft text or HTML, plus a line that says made with plainden.
+        - listitem:
+          - heading "What does the legal plan add?" [level=3]
+          - paragraph: Markdown, a PDF, and a hosted link at a stable address.
+        - listitem:
+          - heading "Does the hosted page stay up if I cancel?" [level=3]
+          - paragraph: The last published text stays public. A canceled plan cannot publish a new body.
+        - listitem:
+          - heading "Can I publish more than one policy?" [level=3]
+          - paragraph: A signed-in legal plan can publish one privacy policy, one terms page, one cookie policy, and one refund policy. Each keeps its own link.
     - region "Related tools":
       - heading "Related tools" [level=2]
       - list:

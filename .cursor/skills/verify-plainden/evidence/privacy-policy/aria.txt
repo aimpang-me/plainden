@@ -1,0 +1,59 @@
+- main:
+  - article:
+    - heading "Privacy policy generator for an app" [level=1]
+    - paragraph: This sample is a privacy draft for an app that stores an account email and crash logs. Change the business name and the retention period before you copy it.
+    - heading "Privacy policy" [level=2]
+    - text: Business name
+    - textbox "Business name": Ada Studio
+    - text: Contact email
+    - textbox "Contact email": privacy@northwind.example
+    - text: Website
+    - textbox "Website": https://northwind.example
+    - text: Jurisdiction
+    - combobox "Jurisdiction":
+      - option "Select a jurisdiction"
+      - option "US" [selected]
+      - option "Canada"
+      - option "EU/UK"
+      - option "Australia"
+      - option "Other"
+    - text: Data collected
+    - textbox "Data collected": account email and crash logs
+    - text: Purpose
+    - textbox "Purpose": to run the app and fix crashes
+    - text: Retention
+    - textbox "Retention": 18 months after the account closes
+    - button "Copy text"
+    - button "Copy HTML"
+    - button "Download Markdown"
+    - button "Download PDF"
+    - button "Publish"
+    - status: Markdown and PDF need the legal plan.
+    - text: Privacy policy This draft is not legal advice. Business name This service is run by Ada Studio. Contact email Contact privacy@northwind.example about this policy. Website The website is https://northwind.example. Jurisdiction The operator points at US for this draft. Data collected The data collected is account email and crash logs. Purpose The purpose is to run the app and fix crashes. Retention The data is kept for 18 months after the account closes. made with plainden
+    - paragraph: Markdown and PDF need the legal plan.
+    - link "See pricing":
+      - /url: /pricing
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Name the business, the contact email, the website, and a jurisdiction.
+        - listitem: Read the draft under the buttons. Every draft says it is not legal advice.
+        - listitem: Copy the text or the HTML. Markdown, PDF, and a public link need the legal plan.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Does this sample file the policy for me?" [level=3]
+          - paragraph: No. It fills a draft for Northwind Apps. You copy the text and publish it yourself.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator

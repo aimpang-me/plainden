@@ -1,0 +1,5 @@
+action: open /srt-to-vtt
+heading: Subtitle converter
+action: add sample.srt
+action: click Convert
+status: Converted 1 file.

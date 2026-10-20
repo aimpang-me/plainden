@@ -1,0 +1,11 @@
+action: add noise.png on /compress-image-to-100kb
+status: Compressed 1 image to within 10% of 102400 bytes.
+download: noise.jpg 94588
+action: add noise.png on /compress-image-to-200kb
+status: Compressed 1 image to within 10% of 204800 bytes.
+download: noise.jpg 198049
+action: add noise.png on /resize-image-to-20kb
+status: Compressed 1 image to within 10% of 20480 bytes.
+download: noise.jpg 21902
+action: add 11 tiny images on /compress-image
+status: free batchCount allows 10

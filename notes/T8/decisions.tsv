@@ -1,0 +1,7 @@
+ts	phase	decision	why	evidence	result
+2026-10-20T19:59:07Z	start	T8 subtitle converter on worker/T8 from 307a297	worker prompt assigned tools/subtitles only	commit 307a297	open
+2026-10-20T19:59:07Z	design	kept a cue list and rejected a format-preserving tree	round trip needs times and text, not style blocks	notes/T8/design.md	chosen
+2026-10-20T19:59:07Z	spawn	wrote the code in this session	Task spawn returned on-demand usage required	notes/T8/decisions.md	blocked
+2026-10-20T19:59:07Z	tests	srt vtt round trip and shift passed	literal expected strings	tools/subtitles/convert.test.ts	8 passed
+2026-10-20T19:59:07Z	browser	drove srt-to-vtt, srt-converter, and the free batch block	proof against the verify server on port 3100	tools/subtitles/evidence/actions.txt	subtitle proof ok
+2026-10-20T19:59:07Z	suite	left the registry id pin unchanged	T8 does not own lib/registry/slugs.test.ts	notes/T8/requests.md	npm test fails one assertion

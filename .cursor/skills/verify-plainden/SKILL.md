@@ -42,7 +42,7 @@ Run doctor before a drive. If it fails, do not click through a server you do not
 node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive <feature-id>
 ```
 
-Feature ids: `scaffold-tool`, `landing`, `planned-tool`, `pricing`, `theme`, `sign-in`, `invoice-generator`, `receipt-generator`, `pdf`, `qr`, `seo`.
+Feature ids: `scaffold-tool`, `landing`, `planned-tool`, `pricing`, `theme`, `sign-in`, `invoice-generator`, `receipt-generator`, `pdf`, `qr`, `seo`, `privacy-policy`, `image`, `video`, `data`, `subtitles`.
 
 The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[data-hydrated="true"]`, then uses accessible names:
 

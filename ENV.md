@@ -18,7 +18,7 @@ Reference for names the app reads. `next build` does not read `.env.development`
 | `AUTH_SECRET` | `lib/auth/server.ts` inside `authSecret` when `BETTER_AUTH_SECRET` is unset. | Alternative to `BETTER_AUTH_SECRET`. |
 | `BETTER_AUTH_URL` | `lib/auth/server.ts` and `lib/payments/checkout.ts`. Also allowed as a write Origin. | No. Defaults to `http://127.0.0.1:$PORT`. |
 | `NEXT_PUBLIC_SITE_URL` | `lib/seo/pages.ts` inside `siteOrigin`. Also allowed as a write Origin. | No. Defaults to `https://plainden.com`. |
-| `TOOLS_DISABLED` | `lib/catalog/visibility.ts` inside `disabledToolIds`. | No. When unset or empty, the default hidden set is scaffold, legal, image, video, data, subtitles, and cookie-refund. A set value replaces that list. |
+| `TOOLS_DISABLED` | `lib/catalog/visibility.ts` inside `disabledToolIds`. | No. When unset or empty, the default hidden set is scaffold, image, legal, receipt, video, data, subtitles, and cookie-refund. A set value replaces that list. |
 
 These names are not read by application code yet. `SENTRY_DSN`, `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`, and `CHECKOUT_ENABLED`. `BETTER_AUTH_SECRETS` is read by the Better Auth package for secret rotation, not by an application module.
 

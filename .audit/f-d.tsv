@@ -1,0 +1,12 @@
+ts	phase	decision	why	evidence	result
+2026-10-20T22:47:08Z	merge	Merged T8, T7, T6, T2, then T5 onto main 980d443	The operator named that order and the branch worker/F-d	8a6d21b 2ade915 46bce2a 029d284 649c6d5	merged
+2026-10-20T22:47:08Z	conflict	Kept the landing hide and the direct privacy form in the T2 merge	Both sides edited the planned-tool drive. The built legal page replaced the placeholder	029d284	resolved
+2026-10-20T22:47:08Z	visibility	Hid scaffold, image, legal, receipt, video, data, subtitles, and cookie-refund	PLAN.md section 6b keeps wave 1 public and hides later waves	lib/catalog/visibility.ts	default list updated
+2026-10-20T22:47:08Z	deps	Saved heic-to, papaparse, xlsx, and the papaparse types in package.json	convert.ts and heic.ts import them, so npm ci has to install them	package.json	lockfile updated
+2026-10-20T22:47:08Z	http	Proxy returns 404 for a policy id that is not 32 hex digits	notFound after the page streams keeps HTTP 200	proxy.test.ts .cursor/skills/verify-plainden/evidence/privacy-policy/actions.txt	status 404
+2026-10-20T22:47:08Z	comments	Left the vendored ffmpeg comments in place	They are upstream ffmpeg.wasm text, not application comments. A second comment pass on our files found none	public/ffmpeg/worker.js tools/video/ffmpeg-client/classes.js	open, not edited
+2026-10-20T22:47:08Z	review	Did not get an independent trail review	Spawning claude-sonnet-5-5-medium returned on-demand usage required	Task error On-demand usage is required	BLOCKED
+2026-10-20T22:50:18Z	csp	Production CSP served compressed.mp4 and frame.jpg with no CSP refusal	ffmpeg fetches a wasm blob and the default heic-to build needs unsafe-eval	lib/security/csp.ts tools/image/heic.ts	compressed.mp4 137533 bytes, frame.jpg 1212 bytes, refused 0
+2026-10-20T22:50:18Z	lighthouse	One Lighthouse SEO run scored 100 on three tool pages	PLAN asks for 95 or higher. One run is a ballpark	/tmp/lh-invoice.json /tmp/lh-pdf.json /tmp/lh-qr.json	score 1.0, no failed SEO audit
+2026-10-20T22:50:18Z	green	eslint, Vitest, Playwright, and an env-cleared build passed	The done check is all four green on the merged tree	vitest 40 files 147 tests, playwright 98 passed, next build 94 pages	green
+2026-10-20T22:50:25Z	csp	Recorded the production CSP proof in the repo	The earlier row pointed at a live server that is gone	notes/F/csp-d.txt	supersedes the csp row, same numbers

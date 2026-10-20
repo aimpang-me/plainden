@@ -1,0 +1,43 @@
+- main:
+  - article:
+    - heading "Compress a video to 720p" [level=1]
+    - paragraph: This page sets the height to 720 pixels when the source is taller, and leaves a shorter video at its own height. It does not aim at a byte size.
+    - heading "Compress" [level=2]
+    - paragraph: This page scales the height toward 720p. It does not promise a file size.
+    - text: Video file
+    - button "Video file"
+    - paragraph: sample.mp4, 55509 bytes
+    - text: Preset
+    - combobox "Preset":
+      - option "Discord 8 MB"
+      - option "WhatsApp 16 MB"
+      - option "720p" [selected]
+      - option "480p"
+    - button "Compress video"
+    - status: Compressed to 27132 bytes at 720p.
+    - link "compressed.mp4":
+      - /url: blob:http://127.0.0.1:3100/a031c119-7576-4211-ae52-1a77908a131a
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Add one video file.
+        - listitem: Pick a preset. Discord targets 8 MB, WhatsApp targets 16 MB, and 720p or 480p change the height.
+        - listitem: Press Compress video and download the MP4. A free plan allows a 100 MB file.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Will a small video be stretched to 720p?" [level=3]
+          - paragraph: No. The scale uses the smaller of 720 and the current height.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "Privacy and terms generator":
+            - /url: /privacy-policy-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf

@@ -1,9 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openTool, plannedOrMissing, seedAllToolsPlan, signIn, withViewports } from "./support";
+import { openTool, seedAllToolsPlan, signIn, withViewports } from "./support";
 
 test.describe.configure({ timeout: 90_000 });
-
-const fixmeReason = "Batch B has not replaced this planned placeholder.";
 
 const answers = {
   business: "Northwind Studio",
@@ -15,7 +13,7 @@ const answers = {
 
 withViewports(() => {
   test("a privacy questionnaire copies text and HTML that contain every answer", async ({ page }) => {
-    await stopUntilBuilt(page, "/privacy-policy-generator");
+    await openTool(page, "/privacy-policy-generator");
     await fillQuestionnaire(page);
     const text = await copied(page, "Copy text");
     expect(text).toContain(answers.business);
@@ -34,7 +32,7 @@ withViewports(() => {
   });
 
   test("the terms slug puts the same answers in a terms draft", async ({ page }) => {
-    await stopUntilBuilt(page, "/terms-and-conditions-generator");
+    await openTool(page, "/terms-and-conditions-generator");
     await fillQuestionnaire(page);
     const text = await copied(page, "Copy text");
     expect(text).toContain("Terms");
@@ -50,7 +48,7 @@ withViewports(() => {
       "/privacy-policy-generator-for-meta-ads",
       "/privacy-policy-generator-for-blogger",
     ]) {
-      await stopUntilBuilt(page, slug);
+      await openTool(page, slug);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await fillQuestionnaire(page);
       const text = await copied(page, "Copy text");
@@ -60,7 +58,7 @@ withViewports(() => {
   });
 
   test("cookie and refund drafts contain every answer", async ({ page }) => {
-    await stopUntilBuilt(page, "/cookie-policy-generator");
+    await openTool(page, "/cookie-policy-generator");
     await fillQuestionnaire(page);
     const cookie = await copied(page, "Copy text");
     expect(cookie.toLowerCase()).toContain("cookie");
@@ -68,7 +66,7 @@ withViewports(() => {
     expect(cookie).toContain(answers.detail);
     expect(cookie.toLowerCase()).toContain("not legal advice");
 
-    await stopUntilBuilt(page, "/refund-policy-generator");
+    await openTool(page, "/refund-policy-generator");
     await fillQuestionnaire(page);
     const refund = await copied(page, "Copy text");
     expect(refund.toLowerCase()).toContain("refund");
@@ -78,23 +76,29 @@ withViewports(() => {
   });
 });
 
-test("a free visitor who asks for a hosted policy sees the pricing prompt", async ({ page }) => {
-  await stopUntilBuilt(page, "/privacy-policy-generator");
+test("a signed-in free account that publishes sees the pricing prompt", async ({ page }) => {
+  await openTool(page, "/privacy-policy-generator");
+  await signIn(page, test.info());
+  await openTool(page, "/privacy-policy-generator");
   await fillQuestionnaire(page);
-  await page.getByRole("button", { name: "Publish hosted link" }).click();
+  await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByRole("status")).toContainText("free");
   await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
 });
 
 test("a paid hosted policy link shows the answers", async ({ page }) => {
-  await stopUntilBuilt(page, "/privacy-policy-generator");
+  await openTool(page, "/privacy-policy-generator");
   await signIn(page, test.info());
   await seedAllToolsPlan(page);
   await openTool(page, "/privacy-policy-generator");
   await fillQuestionnaire(page);
+  const pdf = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download PDF" }).click();
+  await pdf;
+  const markdown = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download Markdown" }).click();
-  await page.getByRole("button", { name: "Publish hosted link" }).click();
+  await markdown;
+  await page.getByRole("button", { name: "Publish" }).click();
   const hosted = page.getByRole("link", { name: /\/p\// });
   await expect(hosted).toBeVisible();
   const href = await hosted.getAttribute("href");
@@ -105,17 +109,29 @@ test("a paid hosted policy link shows the answers", async ({ page }) => {
   await expect(page.getByText(/not legal advice/i)).toBeVisible();
 });
 
-async function stopUntilBuilt(page: Page, slug: string): Promise<void> {
-  await openTool(page, slug);
-  if (await plannedOrMissing(page)) test.fixme(true, fixmeReason);
+async function fillQuestionnaire(page: Page): Promise<void> {
+  await fillLabel(page, "Business name", answers.business);
+  await fillLabel(page, "Contact email", answers.email);
+  await fillLabel(page, "Website", answers.site);
+  const jurisdiction = page.getByLabel("Jurisdiction");
+  if ((await jurisdiction.count()) > 0) await jurisdiction.selectOption(answers.jurisdiction);
+  await fillLabel(page, "Data collected", answers.detail);
+  await fillLabel(page, "Purpose", answers.detail);
+  await fillLabel(page, "Retention", "30 days");
+  await fillLabel(page, "Product", answers.detail);
+  await fillLabel(page, "Acceptable use", answers.detail);
+  await fillLabel(page, "Termination", "either party stops");
+  await fillLabel(page, "Cookie name", "cart_id");
+  await fillLabel(page, "Duration", "1 day");
+  await fillLabel(page, "Refund window", "14 days");
+  await fillLabel(page, "Refund method", "bank transfer");
+  await fillLabel(page, "Exceptions", answers.detail);
 }
 
-async function fillQuestionnaire(page: Page): Promise<void> {
-  await page.getByLabel("Business name").fill(answers.business);
-  await page.getByLabel("Website").fill(answers.site);
-  await page.getByLabel("Contact email").fill(answers.email);
-  await page.getByLabel("Jurisdiction").selectOption(answers.jurisdiction);
-  await page.getByLabel("What the business does").fill(answers.detail);
+async function fillLabel(page: Page, label: string, value: string): Promise<void> {
+  const field = page.getByLabel(label);
+  if ((await field.count()) === 0) return;
+  await field.fill(value);
 }
 
 async function copied(page: Page, button: string): Promise<string> {

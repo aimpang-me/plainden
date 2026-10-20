@@ -1,0 +1,14 @@
+action: open /compress-video-for-discord
+visible: under 8 MB
+preset: discord
+action: add sample.mp4
+action: click Compress video
+status: Compressed to 60942 bytes, under the Discord 8 MB limit.
+download: compressed.mp4 60942 bytes ftyp
+action: open /compress-video-to-720p
+preset: 720p
+action: add sample.mp4
+action: click Compress video
+status: Compressed to 27132 bytes at 720p.
+download: compressed.mp4 27132 bytes ftyp
+source: sample.mp4 55509 bytes
