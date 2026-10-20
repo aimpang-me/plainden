@@ -11,3 +11,5 @@ Free text and HTML end with `made with plainden`. Every output includes `This dr
 The stored body is the rendered prose. The public page does not render the catalog again.
 
 Both configs import one `legalLimits` object because `limitsFor` uses the first `legal` row and `cookie-refund` sorts first.
+
+The browser proof opens Image tools for the planned placeholder. Privacy is a real tool, so that drive no longer looks for the old sentence.

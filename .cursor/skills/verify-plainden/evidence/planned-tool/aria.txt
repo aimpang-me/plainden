@@ -1,7 +1,7 @@
 - main:
   - article:
-    - heading "Privacy and terms generator" [level=1]
-    - paragraph: Answer a questionnaire and copy a privacy policy or terms draft.
+    - heading "Image tools" [level=1]
+    - paragraph: Compress, resize, or convert images in the browser.
     - paragraph: This tool is not built yet.
     - region "Related tools":
       - heading "Related tools" [level=2]
@@ -10,8 +10,8 @@
           - link "Invoice generator":
             - /url: /invoice-generator
         - listitem:
+          - link "Privacy and terms generator":
+            - /url: /privacy-policy-generator
+        - listitem:
           - link "PDF tools":
             - /url: /merge-pdf
-        - listitem:
-          - link "QR code generator":
-            - /url: /qr-code-generator

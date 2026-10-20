@@ -1,5 +1,5 @@
 action: open /
-action: click link Privacy and terms generator
-url: /privacy-policy-generator
-heading: Privacy and terms generator
+action: click link Image tools
+url: /compress-image
+heading: Image tools
 visible: This tool is not built yet.

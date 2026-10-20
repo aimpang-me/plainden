@@ -44,6 +44,7 @@ Each feature file starts with an H1 and one paragraph. It then uses exactly four
 - [Receipt generator](./receipt-generator.md) shows a PAID stamp and downloads a receipt.
 - [PDF tools](./pdf.md) says compress is up to 4 MB, then merges two PDFs.
 - [QR code](./qr.md) downloads a static PNG and blocks a free dynamic publish.
+- [Privacy policy](./privacy-policy.md) shows each questionnaire answer and blocks a free Markdown download.
 - [SEO](./seo.md) serves the canonical link, JSON-LD, sitemap, and robots file.
 - [Pricing](./pricing.md) lists monthly and annual prices from the catalog.
 - [Theme](./theme.md) switches light and dark and stores the choice.

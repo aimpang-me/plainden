@@ -1,0 +1,13 @@
+action: open /cookie-policy-generator-for-shop
+visible: The cookie named in this draft is cart_id.
+action: open /refund-policy-generator-for-services
+visible: Refunds are paid by bank transfer.
+action: open /privacy-policy-generator-for-app
+action: fill Business name Ada Studio
+visible: This service is run by Ada Studio.
+visible: This draft is not legal advice.
+action: click Download Markdown
+status: Markdown and PDF need the legal plan.
+visible: See pricing
+action: GET /p/not-a-policy
+status: 404
