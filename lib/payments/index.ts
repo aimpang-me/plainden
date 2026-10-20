@@ -1,19 +1,11 @@
-import type {
-  CheckoutInput,
-  CheckoutResult,
-  Payments,
-  PortalInput,
-  PortalResult,
-  WebhookInput,
-  WebhookResult,
-} from "./types";
+import type { Payments, WebhookInput, WebhookResult } from "./types";
+import { createCheckout, createPortal } from "./checkout";
+import { PaymentsNotConfigured, WebhookSignatureError } from "./errors";
+import { persistSubscription } from "./persist";
+import { getWebhookStripe, webhookSecret } from "./stripe-client";
+import { applyForEvent } from "./subscription";
 
-export class PaymentsNotConfigured extends Error {
-  constructor() {
-    super("Payments are not configured");
-    this.name = "PaymentsNotConfigured";
-  }
-}
+export { PaymentsNotConfigured, WebhookSignatureError, createCheckout, createPortal };
 
 export const payments: Payments = {
   createCheckout,
@@ -21,17 +13,16 @@ export const payments: Payments = {
   handleWebhook,
 };
 
-export async function createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
-  void input;
-  throw new PaymentsNotConfigured();
-}
-
-export async function createPortal(input: PortalInput): Promise<PortalResult> {
-  void input;
-  throw new PaymentsNotConfigured();
-}
-
 export async function handleWebhook(input: WebhookInput): Promise<WebhookResult> {
-  void input;
-  throw new PaymentsNotConfigured();
+  const stripe = getWebhookStripe();
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(input.rawBody, input.signature, webhookSecret());
+  } catch (error) {
+    if (error instanceof PaymentsNotConfigured) throw error;
+    throw new WebhookSignatureError();
+  }
+  const apply = applyForEvent(event);
+  if (apply.kind !== "ignore") await persistSubscription(apply);
+  return { handled: true };
 }

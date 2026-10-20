@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright";
@@ -17,7 +17,7 @@ const base = `http://127.0.0.1:${port}`;
 const dataDir = path.join(root, ".data/verify-pglite");
 const readyText = "Small tools that run in the browser";
 
-const featureIds = ["scaffold-tool", "landing", "planned-tool", "pricing", "theme"];
+const featureIds = ["scaffold-tool", "landing", "planned-tool", "pricing", "theme", "sign-in"];
 
 function fail(message) {
   console.error(message);
@@ -247,12 +247,54 @@ async function driveTheme(page, dir) {
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
 }
 
+async function readMagicLink(email) {
+  const dir = path.join(root, ".dev-mail");
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if (existsSync(dir)) {
+      for (const name of readdirSync(dir)) {
+        if (!name.endsWith(".json")) continue;
+        const message = JSON.parse(readFileSync(path.join(dir, name), "utf8"));
+        if (message.to === email && typeof message.magicLinkUrl === "string") return message.magicLinkUrl;
+      }
+    }
+    await delay(200);
+  }
+  fail(`no magic link for ${email}`);
+}
+
+async function driveSignIn(page, dir) {
+  rmSync(path.join(root, ".dev-mail"), { recursive: true, force: true });
+  const email = `ada.verify.${Date.now()}@example.com`;
+  const lines = ["action: open /account", `action: fill Email ${email}`, "action: click Email me a sign-in link"];
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  const sent = "Check your email for a sign-in link.";
+  await page.getByRole("status").filter({ hasText: sent }).waitFor({ timeout: 15_000 });
+  const status = await page.getByRole("status").innerText();
+  lines.push(`status: ${status}`);
+  if (status !== sent) fail(`sign-in status was ${JSON.stringify(status)}`);
+  lines.push("action: open magic link from .dev-mail");
+  await page.goto(await readMagicLink(email), { waitUntil: "domcontentloaded" });
+  await page.getByText(email).waitFor({ timeout: 15_000 });
+  if ((await page.getByRole("button", { name: "Sign out" }).count()) < 1) fail("Sign out was missing");
+  const url = new URL(page.url());
+  if (url.pathname !== "/account") fail(`landed on ${url.pathname}`);
+  if (url.searchParams.has("error")) fail(`sign-in error ${url.searchParams.get("error")}`);
+  lines.push(`visible: ${email}`);
+  lines.push("visible: button Sign out");
+  lines.push("url: /account");
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
 const drivers = {
   "scaffold-tool": { path: "/scaffold-check", run: driveScaffold },
   landing: { path: "/", run: driveLanding },
   "planned-tool": { path: "/", run: drivePlanned },
   pricing: { path: "/pricing", run: drivePricing },
   theme: { path: "/", run: driveTheme },
+  "sign-in": { path: "/account", run: driveSignIn },
 };
 
 async function drive(featureId) {

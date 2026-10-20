@@ -1,0 +1,5 @@
+action: open /
+action: click link Invoice generator
+url: /invoice-generator
+heading: Invoice generator
+visible: This tool is not built yet.

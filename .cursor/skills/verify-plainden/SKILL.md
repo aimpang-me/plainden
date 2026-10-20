@@ -42,7 +42,7 @@ Run doctor before a drive. If it fails, do not click through a server you do not
 node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive <feature-id>
 ```
 
-Feature ids: `scaffold-tool`, `landing`, `planned-tool`, `pricing`, `theme`.
+Feature ids: `scaffold-tool`, `landing`, `planned-tool`, `pricing`, `theme`, `sign-in`.
 
 The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[data-hydrated="true"]`, then uses accessible names:
 
@@ -60,6 +60,10 @@ The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[dat
 | Check | button `Check` |
 | Result | status role |
 | Upgrade | link `See pricing` |
+| Account nav | link `Account` |
+| Email | textbox `Email` |
+| Send link | button `Email me a sign-in link` |
+| Sign out | button `Sign out` |
 
 `scaffold-tool` fills Note `Hello` and Count `1`, clicks Check, and expects status `Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.` It then sets Count to `4`, clicks Check, and expects status `free perMonth allows 3` plus link `See pricing`.
 
@@ -73,7 +77,7 @@ Each drive writes `.cursor/skills/verify-plainden/evidence/<feature-id>/`:
 - `aria.txt` is the ARIA snapshot of `main` after the last action. `theme` also writes `aria-dark.txt` while `data-theme` is `dark`.
 - `page.png` is a full page screenshot after the last action. `scaffold-tool` also writes `allowed.png` after the count of 1. `theme` also writes `dark.png`.
 
-The screenshot includes the header link `plainden`. Proof uses the real pages. It does not call test-only endpoints. The scaffold check runs `decideLimit` in the browser. No Stripe, Resend, or Neon call is made. Confirm that by the absence of those keys in the child env the helper sets, and by payments staying unwired in this build.
+The screenshot includes the header link `plainden`. Proof uses the real pages. It does not call test-only endpoints. The scaffold check runs `decideLimit` in the browser. `sign-in` writes `evidence/sign-in/` after the account page shows the address from a `.dev-mail` link. That drive uses the file mail transport and the Turnstile test key. It does not call Stripe, Resend, or Neon.
 
 ## Cleanup
 

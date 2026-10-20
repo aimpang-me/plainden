@@ -1,6 +1,6 @@
 # plainden verification map
 
-This directory is the maintained source for the user-facing behavior that exists after F-a. Read the index, then use the matching feature file.
+This directory is the maintained source for the user-facing behavior that exists. Read the index, then use the matching feature file.
 
 ## Baseline preconditions
 
@@ -42,3 +42,4 @@ Each feature file starts with an H1 and one paragraph. It then uses exactly four
 - [Planned tool](./planned-tool.md) opens a tool that is not built yet.
 - [Pricing](./pricing.md) lists monthly and annual prices from the catalog.
 - [Theme](./theme.md) switches light and dark and stores the choice.
+- [Sign in](./sign-in.md) requests a magic link on `/account` and opens it from `.dev-mail`.

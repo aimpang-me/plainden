@@ -13,3 +13,15 @@
 - Theme ignores the system color scheme. First paint stays `light` unless `localStorage` already has `plainden-theme`.
 - `app/[slug]/page.tsx` sets `instant = false` so cache components can read the slug. `next.config.ts` allows dev origins `127.0.0.1` and `localhost`.
 - No GitHub Actions workflow is added. Tests run locally.
+
+## F-b
+
+- Magic link is Better Auth. `EMAIL_TRANSPORT=file` writes one JSON file per message under `.dev-mail`. Playwright and the verify skill open that URL.
+- The sign-in form pre-seeds `XXXX.DUMMY.TOKEN.XXXX` when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is the Cloudflare test key. The captcha plugin still runs siteverify.
+- `getDb` stores its PGlite and Neon promises on `globalThis`. Next compiles the account server action and the auth route as two copies of `lib/db/client.ts`. A module-level Map gave each copy its own PGlite, so a session written by one was invisible to the other.
+- Neon opens only when `DATABASE_URL` is set and `PGLITE_DATA_DIR` is unset. Any other case uses PGlite.
+- `checkLimit` writes the usage row after `decideLimit` returns ok. Workers keep the CONTRACT signature. `fileSize` and `batchCount` stay per request and do not write a row.
+- `useEntitlement` still returns `{ plan: "free" }`. The hook is synchronous, so it cannot call `getCurrentUser`.
+- `checkout.session.completed` inserts an active row and does not rewrite a later status. `customer.subscription.updated` replaces status, price, and period. `customer.subscription.deleted` sets `canceled`. `invoice.payment_failed` sets `past_due`.
+- Webhook tests sign fixtures with `stripe.webhooks.generateTestHeaderString`. `scripts/stripe/sync-prices.ts` was not run.
+- `.env.development` sets `BETTER_AUTH_SECRET` to `plainden-dev-secret-0123456789abcdef`. `getAuth` throws in production when that secret is missing. It does not read the secret at import time.

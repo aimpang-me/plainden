@@ -55,6 +55,10 @@ export const prices: readonly Price[] = [
   },
 ];
 
+export function pricesToCreate(): readonly Price[] {
+  return prices.filter((price) => price.amountCents > 0);
+}
+
 export function priceByLookupKey(lookupKey: string): Price | undefined {
   return prices.find((price) => price.lookupKey === lookupKey);
 }

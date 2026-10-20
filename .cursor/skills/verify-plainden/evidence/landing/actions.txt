@@ -1,0 +1,6 @@
+action: open /
+heading: Small tools that run in the browser
+support: mailto:support@plainden.com
+visible: link Invoice generator
+visible: $5/mo
+visible: $9/mo
