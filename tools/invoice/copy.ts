@@ -5,7 +5,7 @@ export const copy = {
   headline: "Invoice generator",
   steps: [
     "Enter your name, the client, and at least one line with a quantity and a price.",
-    "Read the preview total. Tax is one percent of the subtotal.",
+    "Read the preview total. Tax is the percent you enter, applied to the subtotal.",
     "Download the PDF. A free browser can make 3 PDFs a month, and each file includes a small footer.",
   ],
   faq: [

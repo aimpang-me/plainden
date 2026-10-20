@@ -52,8 +52,8 @@
           - link "Invoice generator":
             - /url: /invoice-generator
         - listitem:
-          - link "Privacy and terms generator":
-            - /url: /privacy-policy-generator
-        - listitem:
           - link "PDF tools":
             - /url: /merge-pdf
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator

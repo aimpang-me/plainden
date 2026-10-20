@@ -23,7 +23,7 @@ withViewports(() => {
     expect(bytes.readUInt32BE(16)).toBe(512);
     expect(bytes.readUInt32BE(20)).toBe(512);
     expect(await pngFingerprint(page, bytes)).toBe(await pngFingerprint(page, await qrPng(linkPayload)));
-    await expect(page.locator("object[aria-label='QR code']")).toBeVisible();
+    await expect(page.getByRole("img", { name: "QR code" })).toBeVisible();
   });
 
   test("publishing a dynamic code on the free plan shows the pricing prompt", async ({ page }) => {

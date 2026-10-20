@@ -94,15 +94,15 @@ Import `checkLimit`, `getEntitlement`, and `decideLimit` from `lib/entitlements`
 
 `getEntitlement` treats every device subject as free and does not open the database. A user subject is paid when `subscriptions` has `status` `active` or `trialing` for that `entitlementKey` or for `all`. `canceled` stays free.
 
-`checkLimit` reads limits from the registry, then from `lib/catalog/planned.ts`. An unknown entitlement returns `{ ok: false, limit: 0, reason: "unknown entitlement <key>" }`. Over the cap, `reason` is `<plan> <kind> allows <limit>`. `checkLimit` does not write the `usage` table. F6 adds counters. This signature stays.
+`checkLimit` reads limits from the registry, then from `lib/catalog/planned.ts`. An unknown entitlement returns `{ ok: false, limit: 0, reason: "unknown entitlement <key>" }`. Over the cap, `reason` is `<plan> <kind> allows <limit>`. `savedItems` checks the cap and does not write `usage`. Other kinds increment `usage` when the decision is allowed. This signature stays.
 
-`useEntitlement` always returns `plan: "free"` while `getCurrentUser` returns null.
+`useEntitlement` returns `status: "loading"` until `/api/entitlement` responds, then `status: "ready"` with that plan. A signed-out response is the free plan. Callers must not apply a free cap while `status` is `loading`.
 
 `components/upgrade-prompt.tsx` exports `UpgradePrompt`. The prop is `reason: string`. The component prints that string and a link named `See pricing` to `/pricing`.
 
 ## Auth
 
-`lib/auth/get-current-user.ts` exports `getCurrentUser(): Promise<CurrentUser | null>`. `CurrentUser` is `{ id, email, name }`. The stub returns `null`.
+`lib/auth/get-current-user.ts` exports `getCurrentUser(): Promise<CurrentUser | null>`. `CurrentUser` is `{ id, email, name }`. It returns the signed-in user, or `null` when there is no session.
 
 ## Database
 
@@ -128,7 +128,7 @@ handleWebhook(input: WebhookInput): Promise<WebhookResult>
 
 `CheckoutInput` is `{ priceLookupKey, subject, successPath, cancelPath }`. `CheckoutResult` and `PortalResult` are `{ url }`. `PortalInput` is `{ subject, returnPath }`. `WebhookInput` is `{ rawBody, signature }`. `WebhookResult` is `{ handled: true }`.
 
-`lib/payments/index.ts` exports `payments`, `createCheckout`, `createPortal`, `handleWebhook`, and `PaymentsNotConfigured`. Each method throws `PaymentsNotConfigured` with message `Payments are not configured`. The stub does not read Stripe environment variables.
+`lib/payments/index.ts` exports `payments`, `createCheckout`, `createPortal`, `handleWebhook`, and `PaymentsNotConfigured`. Checkout, portal, and webhook verification call Stripe. They throw `PaymentsNotConfigured` with message `Payments are not configured` when the Stripe secret for that call is missing.
 
 ## UI primitives
 

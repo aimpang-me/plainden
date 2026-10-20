@@ -1,13 +1,13 @@
 # SEO
 
-The home page has a canonical URL and WebSite JSON-LD. `/sitemap.xml` lists the built and planned tools. `/robots.txt` points at the sitemap.
+The home page has a canonical URL and WebSite JSON-LD. `/sitemap.xml` lists the built public tools. `/robots.txt` points at the sitemap and disallows `/account`.
 
 ## Sub-features
 
 - `seo-canonical` sets the home canonical to `https://plainden.com`.
 - `seo-jsonld` embeds a WebSite node.
-- `seo-sitemap` lists invoice, PDF, QR, and the privacy placeholder.
-- `seo-robots` allows `/` and names the sitemap.
+- `seo-sitemap` lists invoice, PDF, QR, and receipt, and omits privacy and scaffold.
+- `seo-robots` allows `/`, disallows `/account`, and names the sitemap.
 
 ## How to get to it (user POV)
 
@@ -23,7 +23,7 @@ Preconditions:
 - `NEXT_PUBLIC_SITE_URL` is unset, so the origin stays `https://plainden.com`.
 
 - **Home metadata.** Run `node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive seo`. The canonical href is `https://plainden.com` and the JSON-LD script contains `"@type":"WebSite"`.
-- **Sitemap and robots.** `GET /sitemap.xml` is 200 and contains the invoice, merge PDF, QR, and privacy locs. `GET /robots.txt` is 200, allows `/`, and names `https://plainden.com/sitemap.xml`.
+- **Sitemap and robots.** `GET /sitemap.xml` is 200 and contains the invoice, merge PDF, QR, and receipt locs. It does not contain the privacy or scaffold locs. `GET /robots.txt` is 200, allows `/`, disallows `/account`, and names `https://plainden.com/sitemap.xml`.
 - **Proof.** The drive writes `evidence/seo/actions.txt`, `evidence/seo/aria.txt`, and `evidence/seo/page.png`.
 
 ## Gotchas

@@ -12,6 +12,7 @@ import { useEntitlement } from "@/lib/entitlements/use-entitlement";
 import { config } from "./config";
 import { encodeJpegWithCanvas } from "./encode";
 import { opForSlug, runPdf, type PdfOp } from "./engine";
+import { formatFileSize } from "./format-size";
 import { gatePdf, operationsUsed, pageNote, recordOperation } from "./gate";
 
 type Download = { name: string; url: string };
@@ -67,7 +68,7 @@ export default function Tool({ slug, preset }: ToolProps) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!op || running) return;
+    if (!op || running || entitlement.status !== "ready") return;
     setBlocked(false);
     replaceDownloads([]);
     if (files.length === 0) {
@@ -132,7 +133,7 @@ export default function Tool({ slug, preset }: ToolProps) {
             {files.map((file, index) => (
               <li key={`${file.name}-${file.size}-${index}`} className="flex items-center justify-between gap-2">
                 <span>
-                  {file.name}, {file.size} bytes
+                  {file.name}, {formatFileSize(file.size)}
                 </span>
                 <Button type="button" variant="plain" onClick={() => setFiles((current) => current.filter((_, item) => item !== index))}>
                   Remove {file.name}
@@ -144,7 +145,7 @@ export default function Tool({ slug, preset }: ToolProps) {
         {op === "split" ? (
           <Input label="Pages" name="pages" value={range} onChange={(event) => setRange(event.target.value)} />
         ) : null}
-        <Button type="submit" disabled={running}>
+        <Button type="submit" disabled={running || entitlement.status !== "ready"}>
           {buttons[op]}
         </Button>
         <p role="status">{message}</p>

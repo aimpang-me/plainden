@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import type { Entitlement } from "../contract/types";
 import { readEntitlementPayload } from "./entitlement-payload";
 
-export function useEntitlement(entitlementKey: string): Entitlement {
-  const [plan, setPlan] = useState<Entitlement["plan"]>("free");
+export type EntitlementView = Entitlement & { status: "loading" | "ready" };
+
+export function useEntitlement(entitlementKey: string): EntitlementView {
+  const [view, setView] = useState<EntitlementView>({ entitlementKey, plan: "free", status: "loading" });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -13,13 +15,13 @@ export function useEntitlement(entitlementKey: string): Entitlement {
     fetch(`/api/entitlement?${params}`, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((body: unknown) => {
-        setPlan(readEntitlementPayload(body, entitlementKey).plan);
+        setView({ entitlementKey, plan: readEntitlementPayload(body, entitlementKey).plan, status: "ready" });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setPlan("free");
+        if (!controller.signal.aborted) setView({ entitlementKey, plan: "free", status: "ready" });
       });
     return () => controller.abort();
   }, [entitlementKey]);
 
-  return { entitlementKey, plan };
+  return view;
 }

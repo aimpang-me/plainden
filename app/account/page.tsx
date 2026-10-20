@@ -1,9 +1,19 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { connection } from "next/server";
 import { SignInForm } from "@/components/sign-in-form";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { siteOrigin } from "@/lib/seo";
 import { signOut } from "./actions";
+
+export function generateMetadata(): Metadata {
+  return {
+    title: "Account",
+    alternates: { canonical: `${siteOrigin()}/account` },
+    robots: { index: false, follow: false },
+  };
+}
 
 export const instant = false;
 

@@ -1,23 +1,23 @@
 - main:
   - article:
-    - heading "PDF tools" [level=1]
+    - heading "Merge PDF" [level=1]
     - paragraph: Merge, split, compress, or turn JPG files into a PDF in the browser.
     - heading "Merge" [level=2]
     - text: PDF files
     - button "PDF files"
     - list:
       - listitem:
-        - text: left.pdf, 574 bytes
+        - text: left.pdf, 576 B
         - button "Remove left.pdf"
       - listitem:
-        - text: right.pdf, 574 bytes
+        - text: right.pdf, 576 B
         - button "Remove right.pdf"
     - button "Merge PDFs"
     - status: Merged 2 files into 2 pages.
     - list:
       - listitem:
         - link "merged.pdf":
-          - /url: blob:http://127.0.0.1:3100/682a201c-70ca-44f7-8a47-e9444d31c6dc
+          - /url: blob:http://127.0.0.1:3100/7b5c70ca-58da-4aa6-b078-148e5fee2b81
     - region "Steps":
       - heading "Steps" [level=2]
       - list:
@@ -52,8 +52,8 @@
           - link "Invoice generator":
             - /url: /invoice-generator
         - listitem:
-          - link "Privacy and terms generator":
-            - /url: /privacy-policy-generator
-        - listitem:
           - link "QR code generator":
             - /url: /qr-code-generator
+        - listitem:
+          - link "Receipt generator":
+            - /url: /receipt-generator

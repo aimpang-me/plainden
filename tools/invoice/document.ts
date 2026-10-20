@@ -14,6 +14,9 @@ export const LOGO_MAX_BYTES = 200 * 1024;
 export const BODY_VERSION = 1;
 
 const MAX_LINES = 50;
+const MAX_NAME = 120;
+const MAX_NUMBER = 40;
+const MAX_DESCRIPTION = 240;
 const MAX_MILLI = 9_999_999;
 const MAX_MINOR = 99_999_999;
 
@@ -192,10 +195,34 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
-const stableNow = new Date("2026-10-20T00:00:00.000Z");
-const stableDay = isoDate(stableNow);
+function clock(now?: Date): Date {
+  return now ?? new Date();
+}
+
+export const stableFormDate = new Date("2026-10-20T12:00:00.000Z");
+
+export function stampInvoiceDates(draft: InvoiceDraft, preset: InvoicePreset, now = new Date()): InvoiceDraft {
+  if (preset.issuedOn || preset.dueOn) return draft;
+  const placeholder = openInvoice({}, stableFormDate);
+  if (draft.issuedOn !== placeholder.issuedOn || draft.dueOn !== placeholder.dueOn) return draft;
+  const today = clock(now);
+  const issuedOn = isoDate(today);
+  const dueOn = isoDate(addDays(today, 14));
+  if (draft.issuedOn === issuedOn && draft.dueOn === dueOn) return draft;
+  return { ...draft, issuedOn, dueOn };
+}
+
+export function stampReceiptDate(draft: ReceiptDraft, preset: ReceiptPreset, now = new Date()): ReceiptDraft {
+  if (preset.paidOn) return draft;
+  const placeholder = openReceipt({}, stableFormDate);
+  if (draft.paidOn !== placeholder.paidOn) return draft;
+  const paidOn = isoDate(clock(now));
+  if (draft.paidOn === paidOn) return draft;
+  return { ...draft, paidOn };
+}
 
 export function openInvoice(preset: InvoicePreset = {}, now?: Date): InvoiceDraft {
+  const today = clock(now);
   return {
     kind: "invoice",
     from: party(preset.from),
@@ -207,12 +234,13 @@ export function openInvoice(preset: InvoicePreset = {}, now?: Date): InvoiceDraf
     notes: preset.notes ?? "",
     template: preset.template ?? FREE_TEMPLATE,
     logo: null,
-    issuedOn: preset.issuedOn ?? (now ? isoDate(now) : stableDay),
-    dueOn: preset.dueOn ?? isoDate(addDays(now ?? stableNow, 14)),
+    issuedOn: preset.issuedOn ?? isoDate(today),
+    dueOn: preset.dueOn ?? isoDate(addDays(today, 14)),
   };
 }
 
 export function openReceipt(preset: ReceiptPreset = {}, now?: Date): ReceiptDraft {
+  const today = clock(now);
   return {
     kind: "receipt",
     from: party(preset.from),
@@ -224,7 +252,7 @@ export function openReceipt(preset: ReceiptPreset = {}, now?: Date): ReceiptDraf
     notes: preset.notes ?? "",
     template: preset.template ?? FREE_TEMPLATE,
     logo: null,
-    paidOn: preset.paidOn ?? (now ? isoDate(now) : stableDay),
+    paidOn: preset.paidOn ?? isoDate(today),
     method: preset.method ?? "",
   };
 }
@@ -374,10 +402,11 @@ function parseParty(prefix: string, partyDraft: PartyDraft, issues: Issue[]): Pa
   const email = partyDraft.email.trim();
   const taxId = partyDraft.taxId.trim();
   if (!name) pushIssue(issues, `${prefix}.name`, "Enter a name.");
+  if (name.length > MAX_NAME) pushIssue(issues, `${prefix}.name`, "Name is too long.");
   if (address.length > 400) pushIssue(issues, `${prefix}.address`, "Address is too long.");
   if (taxId.length > 40) pushIssue(issues, `${prefix}.taxId`, "Tax id is too long.");
   if (email && !email.includes("@")) pushIssue(issues, `${prefix}.email`, "Email needs an @.");
-  if (!name || address.length > 400 || taxId.length > 40 || (email && !email.includes("@"))) return null;
+  if (!name || name.length > MAX_NAME || address.length > 400 || taxId.length > 40 || (email && !email.includes("@"))) return null;
   return { name, address, email, taxId };
 }
 
@@ -391,6 +420,10 @@ function parseLines(lines: readonly LineDraft[], issues: Issue[]): { kept: LineD
     if (!description && !quantity && !unitPrice) continue;
     if (!description || !quantity || !unitPrice) {
       pushIssue(issues, `line.${line.key}`, "Each line needs a description, quantity, and price.");
+      continue;
+    }
+    if (description.length > MAX_DESCRIPTION) {
+      pushIssue(issues, `line.${line.key}.description`, "Description is too long.");
       continue;
     }
     const quantityMilli = parseDecimal(quantity, 3, 1000);
@@ -421,6 +454,7 @@ function assess(draft: Draft): Parsed {
   const to = parseParty("to", draft.to, issues);
   const number = draft.number.trim();
   if (!number) pushIssue(issues, "number", "Enter a number.");
+  if (number.length > MAX_NUMBER) pushIssue(issues, "number", "Number is too long.");
   if (!isCurrency(draft.currency)) pushIssue(issues, "currency", "Choose a currency.");
   const taxPercent = parseDecimal(draft.taxPercent.trim(), 2, 100);
   if (taxPercent === null || taxPercent > 10_000) pushIssue(issues, "taxPercent", "Tax percent must be from 0 to 100.");
@@ -442,6 +476,7 @@ function assess(draft: Draft): Parsed {
     !from ||
     !to ||
     !number ||
+    number.length > MAX_NUMBER ||
     !isCurrency(draft.currency) ||
     taxPercent === null ||
     taxPercent > 10_000 ||
@@ -662,6 +697,25 @@ function readLines(value: unknown): LineDraft[] | null {
     });
   }
   return lines;
+}
+
+export function draftFromSavedList(payload: unknown, kind: Draft["kind"]): Draft | null {
+  if (!isRecord(payload) || !Array.isArray(payload.documents)) return null;
+  for (const item of payload.documents) {
+    const parsed = parseIssued(item);
+    if (parsed.ok && parsed.issued.kind === kind) return draftFromIssued(parsed.issued);
+  }
+  return null;
+}
+
+export function clientsFromSavedList(payload: unknown): readonly Party[] {
+  if (!isRecord(payload) || !Array.isArray(payload.documents)) return [];
+  const issued: Issued[] = [];
+  for (const item of payload.documents) {
+    const parsed = parseIssued(item);
+    if (parsed.ok) issued.push(parsed.issued);
+  }
+  return clientList(issued);
 }
 
 export function draftFromIssued(issued: Issued): Draft {

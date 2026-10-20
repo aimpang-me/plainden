@@ -54,6 +54,23 @@ test("signed subscription events update the row and a replay does not duplicate 
   expect(await rows(db)).toHaveLength(1);
 });
 
+test("a price change recomputes entitlement and an older event does not rewind the row", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
+  await handleWebhook(signed(checkoutEvent("evt_checkout", 5)));
+  await handleWebhook(signed(subscriptionEvent("evt_all", "customer.subscription.updated", "active", "plainden_all_month", 20)));
+  expect((await rows(db))[0]).toEqual(
+    expect.objectContaining({ entitlementKey: "all", priceLookupKey: "plainden_all_month", status: "active" }),
+  );
+  await handleWebhook(signed(subscriptionEvent("evt_same", "customer.subscription.updated", "past_due", "plainden_all_month", 20)));
+  expect((await rows(db))[0]?.status).toBe("past_due");
+  await handleWebhook(signed(subscriptionEvent("evt_old", "customer.subscription.updated", "canceled", "plainden_pdf_month", 10)));
+  expect((await rows(db))[0]).toEqual(
+    expect.objectContaining({ entitlementKey: "all", priceLookupKey: "plainden_all_month", status: "past_due" }),
+  );
+});
+
 test("a bad webhook signature is rejected", async () => {
   process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
   await expect(handleWebhook({ rawBody: "{}", signature: "t=1,v1=nope" })).rejects.toBeInstanceOf(WebhookSignatureError);
@@ -95,9 +112,10 @@ function signed(payload: unknown): { rawBody: string; signature: string } {
   };
 }
 
-function checkoutEvent(id: string) {
+function checkoutEvent(id: string, created?: number) {
   return {
     id,
+    ...(created === undefined ? {} : { created }),
     object: "event",
     type: "checkout.session.completed",
     data: {
@@ -118,9 +136,10 @@ function checkoutEvent(id: string) {
   };
 }
 
-function subscriptionEvent(id: string, type: string, status: string, lookupKey: string) {
+function subscriptionEvent(id: string, type: string, status: string, lookupKey: string, created?: number) {
   return {
     id,
+    ...(created === undefined ? {} : { created }),
     object: "event",
     type,
     data: {

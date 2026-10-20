@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { priceByLookupKey } from "../pricing/catalog";
 
 export const subscriptionStatuses = ["incomplete", "trialing", "active", "past_due", "canceled", "unpaid"] as const;
 
@@ -18,9 +19,24 @@ export type SubscriptionApply =
       kind: "insert-only" | "replace";
       status: SubscriptionStatus;
       currentPeriodEnd: Date | null;
+      eventCreated: number;
+    });
+
+type ApplyBody =
+  | { kind: "ignore" }
+  | (SubscriptionFields & {
+      kind: "insert-only" | "replace";
+      status: SubscriptionStatus;
+      currentPeriodEnd: Date | null;
     });
 
 export function applyForEvent(event: Stripe.Event): SubscriptionApply {
+  const body = applyBody(event);
+  if (body.kind === "ignore") return body;
+  return { ...body, eventCreated: typeof event.created === "number" ? event.created : 0 };
+}
+
+function applyBody(event: Stripe.Event): ApplyBody {
   switch (event.type) {
     case "checkout.session.completed":
       return applyCheckout(event.data.object);
@@ -35,7 +51,7 @@ export function applyForEvent(event: Stripe.Event): SubscriptionApply {
   }
 }
 
-function applyCheckout(session: Stripe.Checkout.Session): SubscriptionApply {
+function applyCheckout(session: Stripe.Checkout.Session): ApplyBody {
   const stripeSubscriptionId = idOf(session.subscription);
   const fields = fieldsFrom(session.metadata, stripeSubscriptionId, idOf(session.customer));
   if (!fields) return { kind: "ignore" };
@@ -47,16 +63,9 @@ function applyCheckout(session: Stripe.Checkout.Session): SubscriptionApply {
   };
 }
 
-function applySubscription(
-  subscription: Stripe.Subscription,
-  kind: "replace",
-): SubscriptionApply {
+function applySubscription(subscription: Stripe.Subscription, kind: "replace"): ApplyBody {
   const lookup = subscription.items.data[0]?.price.lookup_key ?? null;
-  const metadata = {
-    ...subscription.metadata,
-    priceLookupKey: subscription.metadata.priceLookupKey || lookup || "",
-  };
-  const fields = fieldsFrom(metadata, subscription.id, idOf(subscription.customer));
+  const fields = fieldsFrom(subscription.metadata, subscription.id, idOf(subscription.customer), lookup);
   if (!fields) return { kind: "ignore" };
   const periodEnd = subscription.items.data[0]?.current_period_end;
   return {
@@ -67,13 +76,13 @@ function applySubscription(
   };
 }
 
-function applyDeleted(subscription: Stripe.Subscription): SubscriptionApply {
+function applyDeleted(subscription: Stripe.Subscription): ApplyBody {
   const next = applySubscription(subscription, "replace");
   if (next.kind === "ignore") return next;
   return { ...next, kind: "replace", status: "canceled" };
 }
 
-function applyInvoiceFailed(invoice: Stripe.Invoice): SubscriptionApply {
+function applyInvoiceFailed(invoice: Stripe.Invoice): ApplyBody {
   const details = invoice.parent?.subscription_details;
   const stripeSubscriptionId = details ? idOf(details.subscription) : null;
   const fields = fieldsFrom(details?.metadata ?? null, stripeSubscriptionId, idOf(invoice.customer));
@@ -90,11 +99,24 @@ function fieldsFrom(
   metadata: Stripe.Metadata | null | undefined,
   stripeSubscriptionId: string | null,
   stripeCustomerId: string | null,
+  lookupKey?: string | null,
 ): SubscriptionFields | null {
   const userId = text(metadata, "userId");
+  if (!userId || !stripeSubscriptionId) return null;
+  if (lookupKey) {
+    const price = priceByLookupKey(lookupKey);
+    if (!price || price.amountCents <= 0) return null;
+    return {
+      userId,
+      entitlementKey: price.entitlementKey,
+      priceLookupKey: price.lookupKey,
+      stripeCustomerId,
+      stripeSubscriptionId,
+    };
+  }
   const entitlementKey = text(metadata, "entitlementKey");
   const priceLookupKey = text(metadata, "priceLookupKey");
-  if (!userId || !entitlementKey || !priceLookupKey || !stripeSubscriptionId) return null;
+  if (!entitlementKey || !priceLookupKey) return null;
   return { userId, entitlementKey, priceLookupKey, stripeCustomerId, stripeSubscriptionId };
 }
 

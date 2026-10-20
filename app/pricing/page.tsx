@@ -1,5 +1,7 @@
+import { Button } from "@/components/ui/button";
 import { formatPrice, prices } from "@/lib/pricing/catalog";
 import { JsonLd, metadataFor, pageByPath, siteOrigin } from "@/lib/seo";
+import { checkoutAction, portalAction } from "./actions";
 
 export function generateMetadata() {
   const page = pageByPath("/pricing");
@@ -22,9 +24,18 @@ export default function PricingPage() {
             <span>{price.name}</span>
             <span>{formatPrice(price.amountCents, price.interval)}</span>
             <span className="text-muted">{price.lookupKey}</span>
+            <form action={checkoutAction}>
+              <input type="hidden" name="lookupKey" value={price.lookupKey} />
+              <Button type="submit">Checkout</Button>
+            </form>
           </li>
         ))}
       </ul>
+      <form action={portalAction}>
+        <Button type="submit" variant="plain">
+          Open billing portal
+        </Button>
+      </form>
     </article>
   );
 }

@@ -1,6 +1,8 @@
 import { plannedTools } from "../catalog/planned";
+import { disabledToolIds } from "../catalog/visibility";
 import type { Faq, RegisteredTool, ToolConfig, ToolCopy } from "../contract/types";
 import { registry } from "../../tools/registry.generated";
+import { titleForSlug } from "./slug-title";
 
 export type ResolvedToolPage = {
   kind: "tool";
@@ -31,7 +33,7 @@ export function resolveSlug(slug: string, tools: readonly RegisteredTool[] = reg
         config: tool.config,
         copy: tool.copy,
         Tool: tool.Tool,
-        headline: tool.copy.headline,
+        headline: titleForSlug(slug) ?? tool.copy.headline,
         faq: tool.copy.faq,
       };
     }
@@ -69,5 +71,6 @@ export function staticSlugs(tools: readonly RegisteredTool[] = registry): string
 }
 
 export function relatedTools(currentId: string): ToolConfig[] {
-  return plannedTools.filter((tool) => tool.id !== currentId).slice(0, 3);
+  const hidden = new Set(disabledToolIds());
+  return plannedTools.filter((tool) => tool.id !== currentId && !hidden.has(tool.id)).slice(0, 3);
 }

@@ -25,7 +25,6 @@ async function createAuth() {
   const db = await getDb();
   const secret = authSecret();
   const baseURL = authBaseUrl();
-  const turnstileSecret = process.env.TURNSTILE_SECRET_KEY ?? turnstileTestSecret;
   return betterAuth({
     secret,
     baseURL,
@@ -51,12 +50,19 @@ async function createAuth() {
       }),
       captcha({
         provider: "cloudflare-turnstile",
-        secretKey: turnstileSecret,
+        secretKey: turnstileSecret(),
         endpoints: ["/sign-in/magic-link"],
       }),
       nextCookies(),
     ],
   });
+}
+
+export function turnstileSecret(): string {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") throw new Error("TURNSTILE_SECRET_KEY is required");
+  return turnstileTestSecret;
 }
 
 function authSecret(): string {

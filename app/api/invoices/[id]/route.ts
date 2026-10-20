@@ -1,3 +1,4 @@
+import { originAllowed } from "@/lib/security/origin";
 import { deleteDocument, readDocument } from "@/tools/invoice/save";
 import { requireUser } from "../require-user";
 
@@ -12,9 +13,12 @@ export async function GET(_request: Request, context: Context): Promise<Response
   return Response.json({ ok: true, id, document });
 }
 
-export async function DELETE(_request: Request, context: Context): Promise<Response> {
+export async function DELETE(request: Request, context: Context): Promise<Response> {
   const gate = await requireUser();
   if (!gate.ok) return gate.response;
+  if (!originAllowed(request)) {
+    return Response.json({ error: "forbidden", message: "Cross-origin write refused." }, { status: 403 });
+  }
   const { id } = await context.params;
   return Response.json(await deleteDocument(gate.user.id, id));
 }

@@ -1,6 +1,8 @@
+import { disabledToolIds } from "@/lib/catalog/visibility";
 import type { Faq, RegisteredTool } from "@/lib/contract/types";
 import { priceByLookupKey } from "@/lib/pricing/catalog";
 import { resolveSlug, staticSlugs, type ResolvedPage } from "@/lib/pages/resolve";
+import { titleForSlug } from "@/lib/pages/slug-title";
 import { registry } from "@/tools/registry.generated";
 
 const DEFAULT_ORIGIN = "https://plainden.com";
@@ -61,7 +63,7 @@ export function parseDisabledToolIds(raw: string | undefined): string[] {
 }
 
 export function listPages(input: ListInput = {}): SeoPage[] {
-  const disabled = new Set(input.disabledIds ?? parseDisabledToolIds(process.env.TOOLS_DISABLED));
+  const disabled = new Set(input.disabledIds ?? disabledToolIds());
   const tools = input.tools ?? registry;
   const pages: SeoPage[] = [homePage(), pricingPage()];
   const seen = new Set(pages.map((page) => page.path));
@@ -118,12 +120,12 @@ function fromResolved(page: ResolvedPage, disabled: ReadonlySet<string>): Catalo
       return {
         kind: "planned",
         path: `/${page.slug}`,
-        title: page.tool.name,
+        title: titleForSlug(page.slug) ?? page.tool.name,
         description: page.tool.description,
         index: !disabled.has(page.tool.id),
         crumbs: [
           { name: "plainden", path: "/" },
-          { name: page.tool.name, path: `/${page.slug}` },
+          { name: titleForSlug(page.slug) ?? page.tool.name, path: `/${page.slug}` },
         ],
         toolId: page.tool.id,
         applicationName: page.tool.name,

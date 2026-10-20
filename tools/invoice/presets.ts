@@ -15,7 +15,7 @@ const samples: Record<string, InvoicePreset> = {
     number: "CA-1001",
     currency: "CAD",
     taxPercent: "5",
-    notes: "One tax percent on the subtotal. Split GST and PST in the notes if you need both.",
+    notes: "Tax is the percent on the subtotal. Split GST and PST in the notes if you need both.",
     lines: [{ description: "Consulting", quantity: "2", unitPrice: "100.00" }],
   },
   [invoiceSlugs.googleDocs]: {

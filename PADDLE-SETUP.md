@@ -1,6 +1,6 @@
 # Apply for Paddle approval
 
-You do this in the Paddle dashboard. This repo does not call Paddle. Stripe is the processor the app will use first. `createCheckout`, `createPortal`, and `handleWebhook` in `lib/payments/types.ts` are the seam a later Paddle adapter would implement. The stub throws `PaymentsNotConfigured`.
+You do this in the Paddle dashboard. This repo does not call Paddle. Stripe implements `createCheckout`, `createPortal`, and `handleWebhook`. Those functions are the seam a later Paddle adapter would replace.
 
 Paddle reviews four public pages. Submit `plainden.com` only after all four are live.
 

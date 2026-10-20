@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { plannedTools } from "@/lib/catalog/planned";
+import { disabledToolIds } from "@/lib/catalog/visibility";
 import { formatPrice, priceByLookupKey } from "@/lib/pricing/catalog";
 import { JsonLd, metadataFor, pageByPath, siteOrigin } from "@/lib/seo";
 
@@ -26,7 +27,7 @@ export default function Home() {
         </p>
       </header>
       <ul className="grid gap-4">
-        {plannedTools.map((tool) => (
+        {plannedTools.filter((tool) => !disabledToolIds().includes(tool.id)).map((tool) => (
           <li key={tool.id} className="border border-line p-4">
             <Link href={`/${tool.slugs[0]}`} className="text-lg">
               {tool.name}
