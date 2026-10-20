@@ -74,7 +74,7 @@
           - paragraph: A line that says made with plainden, and the plain template. A paid plan removes that line and can use the ruled or letter template.
         - listitem:
           - heading "Can I save an invoice and open it later?" [level=3]
-          - paragraph: Saving is part of the invoice plan. This build has no sign-in yet, so the save button explains the limit and the server refuses anonymous writes.
+          - paragraph: Saving is part of the invoice plan and needs a signed-in account. The free plan cannot store invoices.
         - listitem:
           - heading "Which currencies can I use?" [level=3]
           - paragraph: USD, CAD, EUR, GBP, and AUD. Amounts are calculated in cents, not floating point.

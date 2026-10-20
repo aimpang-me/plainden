@@ -1,0 +1,9 @@
+action: open /qr-code-generator-no-expiration
+link: https://example.com
+action: click Create
+status: Downloaded PNG.
+action: open /dynamic-qr-code
+action: click Create
+status: free savedItems allows 0
+action: GET /q/not-a-code
+status: 404

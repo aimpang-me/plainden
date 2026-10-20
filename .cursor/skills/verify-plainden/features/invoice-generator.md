@@ -26,4 +26,4 @@ Preconditions:
 ## Gotchas
 
 - The free save limit is already on the page, so `See pricing` is visible before the fourth download. Judge the cap by the status text.
-- Sign-in is not wired. `Load saved` returns a sign-in message and does not reload a row. The paid save path is covered by Vitest.
+- The page starts on the free plan, so `Save` stays hidden until `/api/entitlement` returns paid. `Load saved` while signed out says `Sign in to save.` Paid save is covered by Vitest.

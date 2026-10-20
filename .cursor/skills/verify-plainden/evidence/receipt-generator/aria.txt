@@ -81,7 +81,7 @@
           - paragraph: No. Invoice and receipt PDFs share one count of 3 free downloads a month in this browser.
         - listitem:
           - heading "Can I save a receipt?" [level=3]
-          - paragraph: Saving uses the invoice plan, because the receipt is the same entitlement. Sign-in is not available in this build.
+          - paragraph: Saving uses the invoice plan, because a receipt is the same entitlement. It needs a signed-in account.
         - listitem:
           - heading "Is this a tax receipt for a donation?" [level=3]
           - paragraph: It can print the word donation and the amount. It is not a government form and it is not legal advice.

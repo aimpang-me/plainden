@@ -6,6 +6,7 @@ import { checkLimit } from "@/lib/entitlements";
 import { config } from "./config";
 import {
   parseCodeId,
+  parseTargetUrl,
   type Actor,
   type CodeId,
   type Command,
@@ -129,12 +130,17 @@ export async function recordScan(id: string): Promise<ScanResult> {
   const parsed = parseCodeId(id);
   if (!parsed.ok) return { ok: false };
   const db = await getDb();
+  const existing = await db.select({ targetUrl: qrCode.targetUrl }).from(qrCode).where(eq(qrCode.id, parsed.id));
+  const current = existing[0];
+  if (!current) return { ok: false };
+  const target = parseTargetUrl(current.targetUrl);
+  if (!target.ok) return { ok: false };
   const updated = await db
     .update(qrCode)
     .set({ scanCount: sql`${qrCode.scanCount} + 1` })
     .where(eq(qrCode.id, parsed.id))
-    .returning({ targetUrl: qrCode.targetUrl, scanCount: qrCode.scanCount });
+    .returning();
   const row = updated[0];
   if (!row) return { ok: false };
-  return { ok: true, targetUrl: row.targetUrl as HttpUrl, scanCount: row.scanCount };
+  return { ok: true, targetUrl: target.url, scanCount: row.scanCount };
 }

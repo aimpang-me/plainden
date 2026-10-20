@@ -1,0 +1,52 @@
+- main:
+  - article:
+    - heading "Dynamic QR code with scan counts" [level=1]
+    - paragraph: Publish a redirect when you need to change the destination later. The printed code stays the same, and plainden counts each scan.
+    - heading "Make a QR code" [level=2]
+    - text: Payload
+    - combobox "Payload":
+      - option "Link" [selected]
+      - option "Text"
+      - option "Wi-Fi"
+      - option "Contact"
+    - text: Link
+    - textbox "Link": https://example.com
+    - text: File
+    - combobox "File":
+      - option "PNG" [selected]
+      - option "SVG"
+    - text: Output
+    - combobox "Output":
+      - option "Download a static code"
+      - option "Publish a dynamic code" [selected]
+    - text: Center logo
+    - button "Center logo"
+    - button "Create"
+    - status: free savedItems allows 0
+    - paragraph: free savedItems allows 0
+    - link "See pricing":
+      - /url: /pricing
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Pick a link, a note, a Wi-Fi network, or a contact.
+        - listitem: Download a PNG or an SVG. The file stays on this device and never expires.
+        - listitem: A paid plan can publish a redirect that counts each scan.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Does a lapsed plan break old codes?" [level=3]
+          - paragraph: No. Existing redirects keep working. Creating or editing a code needs a paid plan.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "Privacy and terms generator":
+            - /url: /privacy-policy-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf

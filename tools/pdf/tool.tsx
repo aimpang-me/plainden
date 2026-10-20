@@ -121,7 +121,12 @@ export default function Tool({ slug, preset }: ToolProps) {
     <Card title={titles[op]}>
       <form className="grid gap-3" onSubmit={onSubmit}>
         {note ? <p>{note}</p> : null}
-        <FileDrop label={fileLabels[op]} onFiles={addFiles} />
+        <FileDrop
+          label={fileLabels[op]}
+          multiple={op === "merge" || op === "jpg"}
+          accept={op === "jpg" ? "image/jpeg,.jpg,.jpeg" : "application/pdf,.pdf"}
+          onFiles={addFiles}
+        />
         {files.length > 0 ? (
           <ul className="grid gap-1 text-sm">
             {files.map((file, index) => (

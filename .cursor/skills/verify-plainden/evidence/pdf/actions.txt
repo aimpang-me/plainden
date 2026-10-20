@@ -1,0 +1,8 @@
+action: open /compress-pdf-to-4mb
+visible: up to 4 MB
+visible: does not promise a 4 MB file
+action: open /merge-pdf
+action: add left.pdf and right.pdf
+action: click Merge PDFs
+status: Merged 2 files into 2 pages.
+visible: merged.pdf

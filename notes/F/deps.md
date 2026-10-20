@@ -13,3 +13,7 @@ Next.js 16.4.2, React 19.3.0, and eslint-config-next 16.4.2 came from `create-ne
 `npm install stripe@18.5.0 resend@6.1.2 @neondatabase/serverless@1.0.1`
 
 stripe creates Checkout and Billing Portal sessions and verifies webhook signatures. resend sends mail when `EMAIL_TRANSPORT` is not `file`. It is in `serverExternalPackages` because the production build cannot resolve the optional `@react-email/render` import. `@neondatabase/serverless` is the Neon HTTP driver used when `DATABASE_URL` is set and `PGLITE_DATA_DIR` is unset. `scripts/stripe/sync-prices.ts` was not executed.
+
+`npm install --save-exact qrcode@1.5.4 && npm install --save-exact -D @types/qrcode@1.5.5`
+
+qrcode draws the PNG and the SVG for the QR tool. `@types/qrcode` is required because qrcode 1.5.4 does not ship its own types. V, S, T1, and T3 added no packages.

@@ -80,6 +80,17 @@ test("a free user cannot publish and a paid user can", async () => {
   expect(published.code.logo).toBe(null);
 });
 
+test("twenty publishes through the handler stay under the paid cap", async () => {
+  await freshDb();
+  await addUser("user_many", "many@example.com", "active");
+  for (let index = 0; index < 20; index += 1) {
+    const published = await handle({ id: "user_many" }, publishCommand(`https://example.com/${index}`));
+    expect(published.ok, `publish ${index} ${JSON.stringify(published)}`).toBe(true);
+  }
+  const extra = await handle({ id: "user_many" }, publishCommand("https://example.com/extra"));
+  expect(extra).toEqual({ ok: false, code: "over-cap", reason: "paid savedItems allows 20" });
+});
+
 test("the 21st code is refused and an edit at the cap still saves", async () => {
   const db = await freshDb();
   await addUser("user_full", "full@example.com", "active");
@@ -142,6 +153,24 @@ test("a lapsed plan cannot edit and the redirect still counts scans", async () =
   expect(second).toEqual({ ok: true, targetUrl: "https://example.com/landed", scanCount: 2 });
   const stored = await db.select({ scanCount: qrCode.scanCount, targetUrl: qrCode.targetUrl }).from(qrCode).where(eq(qrCode.id, id));
   expect(stored).toEqual([{ scanCount: 2, targetUrl: "https://example.com/landed" }]);
+});
+
+test("a javascript target does not redirect and does not count a scan", async () => {
+  const db = await freshDb();
+  await addUser("user_bad", "bad@example.com", "active");
+  const id = "22222222-2222-4222-8222-222222222222";
+  await db.insert(qrCode).values({
+    id,
+    userId: "user_bad",
+    targetUrl: "javascript:alert(1)",
+    createdAt: now,
+  });
+  const response = await GET(new Request(`http://127.0.0.1/q/${id}`), { params: Promise.resolve({ id }) });
+  expect(response.status).toBe(404);
+  expect(response.headers.get("location")).toBeNull();
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  const stored = await db.select({ scanCount: qrCode.scanCount }).from(qrCode).where(eq(qrCode.id, id));
+  expect(stored).toEqual([{ scanCount: 0 }]);
 });
 
 test("a missing code is a 404 and a second remove still succeeds", async () => {

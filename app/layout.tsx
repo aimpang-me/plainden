@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { siteOrigin } from "@/lib/seo";
 import "./globals.css";
 
 const themeScript =
   'try{var t=localStorage.getItem("plainden-theme");if(t==="dark"||t==="light"){document.documentElement.dataset.theme=t}}catch(e){}';
 
-export const metadata: Metadata = {
-  title: { default: "plainden", template: "%s | plainden" },
-  description: "Small browser tools with a free limit and a $5 monthly plan.",
-};
+export function generateMetadata(): Metadata {
+  return {
+    metadataBase: new URL(siteOrigin()),
+    title: { default: "plainden", template: "%s | plainden" },
+    description: "Small browser tools with a free limit and a $5 monthly plan.",
+  };
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
