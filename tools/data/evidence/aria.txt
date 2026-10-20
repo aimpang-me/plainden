@@ -1,0 +1,67 @@
+- main:
+  - article:
+    - heading "CSV, JSON, and Excel converter" [level=1]
+    - paragraph: Convert CSV, JSON, and Excel files and preview the table.
+    - heading "CSV to JSON" [level=2]
+    - paragraph: Delimiter is comma. JSON shape is objects. Excel uses the first sheet.
+    - text: CSV file
+    - button "CSV file"
+    - paragraph:
+      - text: plainden-data-oversize.csv, 5242881 bytes
+      - button "Remove plainden-data-oversize.csv"
+    - text: Delimiter
+    - combobox "Delimiter":
+      - option "Comma" [selected]
+      - option "Semicolon"
+      - option "Tab"
+    - text: JSON shape
+    - combobox "JSON shape":
+      - option "Objects" [selected]
+      - option "Rows"
+    - button "Convert"
+    - status: Saved presets are on the paid plan.
+    - paragraph: Saved presets are on the paid plan.
+    - link "See pricing":
+      - /url: /pricing
+    - text: Preset name
+    - textbox "Preset name": Europe
+    - button "Save preset"
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Add a CSV, JSON, or Excel file.
+        - listitem: Press Convert and check the preview table.
+        - listitem: Download the result. A free plan allows 5 MB. A paid plan allows 100 MB and saved presets on this device.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Do my files get uploaded?" [level=3]
+          - paragraph: No. CSV, JSON, and Excel conversion runs in this browser.
+        - listitem:
+          - heading "What is the free size limit?" [level=3]
+          - paragraph: 5 MB for one file.
+        - listitem:
+          - heading "What does the paid plan change?" [level=3]
+          - paragraph: 100 MB for one file, and you can save conversion presets on this device.
+        - listitem:
+          - heading "What JSON shapes can I convert?" [level=3]
+          - paragraph: An array of objects, or an array of arrays whose first row is the header. A single object becomes one row. Values must be text, numbers, booleans, or null.
+        - listitem:
+          - heading "Which Excel files work?" [level=3]
+          - paragraph: xlsx and xls. The download is CSV. The default reads the first sheet.
+        - listitem:
+          - heading "Where are saved presets stored?" [level=3]
+          - paragraph: On this device, in this browser. They are not uploaded. A free plan cannot save them.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "Privacy and terms generator":
+            - /url: /privacy-policy-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
