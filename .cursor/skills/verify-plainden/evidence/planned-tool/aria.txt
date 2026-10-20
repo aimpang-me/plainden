@@ -1,14 +1,14 @@
 - main:
   - article:
-    - heading "Invoice generator" [level=1]
-    - paragraph: Fill in a client, line items, and tax, then download a PDF.
+    - heading "Privacy and terms generator" [level=1]
+    - paragraph: Answer a questionnaire and copy a privacy policy or terms draft.
     - paragraph: This tool is not built yet.
     - region "Related tools":
       - heading "Related tools" [level=2]
       - list:
         - listitem:
-          - link "Privacy and terms generator":
-            - /url: /privacy-policy-generator
+          - link "Invoice generator":
+            - /url: /invoice-generator
         - listitem:
           - link "PDF tools":
             - /url: /merge-pdf

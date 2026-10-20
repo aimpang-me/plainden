@@ -1,0 +1,200 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { UpgradePrompt } from "@/components/upgrade-prompt";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { FileDrop } from "@/components/ui/file-drop";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { LimitKind } from "@/lib/contract/limits";
+import type { LimitTable } from "@/lib/contract/types";
+import { decideLimit } from "@/lib/entitlements/decide-limit";
+import {
+  CURRENCIES,
+  issue,
+  PAYMENT_METHODS,
+  readLogo,
+  reduce,
+  TEMPLATE_IDS,
+  toWire,
+  view,
+  type Draft,
+  type DraftAction,
+  type Plan,
+} from "./document";
+import { addMonthCount, localMonthStore, readMonthCount } from "./month-count";
+import { exportPdf } from "./pdf";
+import type { InvoiceTransport } from "./transport";
+
+type EditorProps = {
+  draft: Draft;
+  plan: Plan;
+  limits: { free: LimitTable; paid: LimitTable };
+  transport: InvoiceTransport;
+  onDraft: (draft: Draft) => void;
+};
+
+const currencyOptions = CURRENCIES.map((currency) => ({ value: currency, label: currency }));
+const templateOptions = TEMPLATE_IDS.map((template) => ({ value: template, label: template }));
+const methodOptions = PAYMENT_METHODS.map((method) => ({ value: method, label: method }));
+
+function messageFrom(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object" || !("error" in payload)) return null;
+  const error = payload.error;
+  if (error === "sign in required") return "Sign in to save.";
+  if ("message" in payload && typeof payload.message === "string") return payload.message;
+  return null;
+}
+
+export function DocumentEditor({ draft, plan, limits, transport, onDraft }: EditorProps) {
+  const preview = view(draft, plan);
+  const [message, setMessage] = useState("");
+  const [blocked, setBlocked] = useState(false);
+  const documentId = useRef<string | null>(null);
+  function savedId(): string {
+    if (!documentId.current) documentId.current = crypto.randomUUID();
+    return documentId.current;
+  }
+  const saveDecision = decideLimit({ plan, limits, kind: LimitKind.savedItems, amount: 1 });
+
+  function change(action: DraftAction) {
+    onDraft(reduce(draft, action));
+  }
+
+  async function onDownload() {
+    const used = readMonthCount(localMonthStore, new Date());
+    const decision = decideLimit({ plan, limits, kind: LimitKind.perMonth, amount: used + 1 });
+    if (!decision.ok) {
+      setBlocked(true);
+      setMessage(decision.reason);
+      return;
+    }
+    const result = await exportPdf(draft, plan);
+    if (!result.ok) {
+      setBlocked(false);
+      setMessage(result.issues.map((issue) => issue.message).join(" "));
+      return;
+    }
+    const blob = new Blob([Uint8Array.from(result.bytes)], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = result.filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    addMonthCount(localMonthStore, draft.kind, new Date());
+    setBlocked(false);
+    setMessage(`Downloaded ${result.filename}`);
+  }
+
+  async function onSave() {
+    if (!saveDecision.ok) return;
+    const issued = issue(draft);
+    if (!issued.ok) {
+      setMessage(issued.issues.map((item) => item.message).join(" "));
+      return;
+    }
+    const id = savedId();
+    const payload = await transport.save({ id, document: toWire(issued.issued) });
+    const failure = messageFrom(payload);
+    setMessage(failure ?? `Saved ${id}`);
+  }
+
+  async function onLoad() {
+    const payload = await transport.list(draft.kind);
+    const failure = messageFrom(payload);
+    setMessage(failure ?? "Saved documents loaded.");
+  }
+
+  async function onLogo(files: File[]) {
+    const file = files[0];
+    if (!file) return;
+    const result = await readLogo(file);
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+    change({ type: "logo", value: result.logo });
+  }
+
+  return (
+    <div className="grid gap-6">
+      <Card title={preview.heading}>
+        <form
+          className="grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onDownload();
+          }}
+        >
+          <Input label="Your name" name="fromName" value={draft.from.name} onChange={(event) => change({ type: "from", field: "name", value: event.target.value })} />
+          <Input label="Client name" name="toName" value={draft.to.name} onChange={(event) => change({ type: "to", field: "name", value: event.target.value })} />
+          <Input
+            label={preview.numberLabel}
+            name="number"
+            value={draft.number}
+            onChange={(event) => change({ type: "number", value: event.target.value })}
+          />
+          <Select label="Currency" name="currency" value={draft.currency} options={currencyOptions} onChange={(event) => change({ type: "currency", value: event.target.value })} />
+          {draft.kind === "invoice" ? (
+            <>
+              <Input label="Issued on" name="issuedOn" value={draft.issuedOn} onChange={(event) => change({ type: "issuedOn", value: event.target.value })} />
+              <Input label="Due on" name="dueOn" value={draft.dueOn} onChange={(event) => change({ type: "dueOn", value: event.target.value })} />
+            </>
+          ) : (
+            <>
+              <Input label="Paid on" name="paidOn" value={draft.paidOn} onChange={(event) => change({ type: "paidOn", value: event.target.value })} />
+              <Select label="Payment method" name="method" value={draft.method} options={[{ value: "", label: "Choose" }, ...methodOptions]} onChange={(event) => change({ type: "method", value: event.target.value })} />
+            </>
+          )}
+          <Input label="Tax percent" name="taxPercent" value={draft.taxPercent} onChange={(event) => change({ type: "taxPercent", value: event.target.value })} />
+          <Select label="Template" name="template" value={draft.template} options={templateOptions} onChange={(event) => change({ type: "template", value: event.target.value })} />
+          {draft.lines.map((line, index) => (
+            <div className="grid gap-3" key={line.key}>
+              <Input label={index === 0 ? "Description" : `Description ${index + 1}`} name={`description-${line.key}`} value={line.description} onChange={(event) => change({ type: "line.edit", key: line.key, field: "description", value: event.target.value })} />
+              <Input label={index === 0 ? "Quantity" : `Quantity ${index + 1}`} name={`quantity-${line.key}`} value={line.quantity} onChange={(event) => change({ type: "line.edit", key: line.key, field: "quantity", value: event.target.value })} />
+              <Input label={index === 0 ? "Unit price" : `Unit price ${index + 1}`} name={`price-${line.key}`} value={line.unitPrice} onChange={(event) => change({ type: "line.edit", key: line.key, field: "unitPrice", value: event.target.value })} />
+            </div>
+          ))}
+          <Button type="button" variant="plain" onClick={() => change({ type: "line.add" })}>
+            Add line
+          </Button>
+          <FileDrop label="Logo PNG or JPEG, 200 KB max" onFiles={(files) => void onLogo(files)} />
+          <Button type="submit">Download PDF</Button>
+          {saveDecision.ok ? (
+            <Button type="button" variant="plain" onClick={() => void onSave()}>
+              Save
+            </Button>
+          ) : null}
+          <Button type="button" variant="plain" onClick={() => void onLoad()}>
+            Load saved
+          </Button>
+          <p role="status">{message}</p>
+          {blocked ? <UpgradePrompt reason={message} /> : null}
+          {!saveDecision.ok ? <UpgradePrompt reason={saveDecision.reason} /> : null}
+        </form>
+      </Card>
+      <Card title="Preview">
+        <p>{preview.from.name}</p>
+        <p>{preview.to.name}</p>
+        <p>
+          {preview.numberLabel} {preview.number}
+        </p>
+        {preview.lines.map((line) => (
+          <p key={line.key}>
+            {line.description} {line.amount}
+          </p>
+        ))}
+        <p>Subtotal {preview.subtotal}</p>
+        <p>
+          {preview.taxLabel} {preview.tax}
+        </p>
+        <p>Total {preview.total}</p>
+        {preview.stamp ? <p>{preview.stamp}</p> : null}
+        {preview.footer ? <p>{preview.footer}</p> : null}
+        {preview.template !== draft.template ? <p>The free plan downloads the plain template.</p> : null}
+      </Card>
+    </div>
+  );
+}

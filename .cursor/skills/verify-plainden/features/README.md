@@ -40,6 +40,8 @@ Each feature file starts with an H1 and one paragraph. It then uses exactly four
 - [Landing](./landing.md) lists the planned tools and the support mailto.
 - [Scaffold tool](./scaffold-tool.md) checks a count on `/scaffold-check` and shows the upgrade prompt.
 - [Planned tool](./planned-tool.md) opens a tool that is not built yet.
+- [Invoice generator](./invoice-generator.md) previews a total and caps free PDF downloads at 3.
+- [Receipt generator](./receipt-generator.md) shows a PAID stamp and downloads a receipt.
 - [Pricing](./pricing.md) lists monthly and annual prices from the catalog.
 - [Theme](./theme.md) switches light and dark and stores the choice.
 - [Sign in](./sign-in.md) requests a magic link on `/account` and opens it from `.dev-mail`.

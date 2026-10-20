@@ -1,0 +1,95 @@
+- main:
+  - article:
+    - heading "Invoice generator" [level=1]
+    - paragraph: Fill in a client, line items, and tax, then download a PDF.
+    - heading "Invoice" [level=2]
+    - text: Your name
+    - textbox "Your name": Ada
+    - text: Client name
+    - textbox "Client name": Bea
+    - text: Invoice number
+    - textbox "Invoice number": "100"
+    - text: Currency
+    - combobox "Currency":
+      - option "USD" [selected]
+      - option "CAD"
+      - option "EUR"
+      - option "GBP"
+      - option "AUD"
+    - text: Issued on
+    - textbox "Issued on": 2026-10-20
+    - text: Due on
+    - textbox "Due on": 2026-11-03
+    - text: Tax percent
+    - textbox "Tax percent": "0"
+    - text: Template
+    - combobox "Template":
+      - option "plain" [selected]
+      - option "ruled"
+      - option "letter"
+    - text: Description
+    - textbox "Description": Consulting
+    - text: Quantity
+    - textbox "Quantity": "2"
+    - text: Unit price
+    - textbox "Unit price": "10"
+    - button "Add line"
+    - text: Logo PNG or JPEG, 200 KB max
+    - button "Logo PNG or JPEG, 200 KB max"
+    - button "Download PDF"
+    - button "Load saved"
+    - status: free perMonth allows 3
+    - paragraph: free perMonth allows 3
+    - link "See pricing":
+      - /url: /pricing
+    - paragraph: free savedItems allows 0
+    - link "See pricing":
+      - /url: /pricing
+    - heading "Preview" [level=2]
+    - paragraph: Ada
+    - paragraph: Bea
+    - paragraph: Invoice number 100
+    - paragraph: Consulting $20.00
+    - paragraph: Subtotal $20.00
+    - paragraph: Tax 0.00% $0.00
+    - paragraph: Total $20.00
+    - paragraph: made with plainden
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Enter your name, the client, and at least one line with a quantity and a price.
+        - listitem: Read the preview total. Tax is one percent of the subtotal.
+        - listitem: Download the PDF. A free browser can make 3 PDFs a month, and each file includes a small footer.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Is an invoice from this page legal advice?" [level=3]
+          - paragraph: No. You fill in the names and amounts yourself. Have a person read anything you send to a client.
+        - listitem:
+          - heading "How many PDFs can I download for free?" [level=3]
+          - paragraph: Three a month in this browser. The counter is stored on your device and resets each UTC month. Invoice and receipt downloads share that count.
+        - listitem:
+          - heading "What does the free PDF include?" [level=3]
+          - paragraph: A line that says made with plainden, and the plain template. A paid plan removes that line and can use the ruled or letter template.
+        - listitem:
+          - heading "Can I save an invoice and open it later?" [level=3]
+          - paragraph: Saving is part of the invoice plan. This build has no sign-in yet, so the save button explains the limit and the server refuses anonymous writes.
+        - listitem:
+          - heading "Which currencies can I use?" [level=3]
+          - paragraph: USD, CAD, EUR, GBP, and AUD. Amounts are calculated in cents, not floating point.
+        - listitem:
+          - heading "Can I add a logo?" [level=3]
+          - paragraph: Yes on a paid plan. Use a PNG or JPEG up to 200 KB. The file is stored with the invoice as a data URL.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Privacy and terms generator":
+            - /url: /privacy-policy-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator

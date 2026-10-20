@@ -8,7 +8,7 @@ Small browser tools. One Next.js app. Free with limits, then a monthly price fro
 2. Start the app with `npm run dev`. The port is `3100` from `.env.development`.
 3. Open `http://127.0.0.1:3100`.
 
-The scaffold tool is at `http://127.0.0.1:3100/scaffold-check`. Planned tools such as `/invoice-generator` show a placeholder.
+The scaffold tool is at `http://127.0.0.1:3100/scaffold-check`. Invoice and receipt are built. Other planned tools such as `/privacy-policy-generator` show a placeholder.
 
 ## Test
 
