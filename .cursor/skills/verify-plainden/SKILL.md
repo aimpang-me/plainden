@@ -69,7 +69,7 @@ The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[dat
 | Check | button `Check` |
 | Result | status role |
 | Upgrade | link `See pricing` |
-| Account nav | link `Account` |
+| Account nav | link `Sign in` |
 | Email | textbox `Email` |
 | Send link | button `Email me a sign-in link` |
 | Sign out | button `Sign out` |

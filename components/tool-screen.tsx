@@ -6,10 +6,14 @@ export function ToolScreen({ page }: { page: ResolvedPage }) {
   switch (page.kind) {
     case "planned":
       return (
-        <article className="grid gap-6">
-          <h1 className="text-3xl">{titleForSlug(page.slug) ?? page.tool.name}</h1>
-          <p>{page.tool.description}</p>
-          <p>This tool is not built yet.</p>
+        <article className="grid gap-16">
+          <header className="mx-auto max-w-3xl text-center">
+            <h1 className="text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
+              {titleForSlug(page.slug) ?? page.tool.name}
+            </h1>
+            <p className="mt-5 text-lg text-muted max-[800px]:text-base">{page.tool.description}</p>
+          </header>
+          <p className="text-center text-muted">This tool is not built yet.</p>
           <Related currentId={page.tool.id} />
         </article>
       );
@@ -25,14 +29,18 @@ export function ToolScreen({ page }: { page: ResolvedPage }) {
 function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "tool" }> }) {
   const Tool = page.Tool;
   return (
-    <article className="grid gap-8">
-      <header className="grid gap-2">
-        <h1 className="text-3xl">{page.headline}</h1>
-        {page.intro ? <p>{page.intro}</p> : <p>{page.config.description}</p>}
+    <article className="grid gap-16">
+      <header className="mx-auto max-w-3xl text-center">
+        <h1 className="text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
+          {page.headline}
+        </h1>
+        <p className="mt-5 text-lg text-muted max-[800px]:text-base">
+          {page.intro ? page.intro : page.config.description}
+        </p>
       </header>
       <Tool slug={page.slug} preset={page.preset} />
       <section aria-labelledby="steps-heading">
-        <h2 id="steps-heading" className="mb-2 text-xl">
+        <h2 id="steps-heading" className="mb-3 text-[13px] text-faint">
           Steps
         </h2>
         <ol className="list-decimal pl-5">
@@ -42,7 +50,7 @@ function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "t
         </ol>
       </section>
       <section aria-labelledby="faq-heading">
-        <h2 id="faq-heading" className="mb-2 text-xl">
+        <h2 id="faq-heading" className="mb-3 text-[13px] text-faint">
           FAQ
         </h2>
         <ul className="grid gap-3">
@@ -63,10 +71,10 @@ function Related({ currentId }: { currentId: string }) {
   const tools = relatedTools(currentId);
   return (
     <section aria-labelledby="related-heading">
-      <h2 id="related-heading" className="mb-2 text-xl">
+      <h2 id="related-heading" className="mb-3 text-[13px] text-faint">
         Related tools
       </h2>
-      <ul className="grid gap-2">
+      <ul className="grid gap-2 sm:grid-cols-3">
         {tools.map((tool) => (
           <li key={tool.id}>
             <Link href={`/${tool.slugs[0]}`}>{tool.name}</Link>

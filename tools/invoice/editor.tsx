@@ -155,7 +155,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid items-start gap-12 min-[801px]:grid-cols-2">
       <Card title={preview.heading}>
         <form
           className="grid gap-3"
@@ -230,7 +230,11 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           {ready && !saveDecision.ok ? <UpgradePrompt reason={saveDecision.reason} /> : null}
         </form>
       </Card>
+      <div className="min-[801px]:sticky min-[801px]:top-6">
       <Card title="Preview">
+        <p>
+          <span className="inline-block rounded-full bg-accent-soft px-2.5 py-0.5 text-xs text-accent">Live preview</span>
+        </p>
         <p>{preview.from.name}</p>
         {preview.from.address ? <p>{preview.from.address}</p> : null}
         <p>{preview.to.name}</p>
@@ -253,6 +257,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
         {preview.footer ? <p>{preview.footer}</p> : null}
         {preview.template !== draft.template ? <p>The free plan downloads the plain template.</p> : null}
       </Card>
+      </div>
     </div>
   );
 }

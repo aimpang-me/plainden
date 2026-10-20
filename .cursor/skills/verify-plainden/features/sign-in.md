@@ -10,7 +10,7 @@ The account page sends a magic link to an email address. Opening that link from 
 
 ## How to get to it (user POV)
 
-- Open `http://127.0.0.1:3100/account` or click `Account` in the header.
+- Open `http://127.0.0.1:3100/account` or click `Sign in` in the header.
 - The signed out page shows an email field and the button `Email me a sign-in link`.
 
 ## Driving it with plainden-verify

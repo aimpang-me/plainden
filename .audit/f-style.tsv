@@ -1,0 +1,8 @@
+ts	phase	decision	why	evidence	result
+2026-10-20T23:22:06Z	close	Closed PRs 10, 11, 12, 15, and 16	Their work is already on main via PR 18	https://github.com/aimpang-me/plainden/pull/18	closed with a landed-via-18 comment
+2026-10-20T23:22:06Z	branch	Started the restyle from main d51e54f	The squash of PR 18 is the fresh base	d51e54f	branch cursor/f-style-openai-7bc4
+2026-10-20T23:22:06Z	color	Used #6f6f6f for faint text instead of the mock #8f8f8f	The mock gray is about 3.2 to 1 on white, under the 4.5 to 1 text rule	app/globals.css	Lighthouse accessibility 100 on the three pages
+2026-10-20T23:22:06Z	chrome	Kept the support mailto and the theme toggle	PLAN and the landing drive require the support link, and dark mode has to stay	components/site-footer.tsx components/theme-toggle.tsx	dark home rgb(13, 13, 13) on rgb(245, 245, 245)
+2026-10-20T23:22:06Z	proof	Saved before and after shots for each page type	The queued proof asks for desktop and mobile	notes/F/style	56 page shots plus one dark home
+2026-10-20T23:22:12Z	green	eslint, Vitest, Playwright, and the env-cleared build passed	The queued done check	vitest 147, playwright 98, next build 94 pages	green
+2026-10-20T23:22:12Z	lighthouse	One Lighthouse run scored 100 for SEO and accessibility	The target is 95 or higher. One run is a ballpark. Pages returned the requested URL and no SEO or accessibility audit failed	notes/F/lighthouse-style.txt	score 100

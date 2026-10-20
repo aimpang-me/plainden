@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ToolIndex } from "@/components/tool-index";
 import { plannedTools } from "@/lib/catalog/planned";
 import { disabledToolIds } from "@/lib/catalog/visibility";
 import { formatPrice, priceByLookupKey } from "@/lib/pricing/catalog";
@@ -17,25 +17,26 @@ export default function Home() {
   const bundlePrice = priceByLookupKey("plainden_all_month");
   const toolLabel = toolPrice ? formatPrice(toolPrice.amountCents, toolPrice.interval) : "";
   const bundleLabel = bundlePrice ? formatPrice(bundlePrice.amountCents, bundlePrice.interval) : "";
+  const tools = plannedTools
+    .filter((tool) => !disabledToolIds().includes(tool.id))
+    .map((tool) => ({
+      id: tool.id,
+      href: `/${tool.slugs[0]}`,
+      name: tool.name,
+      description: tool.description,
+    }));
   return (
-    <article className="grid gap-6">
+    <article className="grid gap-16">
       {page ? <JsonLd page={page} origin={origin} /> : null}
-      <header className="grid gap-2">
-        <h1 className="text-3xl">Small tools that run in the browser</h1>
-        <p>
+      <header className="mx-auto max-w-3xl text-center">
+        <h1 className="text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
+          Small tools that run in the browser
+        </h1>
+        <p className="mt-5 text-lg text-muted max-[800px]:text-base">
           Free with limits. {toolLabel} removes the limits on one tool. {bundleLabel} covers every tool.
         </p>
       </header>
-      <ul className="grid gap-4">
-        {plannedTools.filter((tool) => !disabledToolIds().includes(tool.id)).map((tool) => (
-          <li key={tool.id} className="border border-line p-4">
-            <Link href={`/${tool.slugs[0]}`} className="text-lg">
-              {tool.name}
-            </Link>
-            <p className="text-muted">{tool.description}</p>
-          </li>
-        ))}
-      </ul>
+      <ToolIndex tools={tools} />
     </article>
   );
 }
