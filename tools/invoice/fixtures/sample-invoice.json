@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "kind": "invoice",
+  "from": { "name": "Northwind Studio", "address": "12 King St, Toronto", "email": "", "taxId": "" },
+  "to": { "name": "Harbour Co", "address": "", "email": "ada@harbour.example", "taxId": "" },
+  "number": "CA-1001",
+  "currency": "CAD",
+  "lines": [{ "description": "Consulting", "quantityMilli": 2000, "unitMinor": 10000 }],
+  "taxBasisPoints": 500,
+  "notes": "Sample fixture.",
+  "template": "plain",
+  "logo": null,
+  "issuedOn": "2026-10-20",
+  "dueOn": "2026-11-03"
+}
