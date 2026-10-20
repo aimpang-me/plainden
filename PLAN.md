@@ -10,10 +10,10 @@ One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with
 2. Plain design: one layout, system font, one accent color, light and dark, no animation beyond hover.
 3. Test mode only. No real keys, no real accounts, no live payments, no deploying. Agents cannot create accounts.
 4. Never commit secrets. `.env.development` holds only test values (section 3).
-5. Edit only the paths you own (section 5). Need a change elsewhere? Write it in `notes/<id>/requests.md` and work around it.
-6. Add libraries freely to `package.json`, but never commit `package-lock.json` (F regenerates it at merge).
+5. Edit only the paths you own (section 5). Need a change elsewhere? Write it in `notes/<id>/requests.md` and work around it. Test sample files go in `tools/<x>/fixtures/` (you own it).
+6. Never commit `package.json` changes or `package-lock.json`. Install what you need in your own worktree, and list each library (name, version, why) in `notes/<id>/deps.md`. F adds them all and regenerates the lockfile at merge.
 7. Notes go only in `notes/<your-id>/`. Never edit another worker's notes or the shared `notes/` root.
-8. Done = your check passes, `next build` and `eslint .` pass, and `notes/<id>/report.md` says what works and what doesn't.
+8. Done = your check passes, `next build` and `eslint .` pass, and `notes/<id>/report.md` (10 lines max) says what works and what doesn't.
 9. Branch `worker/<id>`, own worktree, commit often, rebase on `main` before you finish. Never merge to `main` yourself (except F).
 
 ## 2. Stack
@@ -78,27 +78,29 @@ Library notes (workers follow these):
 
 ## 5. Workers
 
-11 workers, one session each. Phase 1a first, then phase 2 in parallel, then phase 3.
+11 workers. F runs as three fresh sessions (F-a, F-b, F-c); every other worker is one session. Phase 1a first, then phase 2 in two batches, then phase 3. Models: F on Opus, everything else on Sonnet.
 
-| ID | Job | Owns (edit only these) | Done when |
-|---|---|---|---|
-| **F** | Foundation | everything not owned by someone else below, plus `proxy.ts`, `app/[slug]/page.tsx`, `lib/entitlements`, `lib/payments/` (Stripe), `db/` | see steps F1–F8 |
-| T1 | Invoice + receipt (tools 1, 9) | `tools/invoice/`, `tools/receipt/`, `app/api/invoices/` | Make an invoice, download PDF, paid user saves and reloads it; receipt renders from the same engine |
-| T2 | Privacy/terms + cookie/refund (tools 2, 10) | `tools/legal/`, `tools/cookie-refund/`, `app/api/policies/`, `app/p/[id]/` | Every questionnaire answer appears in the output; hosted link works |
-| T3 | PDF tools | `tools/pdf/` | Merge, split, compress, jpg-to-pdf pass on sample files; limits enforced |
-| T4 | QR | `tools/qr/`, `app/api/qr/`, `app/q/[id]/` | Dynamic QR redirects and counts scans |
-| T5 | Image tools | `tools/image/` | Target-size compress lands within 10% of target on sample images |
-| T6 | Video | `tools/video/`, `public/ffmpeg/` | A sample clip compresses under the preset size, in Playwright |
-| T7 | Data converters | `tools/data/` | Sample file round trips |
-| T8 | Subtitles | `tools/subtitles/` | srt↔vtt round trip with timing shift |
-| S | SEO | `lib/seo/` (sitemap, JSON-LD, meta, OG image template, long-tail renderer) | Sitemap lists every page; Lighthouse SEO 95+ on 3 sample pages |
-| V | Deploy prep | `vercel.json`, `ENV.md`, `lib/security/{csp,rateLimit}.ts`, `scripts/deploy/`, `PADDLE-SETUP.md` | `next build` passes; ENV.md lists every variable; PADDLE-SETUP.md has the exact steps and the 4 pages Paddle reviews (pricing, terms, privacy, refund) |
+| ID | Model | Job | Owns (edit only these) | Done when |
+|---|---|---|---|---|
+| **F** | Opus | Foundation | everything not owned by someone else below, plus `proxy.ts`, `app/[slug]/page.tsx`, `lib/entitlements`, `lib/payments/` (Stripe), `db/` | see steps F1–F8 |
+| T1 | Sonnet | Invoice + receipt (tools 1, 9) | `tools/invoice/`, `tools/receipt/`, `app/api/invoices/` | Make an invoice, download PDF, paid user saves and reloads it; receipt renders from the same engine |
+| T2 | Sonnet | Privacy/terms + cookie/refund (tools 2, 10) | `tools/legal/`, `tools/cookie-refund/`, `app/api/policies/`, `app/p/[id]/` | Every questionnaire answer appears in the output; hosted link works |
+| T3 | Sonnet | PDF tools | `tools/pdf/` | Merge, split, compress, jpg-to-pdf pass on sample files; limits enforced |
+| T4 | Sonnet | QR | `tools/qr/`, `app/api/qr/`, `app/q/[id]/` | Dynamic QR redirects and counts scans |
+| T5 | Sonnet | Image tools | `tools/image/` | Target-size compress lands within 10% of target on sample images |
+| T6 | Sonnet | Video | `tools/video/`, `public/ffmpeg/` | A sample clip compresses under the preset size, in Playwright |
+| T7 | Sonnet | Data converters | `tools/data/` | Sample file round trips |
+| T8 | Sonnet | Subtitles | `tools/subtitles/` | srt↔vtt round trip with timing shift |
+| S | Sonnet | SEO | `lib/seo/` (sitemap, JSON-LD, meta, OG image template, long-tail renderer) | Sitemap lists every page. (The Lighthouse SEO 95+ check on 3 sample pages runs in phase 3, after merge.) |
+| V | Sonnet | Deploy prep | `vercel.json`, `ENV.md`, `lib/security/{csp,rateLimit}.ts`, `scripts/deploy/`, `PADDLE-SETUP.md` | `next build` passes; ENV.md lists every variable; PADDLE-SETUP.md has the exact steps and the 4 pages Paddle reviews (pricing, terms, privacy, refund) |
 
-**Phase 1a: F only (goes first, must finish before phase 2).** F1–F4 below, merged to `main`, with `CONTRACT.md` written.
+**Phase 1a: F-a only (goes first, must finish before phase 2).** F1–F4 below, merged to `main`, with `CONTRACT.md` written.
 
-**Phase 2: parallel.** All of T1–T8, S, V start when 1a is on `main`. F continues with F5–F7.
+**Phase 2: parallel, two batches.**
+- Batch A starts when 1a is on `main`: T1, T3, T4 (wave 1 tools), S, V. F-b (fresh session) does F5–F7 at the same time.
+- Batch B starts after F-c has merged batch A: T2, T5, T6, T7, T8. This keeps the first build small and lets wave 1 prove the pipeline.
 
-**Phase 3: F only.** Merge in this order, running build + tests after each: V, S, T1, T2, T3, T4, T5, T6, T7, T8. Then F8.
+**Phase 3: F-c (fresh session), F only.** Read each `notes/<id>/report.md` and `deps.md`, add the listed libraries to `package.json`, regenerate the lockfile. Merge batch A in this order, running build + tests after each: V, S, T1, T3, T4. After batch B is done, merge T2, T5, T6, T7, T8, then run the Lighthouse SEO check (95+ on 3 sample pages) and F8. If F-c's context gets heavy, start a fresh session for F8.
 
 ### F's steps
 
@@ -117,7 +119,7 @@ Library notes (workers follow these):
 
 - `ToolConfig`: `{ id, name, slugs[], title, description, entitlementKey, priceLookupKey, limits: { free, paid }, seoPages[] }`
 - `ToolProps`: `{ slug, preset? }`. A tool exports `default function Tool(props: ToolProps)`.
-- `copy.ts` exports `{ headline, steps[], faq[] (6+), longTail: { slug, title, intro, preset?, faq[] }[] }` (20 long-tail entries per tool).
+- `copy.ts` exports `{ headline, steps[], faq[] (6+), longTail: { slug, title, intro, preset?, faq[] }[] }` (5 long-tail entries per tool at build; expand to 20 only for tools that pass the Day 30 check).
 - Registry: `scripts/gen-registry.ts` runs on predev/prebuild and writes the gitignored `tools/registry.generated.ts`. F owns the only `app/[slug]/page.tsx`. A test fails on duplicate slugs.
 - `Subject = { userId } | { deviceId }`; `LimitKind` enum (`fileSize`, `batchCount`, `perDay`, `perMonth`, `savedItems`).
 - `getEntitlement(subject, entitlementKey)`, `checkLimit(subject, entitlementKey, kind, amount)`, client `useEntitlement()`, `<UpgradePrompt reason />`, `getCurrentUser()`, `db` (Drizzle).
@@ -126,9 +128,9 @@ Library notes (workers follow these):
 
 ## 6. Shared features (F, S, V build these; tool workers do not)
 
-Landing page, tool page template (headline, tool, steps, FAQ, related tools), account and usage pages, pricing page, checkout, support link `support@plainden.com`, transactional emails, privacy/terms/refund pages, sitemap/robots/titles/JSON-LD (SoftwareApplication, FAQPage, BreadcrumbList)/canonical URLs/OG images, 20 long-tail pages per tool, analytics events (`tool_opened`, `tool_used`, `limit_hit`, `checkout_started`, `checkout_completed`), Sentry, health check, kill switch, cookie banner. CSP is set as a plain header (not nonce-based, which forces every page dynamic).
+Landing page, tool page template (headline, tool, steps, FAQ, related tools), account and usage pages, pricing page, checkout, support link `support@plainden.com`, transactional emails, privacy/terms/refund pages, sitemap/robots/titles/JSON-LD (SoftwareApplication, FAQPage, BreadcrumbList)/canonical URLs/OG images, 5 long-tail pages per tool at build (20 after Day 30 for live tools), analytics events (`tool_opened`, `tool_used`, `limit_hit`, `checkout_started`, `checkout_completed`), Sentry, health check, kill switch, cookie banner. CSP is set as a plain header (not nonce-based, which forces every page dynamic).
 
-Long-tail seeds: `/compress-pdf-to-4mb`, `/compress-image-to-100kb`, `/compress-image-to-200kb`, `/resize-image-to-20kb`, `/compress-video-for-discord`, `/invoice-generator-canada`, `/invoice-template-google-docs`, `/invoice-template-word`, `/invoice-template-excel`, `/qr-code-generator-no-expiration`, `/privacy-policy-generator-for-app`, `/privacy-policy-generator-for-meta-ads`, `/privacy-policy-generator-for-blogger`. Tool workers write their own 20 entries in `copy.ts`: unique intro, a working preset, a FAQ, no duplicated body copy.
+Long-tail seeds: `/compress-pdf-to-4mb`, `/compress-image-to-100kb`, `/compress-image-to-200kb`, `/resize-image-to-20kb`, `/compress-video-for-discord`, `/invoice-generator-canada`, `/invoice-template-google-docs`, `/invoice-template-word`, `/invoice-template-excel`, `/qr-code-generator-no-expiration`, `/privacy-policy-generator-for-app`, `/privacy-policy-generator-for-meta-ads`, `/privacy-policy-generator-for-blogger`. Tool workers write their own 5 entries in `copy.ts`: unique intro, a working preset, a FAQ, no duplicated body copy.
 
 ## 6b. Release waves (build all 10 together, go public in 3 waves)
 
@@ -164,8 +166,8 @@ Long-tail seeds: `/compress-pdf-to-4mb`, `/compress-image-to-100kb`, `/compress-
 |---|---|
 | Search Console and Bing not set up | Verify the domain, submit `sitemap.xml` to Google Search Console and Bing Webmaster Tools |
 | No backlinks | Plan a small push per tool: directories, Product Hunt, Reddit/forum answers, "free tools" lists |
-| Keyword volumes unmeasured | Authorize Ahrefs or Similarweb in claude.ai connector settings, then check the 200 long-tail pages and cut or merge those with no searches |
-| Thin-content risk on 200 templated pages | Rule to enforce: at least 150 unique words plus a working tool on each page. Audit a sample before launch; noindex pages that fail |
+| Keyword volumes unmeasured | Authorize Ahrefs or Similarweb in claude.ai connector settings, then check the long-tail pages and cut or merge those with no searches |
+| Thin-content risk on about 50 templated pages (more once expanded) | Rule to enforce: at least 150 unique words plus a working tool on each page. Audit a sample before launch; noindex pages that fail |
 | Only the Lighthouse SEO score is checked | Add a Core Web Vitals check (speed, layout shift) on one page per tool |
 | Merge of 11 branches may leave fixes | Budget a cleanup pass after F8 |
 | Real Stripe test checkout never run by workers | Owner runs it once end to end, then switches to live |
@@ -183,4 +185,4 @@ Mobile apps, desktop apps, browser extensions, a domain per tool, AI support bot
 
 Use this text, filling in the ID. Nothing else is needed.
 
-> You are worker **<ID>** on the plainden build. Read `plans/plan.md` fully (copied to `plainden/PLAN.md`). Do only the job and owned paths listed for **<ID>** in section 5, following sections 1–4. Phase 2 workers start only after F's phase 1a is on `main`; branch from `main`. Do not ask questions; log defaults in `notes/<ID>/decisions.md`; finish with `notes/<ID>/report.md`.
+> You are worker **<ID>** on the plainden build. Read `PLAN.md` (repo root) fully. Do only the job and owned paths listed for **<ID>** in section 5, following sections 1–4. Phase 2 workers start only after F's phase 1a is on `main`; branch from `main`. For F: your session is F-a (F1–F4), F-b (F5–F7) or F-c (merges + F8); do only that part, read `notes/F/` for what earlier F sessions left, and write `notes/F/report-<a|b|c>.md`. Do not ask questions; log defaults in `notes/<ID>/decisions.md`; finish with `notes/<ID>/report.md` (10 lines max).
