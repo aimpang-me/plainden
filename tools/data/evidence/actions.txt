@@ -1,0 +1,30 @@
+action: open /csv-to-json
+action: add people.csv
+action: click Convert
+status: Converted 2 rows.
+visible: Ada
+download: people.json matched fixtures/people.json
+action: open /json-to-csv
+action: add people.json
+action: click Convert
+status: Converted 2 rows.
+download: people.csv matched the sample rows
+action: open /excel-to-csv
+action: add people.xlsx
+action: click Convert
+status: Converted 2 rows.
+download: people.csv matched the sample rows
+action: open /semicolon-csv-to-json
+visible: Delimiter is semicolon.
+action: add people-semicolon.csv
+action: click Convert
+status: Converted 2 rows.
+download: people-semicolon.json matched fixtures/people.json
+action: add a csv one byte over 5 MB
+action: click Convert
+status: free fileSize allows 5242880
+visible: See pricing
+action: fill Preset name Europe
+action: click Save preset
+status: Saved presets are on the paid plan.
+visible: See pricing
