@@ -64,8 +64,8 @@ test("a long-tail page uses its own title, intro, and faq", () => {
 test("a primary tool page keeps the tool faq and a planned page has no faq", () => {
   const tool = pageByPath("/scaffold-check", listed);
   expect(jsonLdScript(tool!, origin)).toContain("What does this page check?");
-  const planned = pageByPath("/invoice-generator", listed);
-  expect(planned).toMatchObject({ kind: "planned", title: "Invoice generator", toolId: "invoice" });
+  const planned = pageByPath("/privacy-policy-generator", listed);
+  expect(planned).toMatchObject({ kind: "planned", title: "Privacy and terms generator", toolId: "legal" });
   const plannedScript = jsonLdScript(planned!, origin);
   expect(plannedScript).toContain("SoftwareApplication");
   expect(plannedScript).toContain("BreadcrumbList");
