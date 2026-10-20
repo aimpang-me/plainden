@@ -53,4 +53,5 @@ export async function applySchema(db: { execute: (query: SQL) => Promise<unknown
   for (const table of tables) {
     await db.execute(sql.raw(createTableSql(table)));
   }
+  await db.execute(sql.raw(`ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "stripeEventCreated" integer`));
 }

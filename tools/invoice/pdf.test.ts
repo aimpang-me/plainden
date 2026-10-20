@@ -1,7 +1,7 @@
 import { inflateSync } from "node:zlib";
 import { expect, test } from "vitest";
 import { FREE_FOOTER, openInvoice, openReceipt, RECEIPT_STAMP } from "./document";
-import { exportPdf } from "./pdf";
+import { exportPdf, wrapLines } from "./pdf";
 
 const now = new Date("2026-10-20T12:00:00.000Z");
 
@@ -78,3 +78,51 @@ test("a receipt PDF contains the paid stamp", async () => {
   expect(text).toContain("R-9");
   expect(result.filename).toBe("Receipt R-9.pdf");
 });
+
+test("long lines wrap and a euro total keeps the euro sign in the font map", async () => {
+  expect(wrapLines("alpha beta", (value) => value.length, 5)).toEqual(["alpha", "beta"]);
+  const wide = openInvoice(
+    {
+      from: { name: "Ada", address: "1 Rue de Rivoli" },
+      to: { name: "Bea" },
+      number: "100",
+      lines: [{ description: "Consulting ".repeat(12).trim(), quantity: "1", unitPrice: "10.00" }],
+    },
+    now,
+  );
+  const ascii = await exportPdf(wide, "paid");
+  expect(ascii.ok).toBe(true);
+  if (!ascii.ok) return;
+  expect(pdfLiterals(ascii.bytes)).toContain("Consulting");
+  expect(pdfLiterals(ascii.bytes)).toContain("1 Rue de Rivoli");
+  const euro = await exportPdf(
+    openInvoice(
+      {
+        from: { name: "Ada" },
+        to: { name: "Bea" },
+        number: "EUR-1",
+        currency: "EUR",
+        lines: [{ description: "Consulting", quantity: "1", unitPrice: "10.00" }],
+      },
+      now,
+    ),
+    "paid",
+  );
+  expect(euro.ok).toBe(true);
+  if (!euro.ok) return;
+  expect(inflatedText(euro.bytes).toUpperCase()).toContain("20AC");
+});
+
+function inflatedText(bytes: Uint8Array): string {
+  const raw = Buffer.from(bytes).toString("latin1");
+  let text = raw;
+  for (const match of raw.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
+    const body = Buffer.from(match[1] ?? "", "latin1");
+    try {
+      text += inflateSync(body).toString("latin1");
+    } catch {
+      text += body.toString("latin1");
+    }
+  }
+  return text;
+}

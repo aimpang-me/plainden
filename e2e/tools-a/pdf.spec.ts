@@ -7,10 +7,10 @@ import { expectPdf, openTool, pageCount, readDownload, sampleFiles, seedAllTools
 test.describe.configure({ timeout: 120_000 });
 
 const pages = [
-  ["/merge-pdf", "PDF tools"],
-  ["/split-pdf", "PDF tools"],
-  ["/compress-pdf", "PDF tools"],
-  ["/jpg-to-pdf", "PDF tools"],
+  ["/merge-pdf", "Merge PDF"],
+  ["/split-pdf", "Split PDF"],
+  ["/compress-pdf", "Compress PDF"],
+  ["/jpg-to-pdf", "JPG to PDF"],
   ["/merge-pdf-files", "Merge PDF files"],
   ["/split-pdf-pages", "Split PDF pages"],
   ["/jpg-to-pdf-photos", "Turn JPG photos into a PDF"],

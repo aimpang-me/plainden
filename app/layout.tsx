@@ -19,9 +19,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <body>
+        <a className="skip-link" href="#content">
+          Skip to content
+        </a>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <SiteHeader />
-        <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+        <main id="content" className="mx-auto max-w-3xl px-4 py-8">
+          {children}
+        </main>
         <SiteFooter />
       </body>
     </html>

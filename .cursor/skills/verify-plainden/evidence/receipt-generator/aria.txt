@@ -5,8 +5,12 @@
     - heading "Receipt" [level=2]
     - text: Your name
     - textbox "Your name": Ada
+    - text: Your address
+    - textbox "Your address"
     - text: Client name
     - textbox "Client name": Bea
+    - text: Client address
+    - textbox "Client address"
     - text: Receipt number
     - textbox "Receipt number": R-9
     - text: Currency
@@ -28,6 +32,8 @@
       - option "other"
     - text: Tax percent
     - textbox "Tax percent": "0"
+    - text: Notes
+    - textbox "Notes"
     - text: Template
     - combobox "Template":
       - option "plain" [selected]
@@ -40,8 +46,7 @@
     - text: Unit price
     - textbox "Unit price": "10"
     - button "Add line"
-    - text: Logo PNG or JPEG, 200 KB max
-    - button "Logo PNG or JPEG, 200 KB max"
+    - paragraph: A logo is part of the paid plan.
     - button "Download PDF"
     - button "Load saved"
     - status: Downloaded Receipt R-9.pdf
@@ -92,8 +97,8 @@
           - link "Invoice generator":
             - /url: /invoice-generator
         - listitem:
-          - link "Privacy and terms generator":
-            - /url: /privacy-policy-generator
-        - listitem:
           - link "PDF tools":
             - /url: /merge-pdf
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator

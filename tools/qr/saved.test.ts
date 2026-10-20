@@ -173,6 +173,35 @@ test("a javascript target does not redirect and does not count a scan", async ()
   expect(stored).toEqual([{ scanCount: 0 }]);
 });
 
+test("thirty parallel publishes stay at the paid cap of twenty", async () => {
+  const db = await freshDb();
+  await addUser("user_race", "race@example.com", "active");
+  const results = await Promise.all(
+    Array.from({ length: 30 }, (_, index) => handle({ id: "user_race" }, publishCommand(`https://example.com/race/${index}`))),
+  );
+  const stored = await db.select().from(qrCode).where(eq(qrCode.userId, "user_race"));
+  expect(stored).toHaveLength(20);
+  expect(results.filter((result) => result.ok)).toHaveLength(20);
+  expect(results.filter((result) => !result.ok && result.code === "over-cap")).toHaveLength(10);
+});
+
+test("a stored private target does not redirect or count a scan", async () => {
+  const db = await freshDb();
+  await addUser("user_local", "local@example.com", "active");
+  const id = "33333333-3333-4333-8333-333333333333";
+  await db.insert(qrCode).values({
+    id,
+    userId: "user_local",
+    targetUrl: "http://169.254.169.254/latest/meta-data",
+    createdAt: now,
+  });
+  const response = await GET(new Request(`http://127.0.0.1/q/${id}`), { params: Promise.resolve({ id }) });
+  expect(response.status).toBe(404);
+  expect(response.headers.get("location")).toBeNull();
+  const stored = await db.select({ scanCount: qrCode.scanCount }).from(qrCode).where(eq(qrCode.id, id));
+  expect(stored).toEqual([{ scanCount: 0 }]);
+});
+
 test("a missing code is a 404 and a second remove still succeeds", async () => {
   await freshDb();
   await addUser("user_paid", "paid2@example.com", "active");

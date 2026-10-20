@@ -1,4 +1,4 @@
 - main:
   - heading "Account" [level=1]
-  - paragraph: ada.verify.1792523662194@example.com
+  - paragraph: ada.verify.1792530931314@example.com
   - button "Sign out"

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { savedInvoice } from "@/db/schema";
 import { LimitKind } from "@/lib/contract/limits";
 import { getDb } from "@/lib/db/client";
@@ -64,7 +64,11 @@ export async function saveDocument(userId: string, input: unknown): Promise<Save
 
 export async function listDocuments(userId: string, kind: ToolId): Promise<readonly Issued[]> {
   const db = await getDb();
-  const rows = await db.select().from(savedInvoice).where(eq(savedInvoice.userId, userId));
+  const rows = await db
+    .select()
+    .from(savedInvoice)
+    .where(eq(savedInvoice.userId, userId))
+    .orderBy(desc(savedInvoice.updatedAt));
   const documents: Issued[] = [];
   for (const row of rows) {
     const parsed = parseIssued(row.body);

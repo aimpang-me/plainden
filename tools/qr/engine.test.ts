@@ -84,4 +84,7 @@ test("a publish command rejects a bad link and accepts a real one", () => {
   expect(parsed.ok).toBe(true);
   if (!parsed.ok) return;
   expect(parsed.url).toBe("https://example.com/landed");
+  for (const blocked of ["http://169.254.169.254/latest", "http://127.0.0.1/", "http://[::1]/", "http://10.1.2.3/"]) {
+    expect(parseTargetUrl(blocked)).toEqual({ ok: false, reason: "Link must be a public http or https URL." });
+  }
 });

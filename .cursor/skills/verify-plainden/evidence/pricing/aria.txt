@@ -3,21 +3,58 @@
     - heading "Pricing" [level=1]
     - paragraph: Annual prices are 10 times the monthly price. Receipt shares the invoice plan. Cookie and refund share the legal plan.
     - list:
-      - listitem: Invoice generator monthly $5/mo plainden_invoice_month
-      - listitem: Invoice generator annual $50/yr plainden_invoice_year
-      - listitem: Privacy and terms monthly $5/mo plainden_legal_month
-      - listitem: Privacy and terms annual $50/yr plainden_legal_year
-      - listitem: PDF tools monthly $5/mo plainden_pdf_month
-      - listitem: PDF tools annual $50/yr plainden_pdf_year
-      - listitem: QR code generator monthly $5/mo plainden_qr_month
-      - listitem: QR code generator annual $50/yr plainden_qr_year
-      - listitem: Image tools monthly $5/mo plainden_image_month
-      - listitem: Image tools annual $50/yr plainden_image_year
-      - listitem: Video compressor monthly $5/mo plainden_video_month
-      - listitem: Video compressor annual $50/yr plainden_video_year
-      - listitem: Data converter monthly $5/mo plainden_data_month
-      - listitem: Data converter annual $50/yr plainden_data_year
-      - listitem: Subtitle converter monthly $5/mo plainden_subtitles_month
-      - listitem: Subtitle converter annual $50/yr plainden_subtitles_year
-      - listitem: All tools monthly $9/mo plainden_all_month
-      - listitem: All tools annual $90/yr plainden_all_year
+      - listitem:
+        - text: Invoice generator monthly $5/mo plainden_invoice_month
+        - button "Checkout"
+      - listitem:
+        - text: Invoice generator annual $50/yr plainden_invoice_year
+        - button "Checkout"
+      - listitem:
+        - text: Privacy and terms monthly $5/mo plainden_legal_month
+        - button "Checkout"
+      - listitem:
+        - text: Privacy and terms annual $50/yr plainden_legal_year
+        - button "Checkout"
+      - listitem:
+        - text: PDF tools monthly $5/mo plainden_pdf_month
+        - button "Checkout"
+      - listitem:
+        - text: PDF tools annual $50/yr plainden_pdf_year
+        - button "Checkout"
+      - listitem:
+        - text: QR code generator monthly $5/mo plainden_qr_month
+        - button "Checkout"
+      - listitem:
+        - text: QR code generator annual $50/yr plainden_qr_year
+        - button "Checkout"
+      - listitem:
+        - text: Image tools monthly $5/mo plainden_image_month
+        - button "Checkout"
+      - listitem:
+        - text: Image tools annual $50/yr plainden_image_year
+        - button "Checkout"
+      - listitem:
+        - text: Video compressor monthly $5/mo plainden_video_month
+        - button "Checkout"
+      - listitem:
+        - text: Video compressor annual $50/yr plainden_video_year
+        - button "Checkout"
+      - listitem:
+        - text: Data converter monthly $5/mo plainden_data_month
+        - button "Checkout"
+      - listitem:
+        - text: Data converter annual $50/yr plainden_data_year
+        - button "Checkout"
+      - listitem:
+        - text: Subtitle converter monthly $5/mo plainden_subtitles_month
+        - button "Checkout"
+      - listitem:
+        - text: Subtitle converter annual $50/yr plainden_subtitles_year
+        - button "Checkout"
+      - listitem:
+        - text: All tools monthly $9/mo plainden_all_month
+        - button "Checkout"
+      - listitem:
+        - text: All tools annual $90/yr plainden_all_year
+        - button "Checkout"
+    - button "Open billing portal"

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { relatedTools, type ResolvedPage } from "@/lib/pages/resolve";
+import { titleForSlug } from "@/lib/pages/slug-title";
 
 export function ToolScreen({ page }: { page: ResolvedPage }) {
   switch (page.kind) {
     case "planned":
       return (
         <article className="grid gap-6">
-          <h1 className="text-3xl">{page.tool.name}</h1>
+          <h1 className="text-3xl">{titleForSlug(page.slug) ?? page.tool.name}</h1>
           <p>{page.tool.description}</p>
           <p>This tool is not built yet.</p>
           <Related currentId={page.tool.id} />

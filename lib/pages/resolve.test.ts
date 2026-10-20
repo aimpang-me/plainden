@@ -19,6 +19,17 @@ test("a long tail slug carries its preset", () => {
   });
 });
 
+test("pdf and legal slugs use distinct titles", () => {
+  const merge = resolveSlug("merge-pdf");
+  expect(merge?.kind).toBe("tool");
+  if (merge?.kind !== "tool") throw new Error("expected merge pdf");
+  expect(merge.headline).toBe("Merge PDF");
+  const tail = resolveSlug("merge-pdf-files");
+  expect(tail?.kind).toBe("tool");
+  if (tail?.kind !== "tool") throw new Error("expected a long tail");
+  expect(tail.headline).toBe("Merge PDF files");
+});
+
 test("a planned slug renders the placeholder data", () => {
   expect(resolveSlug("privacy-policy-generator")).toMatchObject({
     kind: "planned",

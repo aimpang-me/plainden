@@ -1,7 +1,8 @@
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import {
   clientList,
   draftFromIssued,
+  draftFromSavedList,
   formatMinor,
   FREE_FOOTER,
   issue,
@@ -10,10 +11,16 @@ import {
   parseIssued,
   RECEIPT_STAMP,
   reduce,
+  stampInvoiceDates,
+  stampReceiptDate,
   titleOf,
   view,
   type Issued,
 } from "./document";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const now = new Date("2026-10-20T12:00:00.000Z");
 
@@ -112,6 +119,47 @@ test("a saved document round trips without the footer", () => {
   expect(parsed.ok).toBe(true);
   if (!parsed.ok) return;
   expect(view(draftFromIssued(parsed.issued), "free").total).toBe("CA$210.00");
+});
+
+test("an omitted clock uses the current day", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2024-03-05T15:00:00.000Z"));
+  expect(openInvoice().issuedOn).toBe("2024-03-05");
+  expect(openReceipt().paidOn).toBe("2024-03-05");
+  const invoice = openInvoice({}, now);
+  const receipt = openReceipt({}, now);
+  expect(stampInvoiceDates(invoice, {}, new Date("2024-03-05T15:00:00.000Z"))).toMatchObject({
+    issuedOn: "2024-03-05",
+    dueOn: "2024-03-19",
+    number: "",
+  });
+  expect(stampReceiptDate(receipt, {}, new Date("2024-03-05T15:00:00.000Z")).paidOn).toBe("2024-03-05");
+  const edited = { ...invoice, issuedOn: "2020-01-01" };
+  expect(stampInvoiceDates(edited, {}).issuedOn).toBe("2020-01-01");
+  expect(stampInvoiceDates(invoice, { issuedOn: "2021-02-02" })).toBe(invoice);
+  expect(stampReceiptDate({ ...receipt, paidOn: "2020-01-01" }, {}).paidOn).toBe("2020-01-01");
+});
+
+test("names, numbers, and descriptions have a maximum length", () => {
+  const named = view(reduce(readyInvoice(), { type: "from", field: "name", value: "a".repeat(121) }), "free");
+  expect(named.issues.map((issue) => issue.message)).toContain("Name is too long.");
+  const numbered = view(reduce(readyInvoice(), { type: "number", value: "1".repeat(41) }), "free");
+  expect(numbered.issues.map((issue) => issue.message)).toContain("Number is too long.");
+  const base = readyInvoice();
+  const described = view(
+    reduce(base, { type: "line.edit", key: base.lines[0]!.key, field: "description", value: "d".repeat(241) }),
+    "free",
+  );
+  expect(described.issues.map((issue) => issue.message)).toContain("Description is too long.");
+});
+
+test("loading a saved list restores the newest matching document", () => {
+  const issued = issue(readyInvoice());
+  expect(issued.ok).toBe(true);
+  if (!issued.ok) return;
+  const restored = draftFromSavedList({ ok: true, documents: [issued.issued] }, "invoice");
+  expect(restored?.to.name).toBe("Harbour Co");
+  expect(draftFromSavedList({ ok: true, documents: [issued.issued] }, "receipt")).toBeNull();
 });
 
 test("the client list keeps the first party for an email", () => {

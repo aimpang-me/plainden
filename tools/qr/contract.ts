@@ -80,7 +80,72 @@ export function parseTargetUrl(input: unknown): { ok: true; url: HttpUrl } | { o
   if ((url.protocol !== "http:" && url.protocol !== "https:") || url.username || url.password || !url.hostname) {
     return { ok: false, reason: "Link must be an http or https URL." };
   }
+  if (isBlockedHost(url.hostname)) {
+    return { ok: false, reason: "Link must be a public http or https URL." };
+  }
   return { ok: true, url: url.toString() as HttpUrl };
+}
+
+function isBlockedHost(hostname: string): boolean {
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
+  if (!host || host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host.endsWith(".local") || host.endsWith(".internal")) return true;
+  if (/^\d+$/.test(host)) return true;
+  if (host.includes(":")) return isBlockedIpv6(host);
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return isBlockedIpv4(host);
+  return false;
+}
+
+function isBlockedIpv4(host: string): boolean {
+  const parts = host.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true;
+  const [a, b] = parts;
+  if (a === undefined || b === undefined) return true;
+  if (a === 0 || a === 10 || a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  if (a === 255 && b === 255 && parts[2] === 255 && parts[3] === 255) return true;
+  return false;
+}
+
+function isBlockedIpv6(host: string): boolean {
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(host);
+  if (mapped?.[1]) return isBlockedIpv4(mapped[1]);
+  const expanded = expandIpv6(host);
+  if (!expanded) return true;
+  if (expanded === "0000:0000:0000:0000:0000:0000:0000:0000") return true;
+  if (expanded === "0000:0000:0000:0000:0000:0000:0000:0001") return true;
+  const first = Number.parseInt(expanded.slice(0, 4), 16);
+  if ((first & 0xfe00) === 0xfc00) return true;
+  if ((first & 0xffc0) === 0xfe80) return true;
+  if (expanded.startsWith("0000:0000:0000:0000:0000:ffff:")) {
+    const groups = expanded.split(":");
+    const hi = Number.parseInt(groups[6] ?? "", 16);
+    const lo = Number.parseInt(groups[7] ?? "", 16);
+    const v4 = `${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`;
+    return isBlockedIpv4(v4);
+  }
+  return false;
+}
+
+function expandIpv6(host: string): string | null {
+  const halves = host.split("::");
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  if (halves.length === 1 && head.length !== 8) return null;
+  const missing = 8 - head.length - tail.length;
+  if (missing < 0) return null;
+  const groups = [...head, ...Array.from({ length: missing }, () => "0"), ...tail];
+  if (groups.length !== 8) return null;
+  const padded = groups.map((group) => {
+    if (!/^[0-9a-f]{1,4}$/i.test(group)) return null;
+    return group.padStart(4, "0");
+  });
+  if (padded.some((group) => group === null)) return null;
+  return padded.join(":");
 }
 
 export function parseLogo(input: unknown): { ok: true; logo: LogoDataUrl | null } | { ok: false; reason: string } {

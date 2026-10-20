@@ -44,6 +44,7 @@ export type QrForm = {
   hasLogo: boolean;
   setLogoFile: (file: File | null) => void;
   clearLogo: () => void;
+  ready: boolean;
   submit: () => void;
   status: string;
   upgradeReason: string | null;
@@ -58,12 +59,22 @@ export type QrForm = {
   }[];
 };
 
-let lastObjectUrl: string | null = null;
+let previewUrl: string | null = null;
+let downloadUrl: string | null = null;
 
-function remember(blob: Blob): string {
-  if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl);
-  lastObjectUrl = URL.createObjectURL(blob);
-  return lastObjectUrl;
+function previewSrc(blob: Blob): string {
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = URL.createObjectURL(blob);
+  return previewUrl;
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+  downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = filename;
+  link.click();
 }
 
 function readCount(key: string): number {
@@ -102,13 +113,6 @@ function isHandleResult(value: unknown): value is HandleResult {
   return false;
 }
 
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = remember(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-}
 
 export function useQrForm(preset: string | undefined): QrForm {
   const entitlement = useEntitlement(config.entitlementKey);
@@ -212,7 +216,7 @@ export function useQrForm(preset: string | undefined): QrForm {
       setStatus(rendered.reason);
       return null;
     }
-    const src = remember(rendered.blob);
+    const src = previewSrc(rendered.blob);
     setPreview({ src, type: rendered.blob.type, blob: rendered.blob, filename: rendered.filename });
     return rendered;
   }
@@ -232,6 +236,7 @@ export function useQrForm(preset: string | undefined): QrForm {
       });
       return;
     }
+    if (entitlement.status !== "ready") return;
     const amount = intent === "publish" && editingId ? readCount(savedCountKey) : readCount(savedCountKey) + 1;
     const decision = decideLimit({
       plan: entitlement.plan,
@@ -264,13 +269,13 @@ export function useQrForm(preset: string | undefined): QrForm {
         writeCount(savedCountKey, listed.codes.length);
       }
       const origin = window.location.origin;
-      await showPreview("url", { href: `${origin}${result.code.shortPath}` }, "svg", result.code.logo);
+      await showPreview("text", { text: `${origin}${result.code.shortPath}` }, "svg", result.code.logo);
     });
   }
 
   function downloadSaved(code: SavedCode) {
     const origin = window.location.origin;
-    void showPreview("url", { href: `${origin}${code.shortPath}` }, "svg", code.logo).then((rendered) => {
+    void showPreview("text", { text: `${origin}${code.shortPath}` }, "svg", code.logo).then((rendered) => {
       if (!rendered) return;
       downloadBlob(rendered.blob, rendered.filename);
       setStatus("Downloaded SVG.");
@@ -326,6 +331,7 @@ export function useQrForm(preset: string | undefined): QrForm {
       setLogo(null);
       setLogoTouched(true);
     },
+    ready: entitlement.status === "ready",
     submit,
     status,
     upgradeReason,

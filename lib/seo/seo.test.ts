@@ -65,7 +65,7 @@ test("a primary tool page keeps the tool faq and a planned page has no faq", () 
   const tool = pageByPath("/scaffold-check", listed);
   expect(jsonLdScript(tool!, origin)).toContain("What does this page check?");
   const planned = pageByPath("/privacy-policy-generator", listed);
-  expect(planned).toMatchObject({ kind: "planned", title: "Privacy and terms generator", toolId: "legal" });
+  expect(planned).toMatchObject({ kind: "planned", title: "Privacy policy generator", toolId: "legal" });
   const plannedScript = jsonLdScript(planned!, origin);
   expect(plannedScript).toContain("SoftwareApplication");
   expect(plannedScript).toContain("BreadcrumbList");
@@ -95,9 +95,26 @@ test("home and pricing metadata stay on the plainden origin", () => {
     priority: 0.4,
   });
   expect(buildRobots({ origin })).toEqual({
-    rules: { userAgent: "*", allow: "/" },
+    rules: { userAgent: "*", allow: "/", disallow: "/account" },
     sitemap: "https://plainden.com/sitemap.xml",
   });
+});
+
+test("the default tool list hides unbuilt tools and keeps the built ones", () => {
+  const previous = process.env.TOOLS_DISABLED;
+  delete process.env.TOOLS_DISABLED;
+  const xml = sitemapXml({ origin });
+  if (previous === undefined) delete process.env.TOOLS_DISABLED;
+  else process.env.TOOLS_DISABLED = previous;
+  expect(xml).toContain("https://plainden.com/invoice-generator");
+  expect(xml).toContain("https://plainden.com/merge-pdf");
+  expect(xml).toContain("https://plainden.com/qr-code-generator");
+  expect(xml).toContain("https://plainden.com/receipt-generator");
+  expect(xml).not.toContain("https://plainden.com/privacy-policy-generator");
+  expect(xml).not.toContain("https://plainden.com/scaffold-check");
+  expect(xml).not.toContain("https://plainden.com/compress-image");
+  expect(pageByPath("/merge-pdf", { origin })?.title).toBe("Merge PDF");
+  expect(pageByPath("/terms-and-conditions-generator", { origin })?.title).toBe("Terms and conditions generator");
 });
 
 test("unknown paths and primary slugs are not long-tail pages", () => {

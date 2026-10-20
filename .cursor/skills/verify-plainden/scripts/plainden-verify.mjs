@@ -189,6 +189,7 @@ async function driveLanding(page, dir) {
   if (heading !== "Small tools that run in the browser") fail(`heading was ${heading}`);
   if (href !== "mailto:support@plainden.com") fail(`support href was ${href}`);
   if (invoice < 1) fail("Invoice generator link was missing");
+  if ((await page.getByRole("link", { name: "Skip to content" }).count()) < 1) fail("skip link was missing");
   if (!body.includes("$5/mo") || !body.includes("$9/mo")) fail("landing prices were missing");
   const lines = [
     "action: open /",
@@ -203,18 +204,21 @@ async function driveLanding(page, dir) {
 }
 
 async function drivePlanned(page, dir) {
-  await page.getByRole("link", { name: "Privacy and terms generator" }).click();
-  await page.waitForURL("**/privacy-policy-generator");
+  const hidden = await page.getByRole("link", { name: "Privacy and terms generator" }).count();
+  const renamed = await page.getByRole("link", { name: "Privacy policy generator" }).count();
+  if (hidden > 0 || renamed > 0) fail("landing linked a hidden legal tool");
+  await page.goto(`${base}/privacy-policy-generator`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
   const heading = await page.getByRole("heading", { level: 1 }).innerText();
   const copy = await page.getByText("This tool is not built yet.").count();
   const check = await page.getByRole("button", { name: "Check" }).count();
-  if (heading !== "Privacy and terms generator") fail(`heading was ${heading}`);
+  if (heading !== "Privacy policy generator") fail(`heading was ${heading}`);
   if (copy < 1) fail("placeholder copy was missing");
   if (check > 0) fail("placeholder exposed a Check button");
   const lines = [
     "action: open /",
-    "action: click link Privacy and terms generator",
+    "absent: link Privacy and terms generator",
+    "action: open /privacy-policy-generator",
     "url: /privacy-policy-generator",
     `heading: ${heading}`,
     "visible: This tool is not built yet.",
@@ -245,6 +249,7 @@ async function driveInvoice(page, dir) {
   await page.getByText("Total $20.00", { exact: true }).waitFor({ timeout: 10_000 });
   const footer = await page.getByText("made with plainden").count();
   if (footer < 1) fail("free invoice footer was missing");
+  if ((await page.getByText("A logo is part of the paid plan.").count()) < 1) fail("free logo note was missing");
   const lines = fields.map(([label, value]) => `action: fill ${label} ${value}`);
   lines.push("visible: Total $20.00");
   lines.push("visible: made with plainden");
@@ -304,6 +309,8 @@ async function drivePricing(page, dir) {
   if (!body.includes("$5/mo") || !body.includes("$9/mo")) fail("monthly prices were missing");
   if (!body.includes("plainden_invoice_month")) fail("invoice lookup key was missing");
   if (body.includes("plainden_scaffold_month")) fail("scaffold price was listed");
+  if ((await page.getByRole("button", { name: "Checkout" }).count()) < 1) fail("checkout button was missing");
+  if ((await page.getByRole("button", { name: "Open billing portal" }).count()) < 1) fail("portal button was missing");
   const lines = [
     "action: open /pricing",
     `heading: ${heading}`,
@@ -399,6 +406,8 @@ async function drivePdf(page, dir) {
   await page.getByRole("status").filter({ hasText: merged }).waitFor({ timeout: 20_000 });
   const status = await page.getByRole("status").innerText();
   if (status !== merged) fail(`pdf status was ${JSON.stringify(status)}`);
+  const mergeHeading = await page.getByRole("heading", { level: 1 }).innerText();
+  if (mergeHeading !== "Merge PDF") fail(`merge heading was ${mergeHeading}`);
   if ((await page.locator('a[download="merged.pdf"]').count()) < 1) fail("merged.pdf link was missing");
   const lines = [
     "action: open /compress-pdf-to-4mb",
@@ -421,6 +430,7 @@ async function driveQr(page, dir) {
   await page.getByRole("status").filter({ hasText: downloaded }).waitFor({ timeout: 15_000 });
   const staticStatus = await page.getByRole("status").innerText();
   if (staticStatus !== downloaded) fail(`qr status was ${JSON.stringify(staticStatus)}`);
+  if ((await page.getByRole("img", { name: "QR code" }).count()) < 1) fail("qr preview was not an image");
   await page.goto(`${base}/dynamic-qr-code`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
   await page.getByRole("button", { name: "Create" }).click();
@@ -459,15 +469,19 @@ async function driveSeo(page, dir) {
     "https://plainden.com/invoice-generator",
     "https://plainden.com/merge-pdf",
     "https://plainden.com/qr-code-generator",
-    "https://plainden.com/privacy-policy-generator",
+    "https://plainden.com/receipt-generator",
   ];
   for (const loc of required) {
     if (!sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap missed ${loc}`);
+  }
+  for (const loc of ["https://plainden.com/privacy-policy-generator", "https://plainden.com/scaffold-check"]) {
+    if (sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap listed hidden ${loc}`);
   }
   const robots = await page.request.get(`${base}/robots.txt`);
   const robotsBody = await robots.text();
   if (robots.status() !== 200) fail(`robots status ${robots.status()}`);
   if (!robotsBody.includes("Allow: /")) fail(`robots missed Allow: ${robotsBody}`);
+  if (!robotsBody.includes("Disallow: /account")) fail(`robots missed Disallow: ${robotsBody}`);
   if (!robotsBody.includes("Sitemap: https://plainden.com/sitemap.xml")) fail(`robots missed sitemap: ${robotsBody}`);
   const lines = [
     "action: open /",
@@ -479,6 +493,7 @@ async function driveSeo(page, dir) {
     "action: GET /robots.txt",
     "status: 200",
     "visible: Allow: /",
+    "visible: Disallow: /account",
     "visible: Sitemap: https://plainden.com/sitemap.xml",
   ];
   await snap(page, dir, "aria.txt", "page.png");

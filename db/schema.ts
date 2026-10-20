@@ -61,6 +61,7 @@ export const subscription = pgTable("subscriptions", {
   priceLookupKey: text("priceLookupKey").notNull(),
   stripeCustomerId: text("stripeCustomerId"),
   stripeSubscriptionId: text("stripeSubscriptionId"),
+  stripeEventCreated: integer("stripeEventCreated"),
   currentPeriodEnd: timestamp("currentPeriodEnd", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("createdAt", { withTimezone: true, mode: "date" }).notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true, mode: "date" }).notNull(),

@@ -1,6 +1,6 @@
 - main:
   - article:
-    - heading "Privacy and terms generator" [level=1]
+    - heading "Privacy policy generator" [level=1]
     - paragraph: Answer a questionnaire and copy a privacy policy or terms draft.
     - paragraph: This tool is not built yet.
     - region "Related tools":

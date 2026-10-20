@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UpgradePrompt } from "@/components/upgrade-prompt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,9 @@ import { LimitKind } from "@/lib/contract/limits";
 import type { LimitTable } from "@/lib/contract/types";
 import { decideLimit } from "@/lib/entitlements/decide-limit";
 import {
+  clientsFromSavedList,
   CURRENCIES,
+  draftFromSavedList,
   issue,
   PAYMENT_METHODS,
   readLogo,
@@ -21,6 +23,7 @@ import {
   view,
   type Draft,
   type DraftAction,
+  type Party,
   type Plan,
 } from "./document";
 import { addMonthCount, localMonthStore, readMonthCount } from "./month-count";
@@ -29,7 +32,7 @@ import type { InvoiceTransport } from "./transport";
 
 type EditorProps = {
   draft: Draft;
-  plan: Plan;
+  plan: Plan | "loading";
   limits: { free: LimitTable; paid: LimitTable };
   transport: InvoiceTransport;
   onDraft: (draft: Draft) => void;
@@ -48,29 +51,47 @@ function messageFrom(payload: unknown): string | null {
 }
 
 export function DocumentEditor({ draft, plan, limits, transport, onDraft }: EditorProps) {
-  const preview = view(draft, plan);
+  const ready = plan !== "loading";
+  const activePlan: Plan = plan === "paid" ? "paid" : "free";
+  const preview = view(draft, activePlan);
   const [message, setMessage] = useState("");
   const [blocked, setBlocked] = useState(false);
+  const [clients, setClients] = useState<readonly Party[]>([]);
+  const [clientsReady, setClientsReady] = useState(false);
   const documentId = useRef<string | null>(null);
   function savedId(): string {
     if (!documentId.current) documentId.current = crypto.randomUUID();
     return documentId.current;
   }
-  const saveDecision = decideLimit({ plan, limits, kind: LimitKind.savedItems, amount: 1 });
+  const saveDecision = decideLimit({ plan: activePlan, limits, kind: LimitKind.savedItems, amount: 1 });
+
+  useEffect(() => {
+    if (plan !== "paid" || draft.kind !== "invoice") return;
+    let cancelled = false;
+    void transport.list("invoice").then((payload) => {
+      if (cancelled) return;
+      setClients(clientsFromSavedList(payload));
+      setClientsReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [plan, draft.kind, transport]);
 
   function change(action: DraftAction) {
     onDraft(reduce(draft, action));
   }
 
   async function onDownload() {
+    if (!ready) return;
     const used = readMonthCount(localMonthStore, new Date());
-    const decision = decideLimit({ plan, limits, kind: LimitKind.perMonth, amount: used + 1 });
+    const decision = decideLimit({ plan: activePlan, limits, kind: LimitKind.perMonth, amount: used + 1 });
     if (!decision.ok) {
       setBlocked(true);
       setMessage(decision.reason);
       return;
     }
-    const result = await exportPdf(draft, plan);
+    const result = await exportPdf(draft, activePlan);
     if (!result.ok) {
       setBlocked(false);
       setMessage(result.issues.map((issue) => issue.message).join(" "));
@@ -89,7 +110,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
   }
 
   async function onSave() {
-    if (!saveDecision.ok) return;
+    if (!ready || !saveDecision.ok) return;
     const issued = issue(draft);
     if (!issued.ok) {
       setMessage(issued.issues.map((item) => item.message).join(" "));
@@ -99,12 +120,27 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
     const payload = await transport.save({ id, document: toWire(issued.issued) });
     const failure = messageFrom(payload);
     setMessage(failure ?? `Saved ${id}`);
+    if (!failure && draft.kind === "invoice") {
+      const listed = await transport.list("invoice");
+      setClients(clientsFromSavedList(listed));
+      setClientsReady(true);
+    }
   }
 
   async function onLoad() {
     const payload = await transport.list(draft.kind);
     const failure = messageFrom(payload);
-    setMessage(failure ?? "Saved documents loaded.");
+    if (failure) {
+      setMessage(failure);
+      return;
+    }
+    const restored = draftFromSavedList(payload, draft.kind);
+    if (restored) onDraft(restored);
+    if (draft.kind === "invoice") {
+      setClients(clientsFromSavedList(payload));
+      setClientsReady(true);
+    }
+    setMessage("Saved documents loaded.");
   }
 
   async function onLogo(files: File[]) {
@@ -129,7 +165,9 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           }}
         >
           <Input label="Your name" name="fromName" value={draft.from.name} onChange={(event) => change({ type: "from", field: "name", value: event.target.value })} />
+          <Input label="Your address" name="fromAddress" value={draft.from.address} onChange={(event) => change({ type: "from", field: "address", value: event.target.value })} />
           <Input label="Client name" name="toName" value={draft.to.name} onChange={(event) => change({ type: "to", field: "name", value: event.target.value })} />
+          <Input label="Client address" name="toAddress" value={draft.to.address} onChange={(event) => change({ type: "to", field: "address", value: event.target.value })} />
           <Input
             label={preview.numberLabel}
             name="number"
@@ -149,6 +187,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
             </>
           )}
           <Input label="Tax percent" name="taxPercent" value={draft.taxPercent} onChange={(event) => change({ type: "taxPercent", value: event.target.value })} />
+          <Input label="Notes" name="notes" value={draft.notes} onChange={(event) => change({ type: "notes", value: event.target.value })} />
           <Select label="Template" name="template" value={draft.template} options={templateOptions} onChange={(event) => change({ type: "template", value: event.target.value })} />
           {draft.lines.map((line, index) => (
             <div className="grid gap-3" key={line.key}>
@@ -160,9 +199,25 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           <Button type="button" variant="plain" onClick={() => change({ type: "line.add" })}>
             Add line
           </Button>
-          <FileDrop label="Logo PNG or JPEG, 200 KB max" onFiles={(files) => void onLogo(files)} />
-          <Button type="submit">Download PDF</Button>
-          {saveDecision.ok ? (
+          {plan === "paid" && draft.kind === "invoice" ? (
+            <div className="grid gap-1">
+              <p>Saved clients</p>
+              {clientsReady && clients.length === 0 ? <p>No saved clients yet.</p> : null}
+              {clients.length > 0 ? (
+                <ul>
+                  {clients.map((client) => (
+                    <li key={`${client.email}|${client.name}`}>{client.name}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+          {plan === "paid" ? <FileDrop label="Logo PNG or JPEG, 200 KB max" onFiles={(files) => void onLogo(files)} /> : null}
+          {plan === "free" ? <p>A logo is part of the paid plan.</p> : null}
+          <Button type="submit" disabled={!ready}>
+            Download PDF
+          </Button>
+          {ready && saveDecision.ok ? (
             <Button type="button" variant="plain" onClick={() => void onSave()}>
               Save
             </Button>
@@ -171,13 +226,15 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
             Load saved
           </Button>
           <p role="status">{message}</p>
-          {blocked ? <UpgradePrompt reason={message} /> : null}
-          {!saveDecision.ok ? <UpgradePrompt reason={saveDecision.reason} /> : null}
+          {ready && blocked ? <UpgradePrompt reason={message} /> : null}
+          {ready && !saveDecision.ok ? <UpgradePrompt reason={saveDecision.reason} /> : null}
         </form>
       </Card>
       <Card title="Preview">
         <p>{preview.from.name}</p>
+        {preview.from.address ? <p>{preview.from.address}</p> : null}
         <p>{preview.to.name}</p>
+        {preview.to.address ? <p>{preview.to.address}</p> : null}
         <p>
           {preview.numberLabel} {preview.number}
         </p>
@@ -191,6 +248,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           {preview.taxLabel} {preview.tax}
         </p>
         <p>Total {preview.total}</p>
+        {preview.notes ? <p>{preview.notes}</p> : null}
         {preview.stamp ? <p>{preview.stamp}</p> : null}
         {preview.footer ? <p>{preview.footer}</p> : null}
         {preview.template !== draft.template ? <p>The free plan downloads the plain template.</p> : null}

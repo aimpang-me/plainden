@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
+import Image from "next/image";
 import { UpgradePrompt } from "@/components/upgrade-prompt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -59,14 +60,12 @@ export default function Tool({ slug, preset }: ToolProps) {
             Remove logo
           </Button>
         ) : null}
-        <Button type="submit">{form.editing ? "Save changes" : "Create"}</Button>
+        <Button type="submit" disabled={!form.ready}>
+          {form.editing ? "Save changes" : "Create"}
+        </Button>
         <p role="status">{form.status}</p>
         {form.upgradeReason ? <UpgradePrompt reason={form.upgradeReason} /> : null}
-        {form.preview ? (
-          <object data={form.preview.src} type={form.preview.type} aria-label="QR code" className="h-64 w-64">
-            QR code
-          </object>
-        ) : null}
+        {form.preview ? <QrPreview src={form.preview.src} /> : null}
         {form.preview ? (
           <Button type="button" variant="plain" onClick={form.preview.download}>
             Download
@@ -93,6 +92,10 @@ export default function Tool({ slug, preset }: ToolProps) {
       </form>
     </Card>
   );
+}
+
+function QrPreview({ src }: { src: string }) {
+  return <Image src={src} alt="QR code" width={512} height={512} unoptimized className="h-64 w-64" />;
 }
 
 function renderField(field: QrField) {

@@ -28,4 +28,4 @@ Preconditions:
 ## Gotchas
 
 - `$5/mo` appears on more than one row. The proof checks that the text is present, and that `plainden_invoice_month` is present, so the invoice row is identified.
-- Checkout buttons are not on this page in F-a. Do not look for a buy button.
+- Each paid row has a Checkout button and the page has Open billing portal. The drive checks that those buttons exist. Do not click them. Stripe is not configured for this server.

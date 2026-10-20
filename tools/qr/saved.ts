@@ -1,8 +1,11 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
-import { qrCode } from "@/db/schema";
+import { qrCode, user } from "@/db/schema";
 import { LimitKind } from "@/lib/contract/limits";
 import { getDb } from "@/lib/db/client";
 import { checkLimit } from "@/lib/entitlements";
+import { decideLimit } from "@/lib/entitlements/decide-limit";
+import { getEntitlement } from "@/lib/entitlements/get-entitlement";
+import { limitsFor } from "@/lib/entitlements/limits-for";
 import { config } from "./config";
 import {
   parseCodeId,
@@ -78,26 +81,61 @@ async function list(userId: string): Promise<HandleResult> {
 }
 
 async function publish(userId: string, targetUrl: HttpUrl, logo: LogoDataUrl | null): Promise<HandleResult> {
-  const observed = await observedCount(userId);
-  const decision = await checkLimit({ userId }, config.entitlementKey, LimitKind.savedItems, observed + 1);
-  if (!decision.ok) return { ok: false, code: "over-cap", reason: decision.reason };
+  const limits = limitsFor(config.entitlementKey);
+  if (!limits) return { ok: false, code: "invalid", reason: `unknown entitlement ${config.entitlementKey}` };
+  const entitlement = await getEntitlement({ userId }, config.entitlementKey);
+  const cap = (entitlement.plan === "paid" ? limits.paid : limits.free)[LimitKind.savedItems];
+  if (cap === 0) {
+    const decision = decideLimit({ plan: entitlement.plan, limits, kind: LimitKind.savedItems, amount: 1 });
+    return { ok: false, code: "over-cap", reason: decision.ok ? "free savedItems allows 0" : decision.reason };
+  }
   const db = await getDb();
   const id = crypto.randomUUID();
-  try {
-    await db.insert(qrCode).values({
-      id,
-      userId,
-      targetUrl,
-      logoDataUrl: logo,
-      createdAt: new Date(),
-    });
-  } catch (error) {
-    if (isForeignKeyError(error)) return { ok: false, code: "invalid", reason: "unknown user" };
-    throw error;
+  const createdAt = new Date();
+  if (cap === undefined) {
+    try {
+      await db.insert(qrCode).values({ id, userId, targetUrl, logoDataUrl: logo, createdAt });
+    } catch (error) {
+      if (isForeignKeyError(error)) return { ok: false, code: "invalid", reason: "unknown user" };
+      throw error;
+    }
+    const [row] = await db.select().from(qrCode).where(eq(qrCode.id, id));
+    if (!row) return { ok: false, code: "invalid", reason: "unknown user" };
+    return { ok: true, type: "publish", code: toCode(row) };
+  }
+  const inserted = await db.execute(sql`
+    WITH locked AS (
+      SELECT id FROM "user" WHERE id = ${userId} FOR UPDATE
+    ),
+    room AS (
+      SELECT (SELECT count(*) FROM "qr_codes" WHERE "userId" = ${userId}) AS total
+    )
+    INSERT INTO "qr_codes" ("id", "userId", "targetUrl", "logoDataUrl", "createdAt")
+    SELECT ${id}, ${userId}, ${targetUrl}, ${logo}, ${createdAt}
+    FROM locked, room
+    WHERE room.total < ${cap}
+    RETURNING "id"
+  `);
+  if (!insertedId(inserted)) {
+    const [person] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId));
+    if (!person) return { ok: false, code: "invalid", reason: "unknown user" };
+    const decision = decideLimit({ plan: entitlement.plan, limits, kind: LimitKind.savedItems, amount: cap + 1 });
+    return { ok: false, code: "over-cap", reason: decision.ok ? `paid savedItems allows ${cap}` : decision.reason };
   }
   const [row] = await db.select().from(qrCode).where(eq(qrCode.id, id));
   if (!row) return { ok: false, code: "invalid", reason: "unknown user" };
   return { ok: true, type: "publish", code: toCode(row) };
+}
+
+function insertedId(result: unknown): string | null {
+  const rows = Array.isArray(result)
+    ? result
+    : result && typeof result === "object" && "rows" in result && Array.isArray(result.rows)
+      ? result.rows
+      : [];
+  const first = rows[0];
+  if (!first || typeof first !== "object" || !("id" in first)) return null;
+  return typeof first.id === "string" ? first.id : null;
 }
 
 async function replace(

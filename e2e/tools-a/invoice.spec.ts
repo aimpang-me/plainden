@@ -110,6 +110,12 @@ withViewports(() => {
       await expect(page.getByLabel("Your name")).toHaveValue(tail.from);
       await expect(page.getByLabel("Client name")).toHaveValue(tail.client);
       await expect(page.getByLabel("Invoice number")).toHaveValue(tail.number);
+      if (tail.slug === "/invoice-generator-canada") {
+        await expect(page.getByLabel("Your address")).toHaveValue("12 King St, Toronto");
+        await expect(page.getByLabel("Notes")).toHaveValue(
+          "Tax is the percent on the subtotal. Split GST and PST in the notes if you need both.",
+        );
+      }
       await expect(page.getByRole("heading", { name: "Preview" }).locator("xpath=..")).toContainText(`Total ${tail.total}`);
     }
   });
@@ -141,7 +147,7 @@ test("a paid account saves an invoice and the PDF omits the free footer", async 
   expect(body.documents?.map((document) => document.to?.name)).toContain("Bea");
 });
 
-test.fail("loading a saved invoice puts the client name back in the form", async ({ page }) => {
+test("loading a saved invoice puts the client name back in the form", async ({ page }) => {
   await signIn(page, test.info());
   await seedAllToolsPlan(page);
   await openTool(page, "/invoice-generator");

@@ -1,8 +1,8 @@
 action: open /account
-action: fill Email ada.verify.1792523662194@example.com
+action: fill Email ada.verify.1792530931314@example.com
 action: click Email me a sign-in link
 status: Check your email for a sign-in link.
 action: open magic link from .dev-mail
-visible: ada.verify.1792523662194@example.com
+visible: ada.verify.1792530931314@example.com
 visible: button Sign out
 url: /account

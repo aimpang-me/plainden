@@ -1,3 +1,4 @@
+import { invoiceWriteLimit, originAllowed, parseJsonBody, readLimitedBody } from "@/lib/security/origin";
 import { listDocuments, saveDocument, toResponse } from "@/tools/invoice/save";
 import type { ToolId } from "@/tools/invoice/month-count";
 import { requireUser } from "./require-user";
@@ -20,6 +21,10 @@ export async function GET(request: Request): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const gate = await requireUser();
   if (!gate.ok) return gate.response;
-  const payload = await request.json().catch(() => null);
-  return toResponse(await saveDocument(gate.user.id, payload));
+  if (!originAllowed(request)) {
+    return Response.json({ error: "forbidden", message: "Cross-origin write refused." }, { status: 403 });
+  }
+  const body = await readLimitedBody(request, invoiceWriteLimit);
+  if (!body.ok) return Response.json({ error: "too-large", message: "Request body is too large." }, { status: 413 });
+  return toResponse(await saveDocument(gate.user.id, parseJsonBody(body.text)));
 }

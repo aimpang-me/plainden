@@ -1,27 +1,25 @@
 # Environment variables
 
-Reference for names the site expects. A row marked "not confirmed from code" is a name from PLAN.md, `.env.example`, or the installed `better-auth` package. No application module reads it yet. F-b is adding auth, Stripe, Resend, and Neon in parallel, so those rows are listed before that code is on this branch.
+Reference for names the app reads. `next build` does not read `.env.development`. Server clients read environment variables inside a function, not at import time.
 
-`next build` does not read `.env.development`. Server clients must read environment variables inside a function, not at import time.
+| Variable | Where it is read | Required |
+| --- | --- | --- |
+| `PORT` | `lib/auth/server.ts` and `lib/payments/checkout.ts` when `BETTER_AUTH_URL` is unset. Playwright reads it when its config loads. | No. Defaults to 3100. |
+| `PGLITE_DATA_DIR` | `lib/db/client.ts` inside `getDb`. | No. Defaults to `.data/pglite`. `memory` opens an in-memory database. |
+| `DATABASE_URL` | `lib/db/client.ts` inside `getDb` when `PGLITE_DATA_DIR` is unset. | No. When set, the app uses Neon HTTP. |
+| `EMAIL_TRANSPORT` | `lib/auth/send-mail.ts` inside the send function. | No. Defaults to `file`. |
+| `DEV_MAIL_DIR` | `lib/auth/send-mail.ts` when the transport is `file`. | No. Defaults to `.dev-mail`. |
+| `RESEND_API_KEY` | `lib/auth/send-mail.ts` when the transport is `resend`. | Yes for the Resend transport. |
+| `STRIPE_SECRET_KEY` | `lib/payments/stripe-client.ts` inside the Stripe client. | Yes for checkout, portal, and live webhooks. |
+| `STRIPE_WEBHOOK_SECRET` | `lib/payments/stripe-client.ts` inside webhook verification. | Yes to verify Stripe webhooks. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | `components/sign-in-form.tsx`. | Yes in production so the sign-in widget can render. |
+| `TURNSTILE_SECRET_KEY` | `lib/auth/server.ts` inside `turnstileSecret`. | Yes in production. Development falls back to the Cloudflare test secret. |
+| `BETTER_AUTH_SECRET` | `lib/auth/server.ts` inside `authSecret`. | Yes in production. `AUTH_SECRET` is the fallback name. |
+| `AUTH_SECRET` | `lib/auth/server.ts` inside `authSecret` when `BETTER_AUTH_SECRET` is unset. | Alternative to `BETTER_AUTH_SECRET`. |
+| `BETTER_AUTH_URL` | `lib/auth/server.ts` and `lib/payments/checkout.ts`. Also allowed as a write Origin. | No. Defaults to `http://127.0.0.1:$PORT`. |
+| `NEXT_PUBLIC_SITE_URL` | `lib/seo/pages.ts` inside `siteOrigin`. Also allowed as a write Origin. | No. Defaults to `https://plainden.com`. |
+| `TOOLS_DISABLED` | `lib/catalog/visibility.ts` inside `disabledToolIds`. | No. When unset or empty, the default hidden set is scaffold, legal, image, video, data, subtitles, and cookie-refund. A set value replaces that list. |
 
-| Variable | Service | Named in | App reads it |
-| --- | --- | --- | --- |
-| `PORT` | Local server | `.env.example`, `.env.development`, `playwright.config.ts` | Yes. `playwright.config.ts` reads it when the file loads. |
-| `PGLITE_DATA_DIR` | Local database | `.env.example`, `.env.development`, `lib/db/client.ts` | Yes. `getDb` reads it when called. |
-| `DATABASE_URL` | Neon | `.env.example`. `notes/F/decisions.md` reserves it for Neon. | No. Not confirmed from code. |
-| `EMAIL_TRANSPORT` | Resend, file transport in dev | PLAN.md, `.env.example`, `.env.development`, README | No. Not confirmed from code. |
-| `RESEND_API_KEY` | Resend | `.env.example` | No. Not confirmed from code. The `resend` package is not installed. |
-| `STRIPE_SECRET_KEY` | Stripe | `.env.example` | No. Not confirmed from code. `lib/payments` throws `PaymentsNotConfigured` and does not read it. The Stripe package is not installed. |
-| `STRIPE_WEBHOOK_SECRET` | Stripe | `.env.example` | No. Not confirmed from code. |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Turnstile, used with auth | `.env.example`, `.env.development` | No. Not confirmed from code. |
-| `TURNSTILE_SECRET_KEY` | Turnstile, used with auth | `.env.example`, `.env.development` | No. Not confirmed from code. |
-| `BETTER_AUTH_SECRET` | Better Auth | Installed `better-auth` `dist/context/create-context.mjs` | No. Not confirmed from application code. The package requires it in production. `lib/auth/get-current-user.ts` does not read it. |
-| `BETTER_AUTH_URL` | Better Auth | Installed `better-auth` `dist/utils/url.mjs` | No. Not confirmed from application code. |
-| `BETTER_AUTH_SECRETS` | Better Auth secret rotation | Installed `better-auth` `dist/context/create-context.mjs` | No. Not confirmed from application code. Optional. |
-| `SENTRY_DSN` | Sentry | `.env.example`, PLAN.md stack | No. Not confirmed from code. |
-| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog | `.env.example`, PLAN.md stack | No. Not confirmed from code. |
-| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog | `.env.example`, PLAN.md stack | No. Not confirmed from code. |
-| `CHECKOUT_ENABLED` | Kill switch | PLAN.md F8 | No. Not confirmed from code. |
-| `TOOLS_DISABLED` | Kill switch | PLAN.md F8 | No. Not confirmed from code. |
+These names are not read by application code yet. `SENTRY_DSN`, `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`, and `CHECKOUT_ENABLED`. `BETTER_AUTH_SECRETS` is read by the Better Auth package for secret rotation, not by an application module.
 
-`.env.development` holds test values only. Turnstile test keys there are `1x00000000000000000000AA` and `1x0000000000000000000000000000000AA`. Do not commit real keys.
+`.env.development` holds test values only. Do not commit real keys.

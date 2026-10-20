@@ -5,8 +5,12 @@
     - heading "Invoice" [level=2]
     - text: Your name
     - textbox "Your name": Ada
+    - text: Your address
+    - textbox "Your address"
     - text: Client name
     - textbox "Client name": Bea
+    - text: Client address
+    - textbox "Client address"
     - text: Invoice number
     - textbox "Invoice number": "100"
     - text: Currency
@@ -22,6 +26,8 @@
     - textbox "Due on": 2026-11-03
     - text: Tax percent
     - textbox "Tax percent": "0"
+    - text: Notes
+    - textbox "Notes"
     - text: Template
     - combobox "Template":
       - option "plain" [selected]
@@ -34,8 +40,7 @@
     - text: Unit price
     - textbox "Unit price": "10"
     - button "Add line"
-    - text: Logo PNG or JPEG, 200 KB max
-    - button "Logo PNG or JPEG, 200 KB max"
+    - paragraph: A logo is part of the paid plan.
     - button "Download PDF"
     - button "Load saved"
     - status: free perMonth allows 3
@@ -58,7 +63,7 @@
       - heading "Steps" [level=2]
       - list:
         - listitem: Enter your name, the client, and at least one line with a quantity and a price.
-        - listitem: Read the preview total. Tax is one percent of the subtotal.
+        - listitem: Read the preview total. Tax is the percent you enter, applied to the subtotal.
         - listitem: Download the PDF. A free browser can make 3 PDFs a month, and each file includes a small footer.
     - region "FAQ":
       - heading "FAQ" [level=2]
@@ -85,11 +90,11 @@
       - heading "Related tools" [level=2]
       - list:
         - listitem:
-          - link "Privacy and terms generator":
-            - /url: /privacy-policy-generator
-        - listitem:
           - link "PDF tools":
             - /url: /merge-pdf
         - listitem:
           - link "QR code generator":
             - /url: /qr-code-generator
+        - listitem:
+          - link "Receipt generator":
+            - /url: /receipt-generator
