@@ -1,6 +1,7 @@
 import { is, sql, SQL } from "drizzle-orm";
 import { getTableConfig, PgDialect, type PgTable } from "drizzle-orm/pg-core";
 import { tables } from "../../db/schema";
+import { dataPreset } from "../../tools/data/schema";
 
 const dialect = new PgDialect();
 
@@ -50,7 +51,7 @@ export function createTableSql(table: PgTable): string {
 }
 
 export async function applySchema(db: { execute: (query: SQL) => Promise<unknown> }): Promise<void> {
-  for (const table of tables) {
+  for (const table of [...tables, dataPreset]) {
     await db.execute(sql.raw(createTableSql(table)));
   }
   await db.execute(sql.raw(`ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "stripeEventCreated" integer`));

@@ -56,16 +56,27 @@ export function listPresets(store: PresetStore): readonly SavedPreset[] {
   return read(store);
 }
 
-export function savePreset(store: PresetStore, name: string, options: Options): PresetSave {
+export function acceptedPreset(
+  name: string,
+  options: unknown,
+): { ok: true; name: string; options: Options } | { ok: false; reason: string } {
   const trimmed = name.trim();
   if (trimmed.length === 0) return { ok: false, reason: "Name the preset." };
   if (!namePattern.test(trimmed)) {
     return { ok: false, reason: "Use letters, numbers, spaces, or hyphens." };
   }
+  const parsed = parseOptions(options);
+  if (!parsed) return { ok: false, reason: "Those options are not a preset." };
+  return { ok: true, name: trimmed, options: parsed };
+}
+
+export function savePreset(store: PresetStore, name: string, options: Options): PresetSave {
+  const accepted = acceptedPreset(name, options);
+  if (!accepted.ok) return accepted;
   const current = read(store);
-  const next = current.filter((preset) => preset.name !== trimmed);
+  const next = current.filter((preset) => preset.name !== accepted.name);
   if (next.length >= presetCap) return { ok: false, reason: "You can save 20 presets on this device." };
-  const presets = [...next, { name: trimmed, options: { ...options } }];
+  const presets = [...next, { name: accepted.name, options: { ...accepted.options } }];
   store.setItem(presetStorageKey, JSON.stringify(presets));
   emit();
   return { ok: true, presets };
@@ -103,10 +114,10 @@ function parseList(raw: string): SavedPreset[] {
 function parsePreset(value: unknown): SavedPreset | null {
   if (typeof value !== "object" || value === null) return null;
   if (!("name" in value) || !("options" in value)) return null;
-  if (typeof value.name !== "string" || !namePattern.test(value.name)) return null;
-  const options = parseOptions(value.options);
-  if (!options) return null;
-  return { name: value.name, options };
+  if (typeof value.name !== "string") return null;
+  const accepted = acceptedPreset(value.name, value.options);
+  if (!accepted.ok) return null;
+  return { name: accepted.name, options: accepted.options };
 }
 
 function parseOptions(value: unknown): Options | null {

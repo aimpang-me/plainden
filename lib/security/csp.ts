@@ -32,7 +32,7 @@ function policy(mode: HeaderMode): string {
     { name: "style-src", sources: ["'self'", "'unsafe-inline'"] },
     { name: "img-src", sources: ["'self'", "blob:", "data:"] },
     { name: "font-src", sources: ["'self'"] },
-    { name: "connect-src", sources: ["'self'", turnstile] },
+    { name: "connect-src", sources: ["'self'", "blob:", turnstile] },
     { name: "media-src", sources: ["'self'", "blob:"] },
     { name: "worker-src", sources: ["'self'", "blob:"] },
     { name: "frame-src", sources: [turnstile] },

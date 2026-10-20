@@ -1,0 +1,5 @@
+action: open /compress-video-for-discord
+heading: Compress a video for Discord
+action: add clip.mp4
+action: click Compress video
+download: compressed.mp4

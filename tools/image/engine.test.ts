@@ -272,7 +272,7 @@ test("the HEIC package import stays in heic.ts", () => {
     if (!entry.isFile() || entry.name.endsWith(".test.ts")) continue;
     const text = readFileSync(path.join(dir, entry.name), "utf8");
     expect(text.includes(em) || text.includes(en), entry.name).toBe(false);
-    const loadsPackage = text.includes('from "heic-to"') || text.includes('import("heic-to")');
+    const loadsPackage = text.includes('import("heic-to/csp")');
     expect(loadsPackage, entry.name).toBe(entry.name === "heic.ts");
     expect(text.includes("heic2any"), entry.name).toBe(false);
   }

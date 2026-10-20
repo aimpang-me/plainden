@@ -5,13 +5,12 @@ import { LimitKind } from "@/lib/contract/limits";
 import { getDb } from "@/lib/db/client";
 import { checkLimit } from "@/lib/entitlements";
 import { hostedDocument } from "./catalog";
+import { isPolicyPublicId } from "./public-id";
 
 export type PublishResult =
   | { ok: true; publicId: string; path: string }
   | { ok: false; error: "invalid"; message: string }
   | { ok: false; error: "limit"; message: string };
-
-const publicIdPattern = /^[0-9a-f]{32}$/;
 
 function policyPublicId(userId: string, kind: string): string {
   return createHash("sha256").update(`plainden-policy:v1:${userId}:${kind}`).digest("hex").slice(0, 32);
@@ -70,7 +69,7 @@ export async function publish(userId: string, raw: unknown): Promise<PublishResu
 }
 
 export async function readPublished(publicId: string): Promise<{ text: string } | null> {
-  if (!publicIdPattern.test(publicId)) return null;
+  if (!isPolicyPublicId(publicId)) return null;
   const db = await getDb();
   const rows = await db.select().from(policyDoc).where(eq(policyDoc.publicId, publicId));
   const row = rows[0];

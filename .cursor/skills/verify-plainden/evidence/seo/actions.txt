@@ -6,7 +6,6 @@ status: 200
 loc: https://plainden.com/invoice-generator
 loc: https://plainden.com/merge-pdf
 loc: https://plainden.com/qr-code-generator
-loc: https://plainden.com/receipt-generator
 action: GET /robots.txt
 status: 200
 visible: Allow: /

@@ -28,7 +28,19 @@ test("registered slugs do not collide", () => {
       slugs: [...tool.config.slugs, ...tool.copy.longTail.map((page) => page.slug)],
     })),
   );
-  expect(registry.map((tool) => tool.config.id).sort()).toEqual(["invoice", "pdf", "qr", "receipt", "scaffold"]);
+  expect(registry.map((tool) => tool.config.id).sort()).toEqual([
+    "cookie-refund",
+    "data",
+    "image",
+    "invoice",
+    "legal",
+    "pdf",
+    "qr",
+    "receipt",
+    "scaffold",
+    "subtitles",
+    "video",
+  ]);
 });
 
 test("receipt shares the invoice plan and legal tools share one plan", () => {

@@ -31,6 +31,10 @@ const featureIds = [
   "qr",
   "seo",
   "privacy-policy",
+  "image",
+  "video",
+  "data",
+  "subtitles",
 ];
 
 function fail(message) {
@@ -520,12 +524,21 @@ async function driveSeo(page, dir) {
     "https://plainden.com/invoice-generator",
     "https://plainden.com/merge-pdf",
     "https://plainden.com/qr-code-generator",
-    "https://plainden.com/receipt-generator",
   ];
   for (const loc of required) {
     if (!sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap missed ${loc}`);
   }
-  for (const loc of ["https://plainden.com/privacy-policy-generator", "https://plainden.com/scaffold-check"]) {
+  const hidden = [
+    "https://plainden.com/privacy-policy-generator",
+    "https://plainden.com/scaffold-check",
+    "https://plainden.com/compress-image",
+    "https://plainden.com/receipt-generator",
+    "https://plainden.com/compress-video",
+    "https://plainden.com/csv-to-json",
+    "https://plainden.com/srt-to-vtt",
+    "https://plainden.com/cookie-policy-generator",
+  ];
+  for (const loc of hidden) {
     if (sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap listed hidden ${loc}`);
   }
   const robots = await page.request.get(`${base}/robots.txt`);
@@ -551,6 +564,91 @@ async function driveSeo(page, dir) {
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
 }
 
+async function driveImage(page, dir) {
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const heading = await page.getByRole("heading", { level: 1 }).innerText();
+  if (heading !== "Image tools") fail(`heading was ${heading}`);
+  const placeholder = await page.getByText("This tool is not built yet.").count();
+  if (placeholder > 0) fail("image page still showed the placeholder");
+  await page.getByLabel("Images").setInputFiles(path.join(root, "e2e/tools-b/fixtures/frame.png"));
+  await page.getByRole("button", { name: "Compress images" }).click();
+  const link = page.locator("main a[download]").first();
+  await link.waitFor({ timeout: 30_000 });
+  const name = await link.getAttribute("download");
+  if (!name || !name.endsWith(".jpg")) fail(`download was ${name}`);
+  const lines = [
+    "action: open /compress-image",
+    `heading: ${heading}`,
+    "action: add frame.png",
+    "action: click Compress images",
+    `download: ${name}`,
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function driveVideo(page, dir) {
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const heading = await page.getByRole("heading", { level: 1 }).innerText();
+  if (heading !== "Compress a video for Discord") fail(`heading was ${heading}`);
+  await page.getByLabel("Video file").setInputFiles(path.join(root, "e2e/tools-b/fixtures/clip.mp4"));
+  await page.getByRole("button", { name: "Compress video" }).click();
+  const link = page.locator("main a[download]").first();
+  await link.waitFor({ timeout: 120_000 });
+  const name = await link.getAttribute("download");
+  if (!name || !name.endsWith(".mp4")) fail(`download was ${name}`);
+  const lines = [
+    "action: open /compress-video-for-discord",
+    `heading: ${heading}`,
+    "action: add clip.mp4",
+    "action: click Compress video",
+    `download: ${name}`,
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function driveData(page, dir) {
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const heading = await page.getByRole("heading", { level: 1 }).innerText();
+  if (heading !== "CSV, JSON, and Excel converter") fail(`heading was ${heading}`);
+  await page.getByLabel("CSV file").setInputFiles(path.join(root, "e2e/tools-b/fixtures/sample.csv"));
+  await page.getByRole("button", { name: "Convert" }).click();
+  await page.getByRole("cell", { name: "Ada", exact: true }).waitFor({ timeout: 10_000 });
+  const status = await page.getByRole("status").innerText();
+  if (!status.startsWith("Converted ")) fail(`status was ${status}`);
+  const lines = [
+    "action: open /csv-to-json",
+    `heading: ${heading}`,
+    "action: add sample.csv",
+    "action: click Convert",
+    "visible: cell Ada",
+    `status: ${status}`,
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function driveSubtitles(page, dir) {
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const heading = await page.getByRole("heading", { level: 1 }).innerText();
+  if (heading !== "Subtitle converter") fail(`heading was ${heading}`);
+  await page.getByLabel("Subtitle files").setInputFiles(path.join(root, "e2e/tools-b/fixtures/sample.srt"));
+  await page.getByRole("button", { name: "Convert" }).click();
+  await page.getByRole("status").filter({ hasText: "Converted 1 file." }).waitFor({ timeout: 10_000 });
+  const status = await page.getByRole("status").innerText();
+  if (status !== "Converted 1 file.") fail(`status was ${status}`);
+  const lines = [
+    "action: open /srt-to-vtt",
+    `heading: ${heading}`,
+    "action: add sample.srt",
+    "action: click Convert",
+    `status: ${status}`,
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
 const drivers = {
   "scaffold-tool": { path: "/scaffold-check", run: driveScaffold },
   landing: { path: "/", run: driveLanding },
@@ -564,6 +662,10 @@ const drivers = {
   qr: { path: "/qr-code-generator-no-expiration", run: driveQr },
   seo: { path: "/", run: driveSeo },
   "privacy-policy": { path: "/cookie-policy-generator-for-shop", run: drivePrivacy },
+  image: { path: "/compress-image", run: driveImage },
+  video: { path: "/compress-video-for-discord", run: driveVideo },
+  data: { path: "/csv-to-json", run: driveData },
+  subtitles: { path: "/srt-to-vtt", run: driveSubtitles },
 };
 
 async function drive(featureId) {

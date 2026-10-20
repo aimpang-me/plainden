@@ -30,8 +30,12 @@ test("pdf and legal slugs use distinct titles", () => {
   expect(tail.headline).toBe("Merge PDF files");
 });
 
-test("a planned slug renders the placeholder data", () => {
+test("a registered legal slug is a tool and an empty registry stays planned", () => {
   expect(resolveSlug("privacy-policy-generator")).toMatchObject({
+    kind: "tool",
+    headline: "Privacy policy generator",
+  });
+  expect(resolveSlug("privacy-policy-generator", [])).toMatchObject({
     kind: "planned",
     tool: { name: "Privacy and terms generator", id: "legal" },
   });

@@ -17,7 +17,7 @@ function jpgName(name: string): string {
 }
 
 export async function heicTransform(files: readonly { name: string; bytes: Uint8Array }[]): Promise<ImageRun> {
-  const loaded = await import("heic-to");
+  const loaded = await import("heic-to/csp");
   const produced: { name: string; bytes: Uint8Array; mime: "image/jpeg" }[] = [];
   for (const file of files) {
     if (!isHeic(file.bytes)) return { ok: false, reason: `${file.name} is not a HEIC image.`, limit: false };

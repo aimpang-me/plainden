@@ -59,12 +59,20 @@ export function parseCues(text: string): Cue[] {
 }
 
 export function longTailSlugs(toolId: string): string[] | null {
-  const file = path.join(process.cwd(), "tools", toolId, "copy.ts");
-  if (!existsSync(file)) return null;
-  const source = readFileSync(file, "utf8");
-  const marker = source.indexOf("longTail");
-  if (marker < 0) return [];
-  return [...source.slice(marker).matchAll(/slug:\s*["']([^"']+)["']/g)].map((match) => match[1]);
+  const dir = path.join(process.cwd(), "tools", toolId);
+  if (!existsSync(dir)) return null;
+  const slugs = new Set<string>();
+  for (const name of ["copy.ts", "engine.ts"]) {
+    const file = path.join(dir, name);
+    if (!existsSync(file)) continue;
+    const source = readFileSync(file, "utf8");
+    const marker = source.indexOf("longTail");
+    if (marker < 0) continue;
+    for (const match of source.slice(marker).matchAll(/slug:\s*["']([^"']+)["']/g)) {
+      slugs.add(match[1]);
+    }
+  }
+  return [...slugs];
 }
 
 export function probeVideo(bytes: Buffer): VideoInfo {

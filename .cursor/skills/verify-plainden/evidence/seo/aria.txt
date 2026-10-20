@@ -15,7 +15,3 @@
         - link "QR code generator":
           - /url: /qr-code-generator
         - paragraph: Make a QR code for a link, text, wifi network, or contact card.
-      - listitem:
-        - link "Receipt generator":
-          - /url: /receipt-generator
-        - paragraph: Make a receipt with a payment method, receipt number, and paid stamp.

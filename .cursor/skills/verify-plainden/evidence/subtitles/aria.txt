@@ -1,0 +1,59 @@
+- main:
+  - article:
+    - heading "Subtitle converter" [level=1]
+    - paragraph: Convert SRT, VTT, and ASS subtitles and shift their timing.
+    - heading "Convert" [level=2]
+    - paragraph: Output is WebVTT.
+    - text: Subtitle files
+    - button "Subtitle files"
+    - list:
+      - listitem:
+        - text: sample.srt, 77 bytes
+        - button "Remove sample.srt"
+    - text: Timing shift (ms)
+    - textbox "Timing shift (ms)": "0"
+    - button "Convert"
+    - status: Converted 1 file.
+    - list:
+      - listitem:
+        - link "sample.vtt":
+          - /url: blob:http://127.0.0.1:3100/85d5ce5f-69ed-4be8-85c4-776a707ff5bd
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Add an SRT, WebVTT, or ASS file.
+        - listitem: Choose an output format and a timing shift in milliseconds.
+        - listitem: Press Convert and download the file. A free plan converts one file at a time.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "Do the files leave this browser?" [level=3]
+          - paragraph: No. The converter reads the file on this device and builds the download here.
+        - listitem:
+          - heading "How many files can a free plan convert?" [level=3]
+          - paragraph: One file at a time.
+        - listitem:
+          - heading "How many files can a paid plan convert?" [level=3]
+          - paragraph: Up to 50 files in one run.
+        - listitem:
+          - heading "Which subtitle formats are supported?" [level=3]
+          - paragraph: SRT, WebVTT, and ASS. Cue times and cue text carry across those formats.
+        - listitem:
+          - heading "How does a timing shift work?" [level=3]
+          - paragraph: Type a whole number of milliseconds. A positive number delays every cue. A negative number moves cues earlier. A cue that would end at or before zero is removed. A cue that would start before zero starts at zero.
+        - listitem:
+          - heading "Which text encodings can this page read?" [level=3]
+          - paragraph: UTF-8, UTF-16 when the file has a BOM, and Windows-1252. The download is UTF-8.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator
