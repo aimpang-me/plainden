@@ -387,18 +387,25 @@ type Markdown =
   | { ok: true; text: string }
   | { ok: false; error: "plan"; message: typeof PLAN_DOWNLOAD_MESSAGE };
 
+function htmlOf(text: string): string {
+  return text
+    .split("\n\n")
+    .map((block) => `<p>${escapeHtml(block).replaceAll("\n", "<br>\n")}</p>`)
+    .join("\n");
+}
+
 function project(plan: PolicyPlan, paid: string): { text: string; html: string; markdown: Markdown } {
   switch (plan) {
     case "free": {
       const text = `${paid}\n\n${ATTRIBUTION}`;
       return {
         text,
-        html: escapeHtml(text),
+        html: htmlOf(text),
         markdown: { ok: false, error: "plan", message: PLAN_DOWNLOAD_MESSAGE },
       };
     }
     case "paid":
-      return { text: paid, html: escapeHtml(paid), markdown: { ok: true, text: `# ${paid}` } };
+      return { text: paid, html: htmlOf(paid), markdown: { ok: true, text: `# ${paid}` } };
     default: {
       const unreachable: never = plan;
       return unreachable;

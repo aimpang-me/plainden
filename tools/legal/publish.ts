@@ -61,7 +61,7 @@ export async function publish(userId: string, raw: unknown): Promise<PublishResu
     if (!isUniqueViolation(error)) throw error;
     const rows = await db.select().from(policyDoc).where(eq(policyDoc.publicId, publicId));
     const row = rows[0];
-    if (!row) throw error;
+    if (!row || row.userId !== userId) throw error;
     if (row.body !== hosted.text) {
       await db.update(policyDoc).set(next).where(eq(policyDoc.publicId, publicId));
     }

@@ -234,8 +234,9 @@ test("tail presets fill the form and land in the paid, hosted, and decoded text"
     expect(paid.text.startsWith(`${tail.title}\n\n${NOTICE}\n\n`)).toBe(true);
     expect(paid.text.includes(ATTRIBUTION)).toBe(false);
     expect(paid.html.includes(ATTRIBUTION)).toBe(false);
+    expect(paid.html.startsWith(`<p>${tail.title}</p>`)).toBe(true);
     expect(free.text).toBe(`${paid.text}\n\n${ATTRIBUTION}`);
-    expect(free.html.endsWith(`\n\n${ATTRIBUTION}`)).toBe(true);
+    expect(free.html.endsWith(`<p>${ATTRIBUTION}</p>`)).toBe(true);
     expect(free.markdown).toEqual({ ok: false, error: "plan", message: PLAN_MESSAGE });
     expect(JSON.stringify(free.markdown).includes(tail.answers.businessName ?? "")).toBe(false);
     expect(paid.markdown).toEqual({ ok: true, text: `# ${paid.text}` });
@@ -259,7 +260,7 @@ test("the app sample is the clause text, and A & B <C> stays raw in text and esc
     kind: "privacy",
     title: "Privacy policy",
     text: appText,
-    html: escapeExpected(appText),
+    html: htmlExpected(appText),
     markdown: { ok: true, text: `# ${appText}` },
   });
   const marked = {
@@ -280,7 +281,7 @@ test("the app sample is the clause text, and A & B <C> stays raw in text and esc
   expect(special.html.includes(`A & B <C>`)).toBe(false);
   expect(decodeHtml(special.html).includes(`A & B <C> "D"`)).toBe(true);
   expect(specialFree.text.endsWith(`\n\n${ATTRIBUTION}`)).toBe(true);
-  expect(specialFree.html.endsWith(`\n\n${ATTRIBUTION}`)).toBe(true);
+  expect(specialFree.html.endsWith(`<p>${ATTRIBUTION}</p>`)).toBe(true);
   expect(special.text.includes(ATTRIBUTION)).toBe(false);
   expect(special.html.includes(ATTRIBUTION)).toBe(false);
   expect(specialFree.markdown).toEqual({ ok: false, error: "plan", message: PLAN_MESSAGE });
@@ -331,11 +332,17 @@ test("the first parse failure is the message and a failure has no markdown", () 
   expect(exact.text.includes("a".repeat(400))).toBe(true);
 });
 
-function escapeExpected(value: string): string {
+function htmlExpected(value: string): string {
   return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    .split("\n\n")
+    .map((block) => {
+      const escaped = block
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+      return `<p>${escaped.replaceAll("\n", "<br>\n")}</p>`;
+    })
+    .join("\n");
 }
