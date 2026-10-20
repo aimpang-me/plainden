@@ -1,0 +1,8 @@
+action: fill Note Hello
+action: fill Count 1
+action: click Check
+status: Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.
+action: fill Count 4
+action: click Check
+status: free perMonth allows 3
+visible: link See pricing
