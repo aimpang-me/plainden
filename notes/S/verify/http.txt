@@ -1,0 +1,6 @@
+GET /sitemap.xml 404
+GET /robots.txt 404
+GET /scaffold-check-limit title Scaffold limit check | plainden
+json-ld absent
+canonical absent
+intro present

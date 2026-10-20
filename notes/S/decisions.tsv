@@ -1,0 +1,9 @@
+ts	phase	decision	why	evidence	result
+2026-10-20T18:34:06Z	start	worker S SEO run on plainden	this session owns the log from the first row	branch worker/S	open
+2026-10-20T18:34:06Z	ground	pages come from resolveSlug plus home and pricing	F-a already renders slugs and long-tail copy and has no sitemap	lib/pages/resolve.ts	no seo routes
+2026-10-20T18:34:06Z	design	one SeoPage list, artifacts are projections	separate walkers would repeat the slug rules	notes/S/rationale.md	catalog chosen
+2026-10-20T18:34:06Z	assumption	TOOLS_DISABLED is comma-separated tool ids	F8 is not built and the prompt said to define the smallest format	notes/S/decisions.md	logged
+2026-10-20T18:34:06Z	implement	wrote lib/seo and split kind into three object types	Extract on a union field collapsed the long-tail return to null	lib/seo/pages.ts	next build typecheck failed then passed
+2026-10-20T18:34:06Z	verify	sitemap test matches every resolved path	the done line is that the sitemap lists every page	lib/seo/seo.test.ts	9 passed
+2026-10-20T18:34:06Z	verify	next build, eslint, and vitest pass with app env unset	PLAN done rule	local shell	build ok, eslint ok, 25 tests passed
+2026-10-20T18:34:06Z	verify	browser drive of landing and scaffold-tool	verify-plainden is the user-facing proof	notes/S/verify/	doctor ok, drives ok, sitemap 404
