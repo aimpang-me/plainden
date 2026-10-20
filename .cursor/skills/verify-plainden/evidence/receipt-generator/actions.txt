@@ -1,0 +1,11 @@
+action: fill Your name Ada
+action: fill Client name Bea
+action: fill Receipt number R-9
+action: fill Description Rent
+action: fill Quantity 1
+action: fill Unit price 10
+action: select Payment method card
+visible: Total $10.00
+visible: PAID
+action: click Download PDF
+download: Receipt R-9.pdf

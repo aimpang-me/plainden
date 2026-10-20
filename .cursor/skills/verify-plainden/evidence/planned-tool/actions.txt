@@ -1,0 +1,5 @@
+action: open /
+action: click link Privacy and terms generator
+url: /privacy-policy-generator
+heading: Privacy and terms generator
+visible: This tool is not built yet.

@@ -42,7 +42,7 @@ Run doctor before a drive. If it fails, do not click through a server you do not
 node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive <feature-id>
 ```
 
-Feature ids: `scaffold-tool`, `landing`, `planned-tool`, `pricing`, `theme`.
+Feature ids: `scaffold-tool`, `landing`, `planned-tool`, `pricing`, `theme`, `invoice-generator`, `receipt-generator`.
 
 The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[data-hydrated="true"]`, then uses accessible names:
 
@@ -54,6 +54,15 @@ The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[dat
 | Support | link `support@plainden.com` with `href` `mailto:support@plainden.com` |
 | Invoice entry | link `Invoice generator` |
 | Placeholder | text `This tool is not built yet.` |
+| Your name | textbox `Your name` |
+| Client name | textbox `Client name` |
+| Invoice number | textbox `Invoice number` |
+| Receipt number | textbox `Receipt number` |
+| Description | textbox `Description` |
+| Quantity | textbox `Quantity` |
+| Unit price | textbox `Unit price` |
+| Payment method | combobox `Payment method` |
+| Download | button `Download PDF` |
 | Scaffold heading | heading `Scaffold check` |
 | Note | textbox `Note` |
 | Count | textbox `Count` |

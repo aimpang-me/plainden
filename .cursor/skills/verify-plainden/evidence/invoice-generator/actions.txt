@@ -1,0 +1,17 @@
+action: fill Your name Ada
+action: fill Client name Bea
+action: fill Invoice number 100
+action: fill Description Consulting
+action: fill Quantity 2
+action: fill Unit price 10
+visible: Total $20.00
+visible: made with plainden
+action: click Download PDF
+download: Invoice 100.pdf
+action: click Download PDF
+download: Invoice 100.pdf
+action: click Download PDF
+download: Invoice 100.pdf
+action: click Download PDF
+status: free perMonth allows 3
+visible: link See pricing

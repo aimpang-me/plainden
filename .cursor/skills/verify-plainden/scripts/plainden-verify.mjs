@@ -17,7 +17,7 @@ const base = `http://127.0.0.1:${port}`;
 const dataDir = path.join(root, ".data/verify-pglite");
 const readyText = "Small tools that run in the browser";
 
-const featureIds = ["scaffold-tool", "landing", "planned-tool", "pricing", "theme"];
+const featureIds = ["scaffold-tool", "landing", "planned-tool", "pricing", "theme", "invoice-generator", "receipt-generator"];
 
 function fail(message) {
   console.error(message);
@@ -190,21 +190,95 @@ async function driveLanding(page, dir) {
 }
 
 async function drivePlanned(page, dir) {
-  await page.getByRole("link", { name: "Invoice generator" }).click();
-  await page.waitForURL("**/invoice-generator");
+  await page.getByRole("link", { name: "Privacy and terms generator" }).click();
+  await page.waitForURL("**/privacy-policy-generator");
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
   const heading = await page.getByRole("heading", { level: 1 }).innerText();
   const copy = await page.getByText("This tool is not built yet.").count();
   const check = await page.getByRole("button", { name: "Check" }).count();
-  if (heading !== "Invoice generator") fail(`heading was ${heading}`);
+  if (heading !== "Privacy and terms generator") fail(`heading was ${heading}`);
   if (copy < 1) fail("placeholder copy was missing");
   if (check > 0) fail("placeholder exposed a Check button");
   const lines = [
     "action: open /",
-    "action: click link Invoice generator",
-    "url: /invoice-generator",
+    "action: click link Privacy and terms generator",
+    "url: /privacy-policy-generator",
     `heading: ${heading}`,
     "visible: This tool is not built yet.",
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function fillDocument(page, fields) {
+  for (const [label, value] of fields) {
+    await page.getByLabel(label).fill(value);
+  }
+}
+
+async function driveInvoice(page, dir) {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const fields = [
+    ["Your name", "Ada"],
+    ["Client name", "Bea"],
+    ["Invoice number", "100"],
+    ["Description", "Consulting"],
+    ["Quantity", "2"],
+    ["Unit price", "10"],
+  ];
+  await fillDocument(page, fields);
+  await page.getByText("Total $20.00", { exact: true }).waitFor({ timeout: 10_000 });
+  const footer = await page.getByText("made with plainden").count();
+  if (footer < 1) fail("free invoice footer was missing");
+  const lines = fields.map(([label, value]) => `action: fill ${label} ${value}`);
+  lines.push("visible: Total $20.00");
+  lines.push("visible: made with plainden");
+  for (let count = 1; count <= 3; count += 1) {
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download PDF" }).click();
+    const download = await downloadPromise;
+    lines.push(`action: click Download PDF`);
+    lines.push(`download: ${download.suggestedFilename()}`);
+  }
+  await page.getByRole("button", { name: "Download PDF" }).click();
+  lines.push("action: click Download PDF");
+  const blocked = "free perMonth allows 3";
+  await page.getByRole("status").filter({ hasText: blocked }).waitFor({ timeout: 10_000 });
+  const status = await page.getByRole("status").innerText();
+  lines.push(`status: ${status}`);
+  if (status !== blocked) fail(`invoice status was ${JSON.stringify(status)}`);
+  if ((await page.getByRole("link", { name: "See pricing" }).count()) < 1) fail("See pricing link was missing");
+  lines.push("visible: link See pricing");
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
+async function driveReceipt(page, dir) {
+  const fields = [
+    ["Your name", "Ada"],
+    ["Client name", "Bea"],
+    ["Receipt number", "R-9"],
+    ["Description", "Rent"],
+    ["Quantity", "1"],
+    ["Unit price", "10"],
+  ];
+  await fillDocument(page, fields);
+  await page.getByLabel("Payment method").selectOption("card");
+  await page.getByText("Total $10.00", { exact: true }).waitFor({ timeout: 10_000 });
+  const stamp = await page.getByText("PAID", { exact: true }).count();
+  if (stamp < 1) fail("PAID stamp was missing");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF" }).click();
+  const download = await downloadPromise;
+  const lines = [
+    ...fields.map(([label, value]) => `action: fill ${label} ${value}`),
+    "action: select Payment method card",
+    "visible: Total $10.00",
+    "visible: PAID",
+    "action: click Download PDF",
+    `download: ${download.suggestedFilename()}`,
   ];
   await snap(page, dir, "aria.txt", "page.png");
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
@@ -253,6 +327,8 @@ const drivers = {
   "planned-tool": { path: "/", run: drivePlanned },
   pricing: { path: "/pricing", run: drivePricing },
   theme: { path: "/", run: driveTheme },
+  "invoice-generator": { path: "/invoice-generator", run: driveInvoice },
+  "receipt-generator": { path: "/receipt-generator", run: driveReceipt },
 };
 
 async function drive(featureId) {
