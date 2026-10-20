@@ -1,0 +1,19 @@
+action: open /shift-subtitle-timing
+shift: 1000
+visible: This page starts the shift at 1000 ms.
+action: open /srt-to-vtt
+action: add sample.srt
+action: set shift 1000
+action: click Convert
+status: Converted 1 file.
+download: sample.vtt matches the one second delay
+action: open /srt-converter
+action: choose SRT
+action: add sample.srt
+action: click Convert
+status: Converted 1 file.
+download: sample.srt matches the source cues
+action: add sample.srt and second.srt
+action: click Convert
+status: free batchCount allows 1
+visible: link See pricing
