@@ -95,7 +95,7 @@ export function toPolicyResponse(result: PublishResult): Response {
     case "limit":
       return Response.json(result, { status: 403 });
     default: {
-      const unreachable: never = result.error;
+      const unreachable: never = result;
       return unreachable;
     }
   }
