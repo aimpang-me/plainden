@@ -2,7 +2,7 @@
 
 One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with limits, $5/mo to remove limits. Plain design. Speed over polish. Adding a tool = adding one folder.
 
-**Every worker:** read this whole file, then do only your own job (section 5). Never ask the owner anything. Pick sensible defaults and log them in `notes/<your-id>/decisions.md`. Project folder: `C:\Users\PC-AIMPANG\Documents\Developments\plainden`.
+**Every worker:** read this whole file, then do only your own job (section 5). Never ask the owner anything. Pick sensible defaults and log them in `notes/<your-id>/decisions.md`. Project folder: the repo root of github.com/aimpang-me/plainden.
 
 ## 1. Rules (apply to everyone)
 
@@ -14,7 +14,7 @@ One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with
 6. Never commit `package.json` changes or `package-lock.json` (except F). Install what you need with `npm install --no-save <pkg>@<version> ...` (this leaves `package.json` and the lockfile untouched, so rebase works). Put every library you need in ONE such command line at the top of `notes/<id>/deps.md`, with a why for each, and re-run that whole line after every rebase (npm prunes no-save packages when you install another one, so never run it in pieces). F adds them all and regenerates the lockfile at merge. Libraries used by more than one tool (`pdf-lib`, Playwright) are installed by F1 at a pinned version; use those, do not install your own copy.
 7. Notes go only in `notes/<your-id>/`. Never edit another worker's notes or the shared `notes/` root.
 8. Done = your check passes, `next build` and `eslint .` pass, and `notes/<id>/report.md` (10 lines max) says what works and what doesn't.
-9. Branch `worker/<id>`, own worktree, commit often, rebase on `main` before you finish. Never merge to `main` yourself (except F).
+9. Branch `worker/<id>`, own worktree, commit often, rebase on `main` before you finish. Each worker pushes its branch `worker/<id>` to origin. F fetches worker branches from origin, merges them, and pushes `main`. Never merge to `main` yourself (except F).
 
 ## 2. Stack
 
