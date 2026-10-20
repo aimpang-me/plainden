@@ -1,0 +1,7 @@
+Expected: "Bea"
+Received: "Changed"
+Locator: getByLabel('Client name')
+Status after Load saved: Saved documents loaded.
+The list request succeeded. The form kept the edited name.
+Source: tools/invoice/editor.tsx onLoad, lines 104-108.
+Spec: e2e/tools-a/invoice.spec.ts

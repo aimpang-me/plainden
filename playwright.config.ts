@@ -11,6 +11,10 @@ export default defineConfig({
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: false,
     timeout: 120_000,
+    env: {
+      STRIPE_SECRET_KEY: "sk_test_plainden_webhook_fixture",
+      STRIPE_WEBHOOK_SECRET: "whsec_plainden_e2e",
+    },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
