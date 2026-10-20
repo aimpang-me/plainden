@@ -6,6 +6,7 @@ execFileSync(process.execPath, ["--experimental-strip-types", "scripts/gen-regis
 });
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   cacheComponents: true,
   partialPrefetching: true,
   allowedDevOrigins: ["127.0.0.1", "localhost"],

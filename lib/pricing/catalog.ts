@@ -68,3 +68,59 @@ export function formatPrice(amountCents: number, interval: BillingInterval): str
   const suffix = interval === "month" ? "/mo" : "/yr";
   return `$${dollars}${suffix}`;
 }
+
+export type CheckoutPlan = {
+  entitlementKey: string;
+  name: string;
+  monthKey: string;
+  yearKey: string;
+  monthlyCents: number;
+  annualCents: number;
+};
+
+function planFor(tool: (typeof toolPrices)[number]): CheckoutPlan {
+  return {
+    entitlementKey: tool.entitlementKey,
+    name: tool.name,
+    monthKey: `${tool.stem}_month`,
+    yearKey: `${tool.stem}_year`,
+    monthlyCents: tool.monthlyCents,
+    annualCents: tool.monthlyCents * 10,
+  };
+}
+
+export function singleToolPlans(): readonly CheckoutPlan[] {
+  return toolPrices.filter((tool) => tool.entitlementKey !== "all" && tool.monthlyCents > 0).map(planFor);
+}
+
+export function bundlePlan(): CheckoutPlan {
+  const tool = toolPrices.find((item) => item.entitlementKey === "all");
+  if (!tool) throw new Error("missing bundle price");
+  return planFor(tool);
+}
+
+export function lookupKeyFor(plan: CheckoutPlan, interval: BillingInterval): string {
+  switch (interval) {
+    case "month":
+      return plan.monthKey;
+    case "year":
+      return plan.yearKey;
+    default: {
+      const unreachable: never = interval;
+      return unreachable;
+    }
+  }
+}
+
+export function amountFor(plan: CheckoutPlan, interval: BillingInterval): number {
+  switch (interval) {
+    case "month":
+      return plan.monthlyCents;
+    case "year":
+      return plan.annualCents;
+    default: {
+      const unreachable: never = interval;
+      return unreachable;
+    }
+  }
+}

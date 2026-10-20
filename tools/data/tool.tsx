@@ -215,11 +215,12 @@ function Converter({ slug, preset }: ToolProps) {
         {status.kind === "ready" && status.grid.rows.length > previewCap ? <p>Showing the first 8 rows.</p> : null}
         {status.kind === "ready" ? (
           <>
+            <div className="min-w-0 overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
                   {status.grid.columns.map((column, index) => (
-                    <th key={`${column}-${index}`} className="border border-line px-2 py-1 text-left">
+                    <th key={`${column}-${index}`} className="border border-line px-2 py-1 text-left tabular-nums">
                       {column}
                     </th>
                   ))}
@@ -229,7 +230,7 @@ function Converter({ slug, preset }: ToolProps) {
                 {preview.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="border border-line px-2 py-1">
+                      <td key={cellIndex} className="border border-line px-2 py-1 text-left align-top tabular-nums">
                         {cell}
                       </td>
                     ))}
@@ -237,6 +238,7 @@ function Converter({ slug, preset }: ToolProps) {
                 ))}
               </tbody>
             </table>
+            </div>
             <a href={status.url} download={status.filename}>
               Download {status.filename}
             </a>

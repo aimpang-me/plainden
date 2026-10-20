@@ -362,17 +362,29 @@ async function drivePricing(page, dir) {
   const body = await page.locator("main").innerText();
   if (heading !== "Pricing") fail(`heading was ${heading}`);
   if (!body.includes("$5/mo") || !body.includes("$9/mo")) fail("monthly prices were missing");
-  if (!body.includes("plainden_invoice_month")) fail("invoice lookup key was missing");
-  if (body.includes("plainden_scaffold_month")) fail("scaffold price was listed");
-  if ((await page.getByRole("button", { name: "Checkout" }).count()) < 1) fail("checkout button was missing");
+  if (!body.includes("two months free")) fail("annual note was missing");
+  if (body.includes("plainden_")) fail("a lookup key was visible");
+  const toolForm = page.locator("form").filter({ has: page.getByLabel("Tool") });
+  const monthKey = await toolForm.locator("input[name=lookupKey]").inputValue();
+  if (monthKey !== "plainden_invoice_month") fail(`invoice checkout key was ${monthKey}`);
+  await page.getByText("Annual", { exact: true }).click();
+  const annual = await page.locator("main").innerText();
+  if (!annual.includes("$50/yr") || !annual.includes("$90/yr")) fail("annual prices were missing");
+  await page.getByLabel("Tool").selectOption("qr");
+  const yearKey = await toolForm.locator("input[name=lookupKey]").inputValue();
+  if (yearKey !== "plainden_qr_year") fail(`qr checkout key was ${yearKey}`);
+  if ((await page.getByRole("button", { name: "Checkout" }).count()) !== 2) fail("checkout buttons were missing");
   if ((await page.getByRole("button", { name: "Open billing portal" }).count()) < 1) fail("portal button was missing");
   const lines = [
     "action: open /pricing",
     `heading: ${heading}`,
     "visible: $5/mo",
     "visible: $9/mo",
-    "visible: plainden_invoice_month",
-    "absent: plainden_scaffold_month",
+    "visible: two months free",
+    "absent: lookup keys",
+    "checkout: plainden_invoice_month",
+    "action: select Annual and QR code generator",
+    "checkout: plainden_qr_year",
   ];
   await snap(page, dir, "aria.txt", "page.png");
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);

@@ -9,16 +9,16 @@ export function SiteHeader() {
           plainden
         </Link>
         <nav aria-label="Main" className="flex items-center gap-7 text-sm max-[800px]:gap-4">
-          <Link href="/#tools" className="text-ink no-underline">
+          <Link href="/#tools" className="inline-flex h-12 items-center text-ink no-underline">
             Tools
           </Link>
-          <Link href="/pricing" className="text-ink no-underline max-[800px]:hidden">
+          <Link href="/pricing" className="inline-flex h-12 items-center text-ink no-underline max-[800px]:hidden">
             Pricing
           </Link>
           <ThemeToggle />
           <Link
             href="/account"
-            className="inline-flex items-center rounded-full bg-fill px-[18px] py-2.5 text-sm font-medium text-ink no-underline"
+            className="inline-flex h-12 items-center rounded-full bg-fill px-[18px] text-sm font-medium text-ink no-underline"
           >
             Sign in
           </Link>

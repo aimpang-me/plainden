@@ -50,6 +50,6 @@ Each feature file starts with an H1 and one paragraph. It then uses exactly four
 - [Data converter](./data.md) turns a CSV into a table.
 - [Subtitle converter](./subtitles.md) turns an SRT file into a download.
 - [SEO](./seo.md) serves the canonical link, JSON-LD, sitemap, and robots file.
-- [Pricing](./pricing.md) lists monthly and annual prices from the catalog.
+- [Pricing](./pricing.md) shows Free, One tool, and All tools, with annual billing two months free.
 - [Theme](./theme.md) switches light and dark and stores the choice.
 - [Sign in](./sign-in.md) requests a magic link on `/account` and opens it from `.dev-mail`.

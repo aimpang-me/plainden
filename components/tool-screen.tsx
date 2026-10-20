@@ -6,12 +6,12 @@ export function ToolScreen({ page }: { page: ResolvedPage }) {
   switch (page.kind) {
     case "planned":
       return (
-        <article className="grid gap-16">
+        <article className="grid grid-cols-1 gap-16">
           <header className="mx-auto max-w-3xl text-center">
-            <h1 className="text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
+            <h1 className="text-balance text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
               {titleForSlug(page.slug) ?? page.tool.name}
             </h1>
-            <p className="mt-5 text-lg text-muted max-[800px]:text-base">{page.tool.description}</p>
+            <p className="mt-5 text-pretty text-lg text-muted max-[800px]:text-base">{page.tool.description}</p>
           </header>
           <p className="text-center text-muted">This tool is not built yet.</p>
           <Related currentId={page.tool.id} />
@@ -29,12 +29,12 @@ export function ToolScreen({ page }: { page: ResolvedPage }) {
 function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "tool" }> }) {
   const Tool = page.Tool;
   return (
-    <article className="grid gap-16">
-      <header className="mx-auto max-w-3xl text-center">
-        <h1 className="text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
+    <article className="grid grid-cols-1 gap-16">
+      <header className="mx-auto min-w-0 max-w-3xl text-center">
+        <h1 className="text-balance text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
           {page.headline}
         </h1>
-        <p className="mt-5 text-lg text-muted max-[800px]:text-base">
+        <p className="mt-5 text-pretty text-lg text-muted max-[800px]:text-base">
           {page.intro ? page.intro : page.config.description}
         </p>
       </header>
@@ -74,7 +74,7 @@ function Related({ currentId }: { currentId: string }) {
       <h2 id="related-heading" className="mb-3 text-[13px] text-faint">
         Related tools
       </h2>
-      <ul className="grid gap-2 sm:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {tools.map((tool) => (
           <li key={tool.id}>
             <Link href={`/${tool.slugs[0]}`}>{tool.name}</Link>

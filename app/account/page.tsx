@@ -30,7 +30,7 @@ async function AccountBody() {
   const user = await getCurrentUser();
   return (
     <>
-      <h1 className="mb-8 text-center text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
+      <h1 className="mb-8 text-balance text-center text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
         Account
       </h1>
       {user ? (

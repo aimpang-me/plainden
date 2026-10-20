@@ -25,15 +25,15 @@ export function ToolIndex({ tools }: { tools: readonly ToolIndexItem[] }) {
           id="tool-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="w-full rounded-xl border border-line bg-paper px-3.5 py-3 text-[15px] text-ink"
+          className="h-12 w-full min-w-0 rounded-xl border border-line bg-paper px-3.5 text-[15px] text-ink"
         />
       </label>
       {shown.length === 0 ? <p>No tools match.</p> : null}
-      <ul className="grid gap-4 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {shown.map((tool) => (
           <li
             key={tool.id}
-            className="rounded-3xl border border-line-soft p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_12px_40px_rgba(0,0,0,0.04)]"
+            className="rounded-3xl border border-line-soft p-8 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_12px_40px_rgba(0,0,0,0.04)] max-[800px]:p-6"
           >
             <Link href={tool.href} className="text-lg font-medium tracking-[-0.02em]">
               {tool.name}

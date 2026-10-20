@@ -42,12 +42,36 @@ test("the landing page hides later waves and a direct legal url opens the genera
   await expect(page.getByLabel("Business name")).toBeVisible();
 });
 
-test("pricing lists the tool and bundle monthly prices", async ({ page }) => {
+test("pricing shows three plans and keeps checkout keys off the page", async ({ page }) => {
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { name: "Pricing" })).toBeVisible();
-  await expect(page.getByText("plainden_invoice_month")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Free" })).toBeVisible();
+  await expect(page.getByText("3 invoices or receipts a month")).toBeVisible();
+  await expect(page.getByText("Receipt is included with Invoice generator.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One tool" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "All tools" })).toBeVisible();
+  await expect(page.getByText("Recommended")).toBeVisible();
+  await expect(page.getByText("two months free")).toBeVisible();
   await expect(page.getByText("$5/mo").first()).toBeVisible();
   await expect(page.getByText("$9/mo")).toBeVisible();
+  await expect(page.getByText("plainden_invoice_month")).toHaveCount(0);
+  await expect(page.getByText("plainden_scaffold_month")).toHaveCount(0);
+
+  const toolForm = page.locator("form").filter({ has: page.getByLabel("Tool") });
+  await expect(toolForm.locator("input[name=lookupKey]")).toHaveValue("plainden_invoice_month");
+  await page.getByLabel("Tool").selectOption("qr");
+  await page.getByText("Annual", { exact: true }).click();
+  await expect(page.getByRole("radio", { name: "Annual" })).toBeChecked();
+  await expect(toolForm.locator("input[name=lookupKey]")).toHaveValue("plainden_qr_year");
+  await expect(page.getByText("$50/yr").first()).toBeVisible();
+  await expect(page.getByText("$90/yr")).toBeVisible();
+  const bundleKey = page
+    .locator("li")
+    .filter({ has: page.getByRole("heading", { name: "All tools" }) })
+    .locator("input[name=lookupKey]");
+  await expect(bundleKey).toHaveValue("plainden_all_year");
+  await expect(page.getByRole("button", { name: "Checkout" })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Open billing portal" })).toBeVisible();
 });
 
 test("the theme toggle switches to dark and back", async ({ page }) => {

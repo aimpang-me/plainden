@@ -48,7 +48,7 @@ export function SignInForm() {
     <form className="mx-auto grid w-full max-w-sm gap-4" onSubmit={onSubmit}>
       <Input label="Email" name="email" type="email" autoComplete="email" required />
       <div ref={widget} />
-      <Button type="submit" disabled={pending || token.length === 0}>
+      <Button type="submit" className="w-full" disabled={pending || token.length === 0}>
         Email me a sign-in link
       </Button>
       {message ? <p role="status">{message}</p> : null}
