@@ -1,7 +1,6 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Button } from "./ui/button";
 
 type Theme = "light" | "dark";
 
@@ -31,8 +30,8 @@ export function ThemeToggle() {
 
   const label = theme === "dark" ? "Switch to light" : "Switch to dark";
   return (
-    <Button type="button" variant="plain" onClick={toggle} aria-pressed={theme === "dark"}>
+    <button type="button" className="text-sm text-ink" onClick={toggle} aria-pressed={theme === "dark"}>
       {label}
-    </Button>
+    </button>
   );
 }

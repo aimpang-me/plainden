@@ -5,10 +5,10 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export function Button({ variant = "primary", className = "", ...props }: ButtonProps) {
-  const tone = variant === "primary" ? "bg-accent text-paper hover:opacity-90" : "bg-paper text-ink";
+  const tone = variant === "primary" ? "bg-ink text-paper" : "bg-fill text-ink";
   return (
     <button
-      className={`border border-line px-3 py-1 text-sm ${tone} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full border-0 px-[18px] py-2.5 text-sm font-medium disabled:opacity-50 ${tone} ${className}`}
       {...props}
     />
   );

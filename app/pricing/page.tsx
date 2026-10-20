@@ -14,13 +14,20 @@ export default function PricingPage() {
   const origin = siteOrigin();
   const listed = prices.filter((price) => price.amountCents > 0);
   return (
-    <article className="grid gap-4">
+    <article className="grid gap-12">
       {page ? <JsonLd page={page} origin={origin} /> : null}
-      <h1 className="text-3xl">Pricing</h1>
-      <p>Annual prices are 10 times the monthly price. Receipt shares the invoice plan. Cookie and refund share the legal plan.</p>
-      <ul className="grid gap-2">
+      <header className="mx-auto max-w-3xl text-center">
+        <h1 className="text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">Pricing</h1>
+        <p className="mt-5 text-lg text-muted max-[800px]:text-base">
+          Annual prices are 10 times the monthly price. Receipt shares the invoice plan. Cookie and refund share the legal plan.
+        </p>
+      </header>
+      <ul className="grid gap-4">
         {listed.map((price) => (
-          <li key={price.lookupKey} className="flex items-baseline justify-between gap-4 border border-line px-3 py-2">
+          <li
+            key={price.lookupKey}
+            className="flex flex-wrap items-baseline justify-between gap-4 rounded-3xl border border-line-soft px-6 py-5"
+          >
             <span>{price.name}</span>
             <span>{formatPrice(price.amountCents, price.interval)}</span>
             <span className="text-muted">{price.lookupKey}</span>

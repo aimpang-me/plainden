@@ -1,0 +1,5 @@
+one run each, Lighthouse 13.5.0, next start on port 3210, categories seo and accessibility
+home http://127.0.0.1:3210/ seo 100 accessibility 100 failed 0
+invoice http://127.0.0.1:3210/invoice-generator seo 100 accessibility 100 failed 0
+pricing http://127.0.0.1:3210/pricing seo 100 accessibility 100 failed 0
+dark home background rgb(13, 13, 13) text rgb(245, 245, 245) after Switch to dark

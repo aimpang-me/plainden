@@ -11,5 +11,5 @@ export default async function Page(props: PageProps<"/p/[id]">) {
   await connection();
   const published = await readPublished(id);
   if (!published) notFound();
-  return <article className="whitespace-pre-wrap">{published.text}</article>;
+  return <article className="whitespace-pre-wrap text-[15px] leading-7">{published.text}</article>;
 }
