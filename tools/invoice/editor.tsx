@@ -155,7 +155,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
   }
 
   return (
-    <div className="grid items-start gap-12 min-[801px]:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-12 min-[801px]:grid-cols-2">
       <Card title={preview.heading}>
         <form
           className="grid gap-3"
@@ -243,15 +243,23 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           {preview.numberLabel} {preview.number}
         </p>
         {preview.lines.map((line) => (
-          <p key={line.key}>
-            {line.description} {line.amount}
+          <p key={line.key} className="flex items-baseline justify-between gap-4">
+            <span>{line.description} </span>
+            <span className="tabular-nums">{line.amount}</span>
           </p>
         ))}
-        <p>Subtotal {preview.subtotal}</p>
-        <p>
-          {preview.taxLabel} {preview.tax}
+        <p className="flex items-baseline justify-between gap-4">
+          <span>Subtotal </span>
+          <span className="tabular-nums">{preview.subtotal}</span>
         </p>
-        <p>Total {preview.total}</p>
+        <p className="flex items-baseline justify-between gap-4">
+          <span>{preview.taxLabel} </span>
+          <span className="tabular-nums">{preview.tax}</span>
+        </p>
+        <p className="flex items-baseline justify-between gap-4">
+          <span>Total </span>
+          <span className="tabular-nums">{preview.total}</span>
+        </p>
         {preview.notes ? <p>{preview.notes}</p> : null}
         {preview.stamp ? <p>{preview.stamp}</p> : null}
         {preview.footer ? <p>{preview.footer}</p> : null}

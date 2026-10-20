@@ -13,7 +13,7 @@ export function Select({ label, id, name, options, className = "", ...props }: S
       <select
         id={selectId}
         name={name}
-        className={`w-full rounded-xl border border-line bg-paper px-3.5 py-3 text-[15px] text-ink ${className}`}
+        className={`h-12 w-full min-w-0 rounded-xl border border-line bg-paper px-3.5 text-[15px] text-ink ${className}`}
         {...props}
       >
         {options.map((option) => (

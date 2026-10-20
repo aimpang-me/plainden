@@ -26,13 +26,13 @@ export default function Home() {
       description: tool.description,
     }));
   return (
-    <article className="grid gap-16">
+    <article className="grid grid-cols-1 gap-16">
       {page ? <JsonLd page={page} origin={origin} /> : null}
       <header className="mx-auto max-w-3xl text-center">
-        <h1 className="text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
+        <h1 className="text-balance text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
           Small tools that run in the browser
         </h1>
-        <p className="mt-5 text-lg text-muted max-[800px]:text-base">
+        <p className="mt-5 text-pretty text-lg text-muted max-[800px]:text-base">
           Free with limits. {toolLabel} removes the limits on one tool. {bundleLabel} covers every tool.
         </p>
       </header>

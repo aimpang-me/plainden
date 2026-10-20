@@ -10,7 +10,7 @@ const DEFAULT_ORIGIN = "https://plainden.com";
 const HOME_DESCRIPTION = "Small browser tools with a free limit and a $5 monthly plan.";
 
 const PRICING_DESCRIPTION =
-  "Annual prices are 10 times the monthly price. Receipt shares the invoice plan. Cookie and refund share the legal plan.";
+  "Free with limits, $5 a month for one tool, or $9 a month for every tool. Annual billing is two months free.";
 
 export type Crumb = { name: string; path: string };
 
