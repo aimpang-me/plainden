@@ -1,0 +1,25 @@
+import type { Metadata } from "next";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+import "./globals.css";
+
+const themeScript =
+  'try{var t=localStorage.getItem("plainden-theme");if(t==="dark"||t==="light"){document.documentElement.dataset.theme=t}}catch(e){}';
+
+export const metadata: Metadata = {
+  title: { default: "plainden", template: "%s | plainden" },
+  description: "Small browser tools with a free limit and a $5 monthly plan.",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <body>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <SiteHeader />
+        <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+        <SiteFooter />
+      </body>
+    </html>
+  );
+}

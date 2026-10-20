@@ -1,0 +1,59 @@
+- main:
+  - article:
+    - heading "Scaffold check" [level=1]
+    - paragraph: A temporary page that proves a tool folder renders at its slug.
+    - heading "Check a count" [level=2]
+    - text: Note
+    - textbox "Note": Hello
+    - text: Count
+    - textbox "Count": "4"
+    - text: Format
+    - combobox "Format":
+      - option "Text" [selected]
+      - option "HTML"
+    - text: Sample file
+    - button "Sample file"
+    - button "Check"
+    - status: free perMonth allows 3
+    - paragraph: free perMonth allows 3
+    - link "See pricing":
+      - /url: /pricing
+    - region "Steps":
+      - heading "Steps" [level=2]
+      - list:
+        - listitem: Type a note and a count.
+        - listitem: Press Check.
+        - listitem: A count above 3 shows the upgrade link.
+    - region "FAQ":
+      - heading "FAQ" [level=2]
+      - list:
+        - listitem:
+          - heading "What does this page check?" [level=3]
+          - paragraph: It checks that a tool folder can render inside the shared page template.
+        - listitem:
+          - heading "What is the free count?" [level=3]
+          - paragraph: The free plan allows a count of 3.
+        - listitem:
+          - heading "What happens over the free count?" [level=3]
+          - paragraph: The page shows an upgrade link to pricing.
+        - listitem:
+          - heading "Does the check save anything?" [level=3]
+          - paragraph: No. The note stays in the browser.
+        - listitem:
+          - heading "Where do prices come from?" [level=3]
+          - paragraph: Prices come from the price catalog, keyed by priceLookupKey.
+        - listitem:
+          - heading "Will this page stay up?" [level=3]
+          - paragraph: No. Remove tools/scaffold before the public launch.
+    - region "Related tools":
+      - heading "Related tools" [level=2]
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+        - listitem:
+          - link "Privacy and terms generator":
+            - /url: /privacy-policy-generator
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
