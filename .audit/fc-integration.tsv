@@ -12,3 +12,4 @@ ts	phase	decision	why	evidence	result
 2026-10-20T19:42:00Z	entitlement	useEntitlement loads the plan from GET /api/entitlement and starts at free	The hook must stay synchronous. F-b left it free for that reason. Save and QR publish read the plan	app/api/entitlement/route.ts	signed-out test returns free
 2026-10-20T19:42:00Z	proxy	Left security headers and the rate limiter out of proxy.ts	V named F8 as the owner and PLAN step F8 is the wiring step. proxy.ts does not exist yet	notes/V/requests.md	deferred to F8
 2026-10-20T19:42:00Z	verify	Drove invoice, receipt, pdf, qr, and seo in the browser	The home canonical Next emits is https://plainden.com without a trailing slash	.cursor/skills/verify-plainden/evidence	drives passed, evidence kept after cleanup
+2026-10-20T19:42:39Z	review	comment-sicko and the trail reviewer did not run	The task spawn returned that on-demand usage is required	Task tool error	BLOCKED independent review
