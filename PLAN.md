@@ -2,7 +2,7 @@
 
 One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with limits, $5/mo to remove limits. Plain design. Speed over polish. Adding a tool = adding one folder.
 
-**Every worker:** read this whole file, then do only your own job (section 5). Never ask the owner anything. Pick sensible defaults and log them in `notes/<your-id>/decisions.md`. Project folder: `C:\Users\PC-AIMPANG\Documents\Portfolio\plainden`.
+**Every worker:** read this whole file, then do only your own job (section 5). Never ask the owner anything. Pick sensible defaults and log them in `notes/<your-id>/decisions.md`. Project folder: `C:\Users\PC-AIMPANG\Documents\Developments\plainden`.
 
 ## 1. Rules (apply to everyone)
 
