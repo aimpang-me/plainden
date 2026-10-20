@@ -11,7 +11,7 @@ One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with
 3. Test mode only. No real keys, no real accounts, no live payments, no deploying. Agents cannot create accounts.
 4. Never commit secrets. `.env.development` holds only test values (section 3).
 5. Edit only the paths you own (section 5). Need a change elsewhere? Write it in `notes/<id>/requests.md` and work around it. Test sample files go in `tools/<x>/fixtures/` (you own it).
-6. Never commit `package.json` changes or `package-lock.json`. Install what you need in your own worktree, and list each library (name, version, why) in `notes/<id>/deps.md`. F adds them all and regenerates the lockfile at merge.
+6. Never commit `package.json` changes or `package-lock.json` (except F). Install what you need in your own worktree, and list each library (name, version, why) in `notes/<id>/deps.md`. F adds them all and regenerates the lockfile at merge. Libraries used by more than one tool (`pdf-lib`, Playwright) are installed by F1 at a pinned version; use those, do not install your own copy.
 7. Notes go only in `notes/<your-id>/`. Never edit another worker's notes or the shared `notes/` root.
 8. Done = your check passes, `next build` and `eslint .` pass, and `notes/<id>/report.md` (10 lines max) says what works and what doesn't.
 9. Branch `worker/<id>`, own worktree, commit often, rebase on `main` before you finish. Never merge to `main` yourself (except F).
@@ -78,11 +78,11 @@ Library notes (workers follow these):
 
 ## 5. Workers
 
-11 workers. F runs as three fresh sessions (F-a, F-b, F-c); every other worker is one session. Phase 1a first, then phase 2 in two batches, then phase 3. Models: F on Opus, everything else on Sonnet.
+11 workers. F runs as five fresh sessions (F-a to F-e); every other worker is one session. Phase 1a first, then phase 2 in two batches, then phase 3. Models: F-a, F-b and F-e on Opus (contract, auth/payments, final integration); F-c, F-d and all other workers on Sonnet.
 
 | ID | Model | Job | Owns (edit only these) | Done when |
 |---|---|---|---|---|
-| **F** | Opus | Foundation | everything not owned by someone else below, plus `proxy.ts`, `app/[slug]/page.tsx`, `lib/entitlements`, `lib/payments/` (Stripe), `db/` | see steps F1–F8 |
+| **F** | Opus (F-c, F-d: Sonnet) | Foundation | everything not owned by someone else below, plus `proxy.ts`, `app/[slug]/page.tsx`, `lib/entitlements`, `lib/payments/` (Stripe), `db/` | see steps F1–F8 |
 | T1 | Sonnet | Invoice + receipt (tools 1, 9) | `tools/invoice/`, `tools/receipt/`, `app/api/invoices/` | Make an invoice, download PDF, paid user saves and reloads it; receipt renders from the same engine |
 | T2 | Sonnet | Privacy/terms + cookie/refund (tools 2, 10) | `tools/legal/`, `tools/cookie-refund/`, `app/api/policies/`, `app/p/[id]/` | Every questionnaire answer appears in the output; hosted link works |
 | T3 | Sonnet | PDF tools | `tools/pdf/` | Merge, split, compress, jpg-to-pdf pass on sample files; limits enforced |
@@ -97,16 +97,19 @@ Library notes (workers follow these):
 **Phase 1a: F-a only (goes first, must finish before phase 2).** F1–F4 below, merged to `main`, with `CONTRACT.md` written.
 
 **Phase 2: parallel, two batches.**
-- Batch A starts when 1a is on `main`: T1, T3, T4 (wave 1 tools), S, V. F-b (fresh session) does F5–F7 at the same time.
-- Batch B starts after F-c has merged batch A: T2, T5, T6, T7, T8. This keeps the first build small and lets wave 1 prove the pipeline.
+- Batch A starts when 1a is on `main`: T1, T3, T4 (wave 1 tools), S, V. F-b (fresh session) does F5–F7 at the same time and merges them to `main` before F-c merges batch A.
+- Batch B starts after F-c has merged batch A (so it builds on real auth and entitlements, not stubs): T2, T5, T6, T7, T8. This keeps the first build small and lets wave 1 prove the pipeline.
 
-**Phase 3: F-c (fresh session), F only.** Read each `notes/<id>/report.md` and `deps.md`, add the listed libraries to `package.json`, regenerate the lockfile. Merge batch A in this order, running build + tests after each: V, S, T1, T3, T4. After batch B is done, merge T2, T5, T6, T7, T8, then run the Lighthouse SEO check (95+ on 3 sample pages) and F8. If F-c's context gets heavy, start a fresh session for F8.
+**Phase 3: F only, three fresh sessions.** Each reads `notes/F/` and the workers' `report.md` and `deps.md` files.
+- **F-c:** add batch A's libraries to `package.json`, regenerate the lockfile, merge in this order with build + tests after each: V, S, T1, T3, T4.
+- **F-d:** (after batch B is done) same for T2, T5, T6, T7, T8, then run the Lighthouse SEO check (95+ on 3 sample pages).
+- **F-e:** F8.
 
 ### F's steps
 
 | Step | Work | Done when |
 |---|---|---|
-| F1 | Scaffold, git init, lint, Vitest, Playwright, `.env.development`, `.env.example`, port config, `notes/` | `next build` and tests pass on an empty app |
+| F1 | Scaffold, git init, lint, Vitest, Playwright, shared libraries (`pdf-lib` and any other used by 2+ tools, pinned), `.env.development`, `.env.example`, port config, `notes/` | `next build` and tests pass on an empty app |
 | F2 | Tool registry and `CONTRACT.md` (below), tool page template, landing, layout, nav, light/dark, UI primitives | A dummy tool renders at its slug |
 | F3 | **All** database tables: Better Auth's own, plus subscriptions, usage, saved_invoices, qr_codes, policy_docs. Tool-specific extras go in `tools/<x>/schema.ts` (drizzle.config globs these). Only F runs `drizzle-kit generate` (in phase 3). | Schema applies on PGlite |
 | F4 | Stubs: `getCurrentUser()`, `getEntitlement`, `checkLimit`, `useEntitlement()`, `<UpgradePrompt>`, payments interface | Tool workers can import all of them |
@@ -185,4 +188,4 @@ Mobile apps, desktop apps, browser extensions, a domain per tool, AI support bot
 
 Use this text, filling in the ID. Nothing else is needed.
 
-> You are worker **<ID>** on the plainden build. Read `PLAN.md` (repo root) fully. Do only the job and owned paths listed for **<ID>** in section 5, following sections 1–4. Phase 2 workers start only after F's phase 1a is on `main`; branch from `main`. For F: your session is F-a (F1–F4), F-b (F5–F7) or F-c (merges + F8); do only that part, read `notes/F/` for what earlier F sessions left, and write `notes/F/report-<a|b|c>.md`. Do not ask questions; log defaults in `notes/<ID>/decisions.md`; finish with `notes/<ID>/report.md` (10 lines max).
+> You are worker **<ID>** on the plainden build. Read `PLAN.md` (repo root) fully. Do only the job and owned paths listed for **<ID>** in section 5, following sections 1–4. Phase 2 workers start only after F's phase 1a is on `main`; branch from `main`. For F: your session is F-a (F1–F4), F-b (F5–F7), F-c, F-d or F-e (see section 5); do only that part, read `notes/F/` for what earlier F sessions left, and write `notes/F/report-<a|b|c|d|e>.md`. Do not ask questions; log defaults in `notes/<ID>/decisions.md`; finish with `notes/<ID>/report.md` (10 lines max).
