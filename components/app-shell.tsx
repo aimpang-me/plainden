@@ -142,11 +142,11 @@ export function AppShell({
         className="shell min-h-screen overflow-x-clip bg-canvas min-[901px]:grid min-[901px]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] min-[901px]:items-start"
         data-drawer={open ? "open" : "closed"}
       >
-        <aside className="sticky top-0 hidden h-screen flex-col bg-sidebar px-2.5 py-3.5 min-[901px]:flex">
+        <aside className="sticky top-0 hidden h-screen flex-col bg-sidebar px-3 py-3 min-[901px]:flex">
           <Sidebar tools={tools} pathname={pathname} planLabel={planLabel} />
         </aside>
-        <div className="flex min-h-screen min-w-0 flex-col">
-          <header className="sticky top-0 z-20 flex min-h-[52px] flex-wrap items-center gap-2.5 border-b border-line bg-canvas px-6 py-2 max-[900px]:px-3.5">
+        <div className="flex min-h-screen min-w-0 flex-col" inert={open ? true : undefined}>
+          <header className="sticky top-0 z-20 flex min-h-[52px] flex-wrap items-center gap-3 border-b border-line bg-canvas px-6 py-2 max-[900px]:px-4">
             <button
               ref={menuRef}
               type="button"
@@ -176,7 +176,7 @@ export function AppShell({
               <div ref={slotRef} className="flex items-center gap-2" />
             </div>
           </header>
-          <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col px-6 py-7 max-[900px]:px-3.5 max-[900px]:py-4">
+          <div className="content-column">
             <main id="content" className="flex-1">
               {children}
             </main>
@@ -195,7 +195,7 @@ export function AppShell({
             />
             <div
               id="app-drawer"
-              className="drawer flex flex-col bg-sidebar px-2.5 py-3.5"
+              className="drawer flex flex-col bg-sidebar px-3 py-3"
               role={open ? "dialog" : undefined}
               aria-modal={open ? true : undefined}
               aria-labelledby={open ? titleId : undefined}
@@ -273,8 +273,8 @@ function Sidebar({
         onClick={onNavigate}
         className="mt-auto flex items-center gap-2 px-2 pt-3 no-underline"
       >
-        <span className="grid h-[26px] w-[26px] place-items-center rounded-pill bg-hover text-[11px] font-semibold" aria-hidden="true">
-          ·
+        <span className="grid size-8 place-items-center rounded-pill border border-line text-secondary" aria-hidden="true">
+          <SignedOutIcon />
         </span>
         <span>
           <span className="block text-[13px]">Sign in</span>
@@ -300,6 +300,15 @@ function ToolIcon({ id }: { id: ShellToolId }) {
   return (
     <svg viewBox="0 0 16 16" className="h-[15px] w-[15px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d={d} />
+    </svg>
+  );
+}
+
+function SignedOutIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <circle cx="8" cy="5.5" r="2.25" />
+      <path d="M3.75 13.25a4.25 4.25 0 0 1 8.5 0" />
     </svg>
   );
 }

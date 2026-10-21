@@ -157,11 +157,11 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 min-[901px]:grid-cols-2">
+    <div className="panel-stack">
       <Card title={preview.heading}>
         <form
           id="invoice-form"
-          className="grid gap-3 min-[701px]:grid-cols-2"
+          className="field-grid"
           onSubmit={(event) => {
             event.preventDefault();
             void onDownload();
@@ -251,7 +251,6 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           ) : null}
         </form>
       </Card>
-      <div className="min-[901px]:sticky min-[901px]:top-[68px]">
       <Card title="Preview">
         <p className="title text-[22px]">{preview.heading}</p>
         <p>{preview.from.name}</p>
@@ -288,7 +287,6 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
         {preview.footer ? <p>{preview.footer}</p> : null}
         {preview.template !== draft.template ? <p>The free plan downloads the plain template.</p> : null}
       </Card>
-      </div>
     </div>
   );
 }

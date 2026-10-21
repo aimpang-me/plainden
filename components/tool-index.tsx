@@ -29,9 +29,9 @@ export function ToolIndex({ tools }: { tools: readonly ToolIndexItem[] }) {
         />
       </label>
       {shown.length === 0 ? <p>No tools match.</p> : null}
-      <ul className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <ul className="stagger panel-row">
         {shown.map((tool) => (
-          <li key={tool.id} className="surface p-4">
+          <li key={tool.id} className="surface">
             <Link href={tool.href} className="text-[15px] font-medium tracking-[-0.01em]">
               {tool.name}
             </Link>

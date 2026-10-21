@@ -15,7 +15,7 @@ export default async function Page(props: PageProps<"/p/[id]">) {
   const published = await readPublished(id);
   if (!published) notFound();
   return (
-    <article className="surface whitespace-pre-wrap p-5 text-[15px] leading-7">
+    <article className="surface whitespace-pre-wrap text-[15px] leading-7">
       {published.text}
     </article>
   );

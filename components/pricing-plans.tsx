@@ -26,7 +26,7 @@ const freeLimits = [
   "One subtitle file at a time",
 ] as const;
 
-const cardClass = "surface flex h-full flex-col gap-5 p-5";
+const cardClass = "surface flex flex-col gap-4";
 
 export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) {
   const tools = singleToolPlans();
@@ -53,7 +53,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
   return (
     <div className="grid grid-cols-1 gap-6">
       <BillingToggle interval={interval} onChange={setInterval} />
-      <ul className="stagger grid grid-cols-1 items-stretch gap-4 min-[801px]:grid-cols-3">
+      <ul className="stagger panel-stack">
         <li className={cardClass}>
           <PlanHeading name="Free" price="$0" />
           <FeatureList items={freeLimits} />
@@ -68,7 +68,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
                 "Cookie and refund policies are included with Privacy and terms.",
               ]}
             />
-            <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto grid gap-4">
+            <form action={checkoutEnabled ? startCheckout : undefined} className="grid gap-4">
               <input type="hidden" name="lookupKey" value={lookupKeyFor(selected, interval)} />
               <Select
                 label="Tool"
@@ -86,7 +86,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
         <li className={cardClass}>
           <PlanHeading name="All tools" price={priceLabel(bundle, interval)} recommended />
           <FeatureList items={["Limits removed on every tool."]} />
-          <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto">
+          <form action={checkoutEnabled ? startCheckout : undefined}>
             <input type="hidden" name="lookupKey" value={lookupKeyFor(bundle, interval)} />
             <Button type="submit" className="w-full" disabled={!checkoutEnabled}>
               Checkout
