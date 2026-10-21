@@ -13,22 +13,6 @@
   --color-line: #e5e5e5;
   --color-button: rgba(0, 0, 0, 0.15);
 
-  --color-app: #f5f1e8;
-  --color-panel: #fbf9f4;
-  --color-paper: #fffefb;
-  --color-ink: #1c1b19;
-  --color-muted: #6b6862;
-  --color-faint: #6f6b64;
-  --color-line-soft: #e7e3db;
-  --color-fill: #ebe6dc;
-  --color-accent: #1c1b19;
-  --color-accent-soft: #ebe6dc;
-  --color-paid: #e4ecdf;
-  --color-paid-ink: #3d5a35;
-  --color-due: #f3e6d3;
-  --color-due-ink: #7a5520;
-  --color-field: #fcfaf6;
-
   --radius-card: 16px;
   --radius-control: 12px;
   --radius-row: 10px;
@@ -61,22 +45,6 @@ html[data-theme="dark"] {
   --color-hover: #2f2f2f;
   --color-line: rgba(255, 255, 255, 0.12);
   --color-button: rgba(255, 255, 255, 0.15);
-
-  --color-app: #141311;
-  --color-panel: #1c1b19;
-  --color-paper: #242320;
-  --color-ink: #f5f1e8;
-  --color-muted: #b7b2a8;
-  --color-faint: #8c877e;
-  --color-line-soft: #3a362f;
-  --color-fill: #2c2a26;
-  --color-accent: #f5f1e8;
-  --color-accent-soft: #2c2a26;
-  --color-paid: #243024;
-  --color-paid-ink: #c9dec4;
-  --color-due: #3a2e22;
-  --color-due-ink: #efd3ae;
-  --color-field: #2a2824;
 }
 
 body {
@@ -124,6 +92,14 @@ main a:hover {
   color: var(--color-text);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-control);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary);
 }
 
 .title {

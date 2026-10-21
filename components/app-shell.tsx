@@ -45,11 +45,11 @@ const staggerFallback: StaggerWindow = {
 };
 
 function parseMilliseconds(value: string): number | null {
-  const match = /^(-?\d+(?:\.\d+)?)ms$/.exec(value.trim());
+  const match = /^(-?(?:\d+\.?\d*|\.\d+))(ms|s)$/.exec(value.trim());
   if (!match) return null;
-  const parsed = Number(match[1]);
-  if (!Number.isFinite(parsed)) return null;
-  return parsed;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return null;
+  return match[2] === "s" ? amount * 1000 : amount;
 }
 
 function parseCap(value: string): number | null {
