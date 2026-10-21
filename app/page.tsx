@@ -1,7 +1,6 @@
 import { PageHeading } from "@/components/page-heading";
 import { ToolIndex } from "@/components/tool-index";
-import { plannedTools } from "@/lib/catalog/planned";
-import { shellToolOrder } from "@/lib/catalog/shell";
+import { shellTools } from "@/lib/catalog/shell";
 import { formatPrice, priceByLookupKey } from "@/lib/pricing/catalog";
 import { JsonLd, metadataFor, pageByPath, siteOrigin } from "@/lib/seo";
 
@@ -18,12 +17,12 @@ export default function Home() {
   const bundlePrice = priceByLookupKey("plainden_all_month");
   const toolLabel = toolPrice ? formatPrice(toolPrice.amountCents, toolPrice.interval) : "";
   const bundleLabel = bundlePrice ? formatPrice(bundlePrice.amountCents, bundlePrice.interval) : "";
-  const byId = new Map(plannedTools.map((tool) => [tool.id, tool]));
-  const tools = shellToolOrder.flatMap((id) => {
-    const tool = byId.get(id);
-    if (!tool) return [];
-    return [{ id: tool.id, href: `/${tool.slugs[0]}`, name: tool.name, description: tool.description }];
-  });
+  const tools = shellTools().map((tool) => ({
+    id: tool.id,
+    href: tool.href,
+    name: tool.name,
+    description: tool.description,
+  }));
   return (
     <article className="grid grid-cols-1 gap-8">
       {page ? <JsonLd page={page} origin={origin} /> : null}

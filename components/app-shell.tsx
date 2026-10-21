@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import type { ShellTool } from "@/lib/catalog/shell";
+import type { ShellTool, ShellToolId } from "@/lib/catalog/shell";
 import { SiteFooter } from "./site-footer";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -19,7 +19,7 @@ export function PageActions({ children }: { children: ReactNode }) {
   return createPortal(children, slot);
 }
 
-const iconPaths: Record<string, string> = {
+const iconPaths: Record<Exclude<ShellToolId, "cookie-refund">, string> = {
   invoice: "M4 1.5h5.5L12.5 4.5v10h-8.5z M9.5 1.5v3h3 M6 8h4.5 M6 10.5h4.5",
   receipt: "M3.5 1.5h9v13l-1.5-1-1.5 1-1.5-1-1.5 1-1.5-1-1.5 1z M6 5h4 M6 7.5h4",
   legal: "M8 2v12 M3 4.5h10 M3 4.5l-2 5h4z M13 4.5l-2 5h4z M5 14h6",
@@ -214,7 +214,7 @@ function Sidebar({
   );
 }
 
-function ToolIcon({ id }: { id: string }) {
+function ToolIcon({ id }: { id: ShellToolId }) {
   if (id === "cookie-refund") {
     return (
       <svg viewBox="0 0 16 16" className="h-[15px] w-[15px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
@@ -225,7 +225,7 @@ function ToolIcon({ id }: { id: string }) {
       </svg>
     );
   }
-  const d = iconPaths[id] ?? iconPaths.invoice;
+  const d = iconPaths[id];
   return (
     <svg viewBox="0 0 16 16" className="h-[15px] w-[15px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d={d} />
