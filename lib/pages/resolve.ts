@@ -1,5 +1,5 @@
 import { plannedTools } from "../catalog/planned";
-import { disabledToolIds } from "../catalog/visibility";
+import { shellTools, type ShellTool } from "../catalog/shell";
 import type { Faq, RegisteredTool, ToolConfig, ToolCopy } from "../contract/types";
 import { registry } from "../../tools/registry.generated";
 import { titleForSlug } from "./slug-title";
@@ -70,7 +70,6 @@ export function staticSlugs(tools: readonly RegisteredTool[] = registry): string
   return [...slugs];
 }
 
-export function relatedTools(currentId: string): ToolConfig[] {
-  const hidden = new Set(disabledToolIds());
-  return plannedTools.filter((tool) => tool.id !== currentId && !hidden.has(tool.id)).slice(0, 3);
+export function relatedTools(currentId: string): ShellTool[] {
+  return shellTools().filter((tool) => tool.id !== currentId).slice(0, 3);
 }

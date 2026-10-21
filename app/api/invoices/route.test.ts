@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { GET as readOne } from "./[id]/route";
 import { GET, POST } from "./route";
 
-test("invoice routes ask for a sign in while auth is a stub", async () => {
+test("invoice routes ask for a sign in", async () => {
   const posted = await POST(new Request("http://127.0.0.1/api/invoices", { method: "POST", body: "{}" }));
   expect(posted.status).toBe(401);
   expect(await posted.json()).toEqual({ error: "sign in required" });

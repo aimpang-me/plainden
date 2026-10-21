@@ -37,9 +37,9 @@ Each feature file starts with an H1 and one paragraph. It then uses exactly four
 
 ## Features
 
-- [Landing](./landing.md) lists the planned tools and the support mailto.
-- [Scaffold tool](./scaffold-tool.md) checks a count on `/scaffold-check` and shows the upgrade prompt.
-- [Planned tool](./planned-tool.md) lists the tools in the sidebar and opens the built privacy form.
+- [Landing](./landing.md) lists the planned tools, the support mailto, and the legal footer.
+- [Legal pages](./legal-pages.md) shows terms, privacy, refunds, the cookie choice, and the health check.
+- [Planned tool](./planned-tool.md) keeps later waves off the landing page and opens the built privacy form.
 - [Invoice generator](./invoice-generator.md) previews a total and caps free PDF downloads at 3.
 - [Receipt generator](./receipt-generator.md) shows a PAID stamp and downloads a receipt.
 - [PDF tools](./pdf.md) says compress is up to 4 MB, then merges two PDFs.

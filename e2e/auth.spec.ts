@@ -1,9 +1,9 @@
-import { readdir, readFile, rm } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { mailDir } from "./env";
 
 test("a magic link from the account page signs in", async ({ page }) => {
-  await rm(".dev-mail", { recursive: true, force: true });
   const email = `ada.${Date.now()}@example.com`;
   await page.goto("/account");
   await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
@@ -14,12 +14,12 @@ test("a magic link from the account page signs in", async ({ page }) => {
   const link = await readMagicLink(email);
   await page.goto(link);
   await expect(page.getByRole("heading", { level: 1, name: "Account" })).toBeVisible();
-  await expect(page.getByText(email)).toHaveCount(1);
+  await expect(page.locator("#content").getByText(email, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 });
 
 async function readMagicLink(email: string): Promise<string> {
-  const dir = path.resolve(".dev-mail");
+  const dir = path.resolve(mailDir);
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
     const names = await readdir(dir).catch(() => []);

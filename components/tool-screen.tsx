@@ -35,7 +35,7 @@ function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "t
       </header>
       <Tool slug={page.slug} preset={page.preset} />
       <section aria-labelledby="steps-heading">
-        <h2 id="steps-heading" className="mb-3 text-[13px] text-tertiary">
+        <h2 id="steps-heading" className="mb-3 text-[13px] text-secondary">
           Steps
         </h2>
         <ol className="list-decimal pl-5">
@@ -45,7 +45,7 @@ function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "t
         </ol>
       </section>
       <section aria-labelledby="faq-heading">
-        <h2 id="faq-heading" className="mb-3 text-[13px] text-tertiary">
+        <h2 id="faq-heading" className="mb-3 text-[13px] text-secondary">
           FAQ
         </h2>
         <ul className="grid gap-3">
@@ -66,7 +66,7 @@ function Related({ currentId }: { currentId: string }) {
   const tools = relatedTools(currentId);
   return (
     <section aria-labelledby="related-heading">
-      <h2 id="related-heading" className="mb-3 text-[13px] text-tertiary">
+      <h2 id="related-heading" className="mb-3 text-[13px] text-secondary">
         Related tools
       </h2>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">

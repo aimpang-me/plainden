@@ -1,4 +1,6 @@
+import type { ToolConfig } from "../contract/types";
 import { plannedTools } from "./planned";
+import { disabledToolIds } from "./visibility";
 
 export const shellToolOrder = [
   "invoice",
@@ -37,18 +39,22 @@ const shellLabels: Record<ShellToolId, string> = {
   "cookie-refund": "Cookie and refund",
 };
 
-export function shellTools(): ShellTool[] {
+export function shellTools(raw?: string): ShellTool[] {
+  const hidden = new Set(disabledToolIds(raw));
   const byId = new Map(plannedTools.map((tool) => [tool.id, tool]));
   return shellToolOrder.flatMap((id) => {
-    const tool = byId.get(id);
+    if (hidden.has(id)) return [];
+    const tool: ToolConfig | undefined = byId.get(id);
     if (!tool) return [];
-    return [{
-      id,
-      href: `/${tool.slugs[0]}`,
-      label: shellLabels[id],
-      name: tool.name,
-      description: tool.description,
-      slugs: tool.slugs,
-    }];
+    return [
+      {
+        id,
+        href: `/${tool.slugs[0]}`,
+        label: shellLabels[id],
+        name: tool.name,
+        description: tool.description,
+        slugs: tool.slugs,
+      },
+    ];
   });
 }

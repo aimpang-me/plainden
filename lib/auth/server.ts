@@ -6,6 +6,7 @@ import { account, session, user, verification } from "../../db/schema";
 import { getDb } from "../db/client";
 import { isProductionRuntime } from "../runtime";
 import { sendMail } from "./send-mail";
+import { sendWelcomeMail } from "./welcome";
 
 const devSecret = "plainden-dev-secret-0123456789abcdef";
 const turnstileTestSecret = "1x0000000000000000000000000000000AA";
@@ -43,6 +44,15 @@ async function createAuth() {
     },
     rateLimit: { enabled: true, window: 60, max: 100 },
     emailAndPassword: { enabled: false },
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (created) => {
+            await sendWelcomeMail(created.email);
+          },
+        },
+      },
+    },
     plugins: [
       magicLink({
         expiresIn: magicLinkExpiresInSeconds,

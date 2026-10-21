@@ -48,7 +48,7 @@ test.afterAll(() => {
 test("a signed cancel downgrades a paid plan", async ({ page }) => {
   test.setTimeout(60_000);
   await signIn(page, test.info());
-  const subscriptionId = await seedAllToolsPlan(page);
+  const seeded = await seedAllToolsPlan(page);
   expect(await entitlement(page)).toEqual({ entitlementKey: "pdf", plan: "paid" });
   await page.goto("/account");
   await expect(page.locator("#content").getByText("All tools", { exact: true })).toBeVisible();
@@ -59,7 +59,7 @@ test("a signed cancel downgrades a paid plan", async ({ page }) => {
     event_type: "subscription.canceled",
     occurred_at: new Date(Date.now() + 60_000).toISOString(),
     data: {
-      id: subscriptionId,
+      id: seeded.subscriptionId,
       status: "canceled",
       customer_id: "ctm_e2e",
     },

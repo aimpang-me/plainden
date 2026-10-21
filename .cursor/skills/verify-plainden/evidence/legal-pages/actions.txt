@@ -1,0 +1,11 @@
+action: open /terms
+visible: Paddle merchant sentence
+action: click Decline
+action: open /privacy
+absent: cookie banner
+action: open /refund
+visible: Paddle merchant sentence
+action: GET /api/health
+status: 200
+action: GET unknown /p id
+status: 404

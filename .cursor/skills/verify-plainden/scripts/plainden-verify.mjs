@@ -19,7 +19,6 @@ const dataDir = path.join(root, ".data/verify-pglite");
 const readyText = "Small tools that run in the browser";
 
 const featureIds = [
-  "scaffold-tool",
   "landing",
   "planned-tool",
   "pricing",
@@ -35,6 +34,7 @@ const featureIds = [
   "video",
   "data",
   "subtitles",
+  "legal-pages",
 ];
 
 function fail(message) {
@@ -155,36 +155,6 @@ async function snap(page, dir, ariaName, imageName) {
   await page.screenshot({ path: path.join(dir, imageName), fullPage: true });
 }
 
-async function driveScaffold(page, dir) {
-  const lines = [];
-  await page.getByLabel("Note").fill("Hello");
-  await page.getByLabel("Count").fill("1");
-  lines.push("action: fill Note Hello");
-  lines.push("action: fill Count 1");
-  lines.push("action: click Check");
-  await page.getByRole("button", { name: "Check" }).click();
-  const allowed = "Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.";
-  await page.getByRole("status").filter({ hasText: allowed }).waitFor({ timeout: 10_000 });
-  const allowedText = await page.getByRole("status").innerText();
-  lines.push(`status: ${allowedText}`);
-  if (allowedText !== allowed) fail(`allowed status was ${JSON.stringify(allowedText)}`);
-  await snap(page, dir, "aria-allowed.txt", "allowed.png");
-  await page.getByLabel("Count").fill("4");
-  lines.push("action: fill Count 4");
-  lines.push("action: click Check");
-  await page.getByRole("button", { name: "Check" }).click();
-  const blocked = "The free plan allows a count of 3.";
-  await page.getByRole("status").filter({ hasText: blocked }).waitFor({ timeout: 10_000 });
-  const blockedText = await page.getByRole("status").innerText();
-  lines.push(`status: ${blockedText}`);
-  if (blockedText !== blocked) fail(`blocked status was ${JSON.stringify(blockedText)}`);
-  const upgrade = page.getByRole("link", { name: "See pricing" });
-  if ((await upgrade.count()) < 1) fail("See pricing link was missing");
-  lines.push("visible: link See pricing");
-  await snap(page, dir, "aria.txt", "page.png");
-  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
-}
-
 async function driveLanding(page, dir) {
   const heading = await page.getByRole("heading", { level: 1 }).innerText();
   const support = page.getByRole("link", { name: "support@plainden.com" });
@@ -194,6 +164,9 @@ async function driveLanding(page, dir) {
   if (heading !== "Small tools that run in the browser") fail(`heading was ${heading}`);
   if (href !== "mailto:support@plainden.com") fail(`support href was ${href}`);
   if (invoice < 1) fail("Invoice generator link was missing");
+  const terms = await page.getByRole("link", { name: "Terms" }).getAttribute("href");
+  if (terms !== "/terms") fail(`terms href was ${terms}`);
+  if ((await page.getByRole("button", { name: "Decline" }).count()) < 1) fail("cookie decline was missing");
   if ((await page.getByRole("link", { name: "Skip to content" }).count()) < 1) fail("skip link was missing");
   if (!body.includes("$5/mo") || !body.includes("$9/mo")) fail("landing prices were missing");
   const lines = [
@@ -201,6 +174,8 @@ async function driveLanding(page, dir) {
     `heading: ${heading}`,
     `support: ${href}`,
     "visible: link Invoice generator",
+    "visible: link Terms",
+    "visible: button Decline",
     "visible: $5/mo",
     "visible: $9/mo",
   ];
@@ -541,7 +516,7 @@ async function driveSeo(page, dir) {
   }
   const hidden = [
     "https://plainden.com/privacy-policy-generator",
-    "https://plainden.com/scaffold-check",
+    "https://plainden.com/merge-pdf-files",
     "https://plainden.com/compress-image",
     "https://plainden.com/receipt-generator",
     "https://plainden.com/compress-video",
@@ -555,8 +530,8 @@ async function driveSeo(page, dir) {
   const robots = await page.request.get(`${base}/robots.txt`);
   const robotsBody = await robots.text();
   if (robots.status() !== 200) fail(`robots status ${robots.status()}`);
-  if (!robotsBody.includes("Allow: /")) fail(`robots missed Allow: ${robotsBody}`);
-  if (!robotsBody.includes("Disallow: /account")) fail(`robots missed Disallow: ${robotsBody}`);
+  if (robotsBody.includes("Allow: /")) fail(`robots allowed the private site: ${robotsBody}`);
+  if (!robotsBody.includes("Disallow: /")) fail(`robots missed Disallow: ${robotsBody}`);
   if (!robotsBody.includes("Sitemap: https://plainden.com/sitemap.xml")) fail(`robots missed sitemap: ${robotsBody}`);
   const lines = [
     "action: open /",
@@ -567,8 +542,7 @@ async function driveSeo(page, dir) {
     ...required.map((loc) => `loc: ${loc}`),
     "action: GET /robots.txt",
     "status: 200",
-    "visible: Allow: /",
-    "visible: Disallow: /account",
+    "visible: Disallow: /",
     "visible: Sitemap: https://plainden.com/sitemap.xml",
   ];
   await snap(page, dir, "aria.txt", "page.png");
@@ -660,8 +634,46 @@ async function driveSubtitles(page, dir) {
   writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
 }
 
+async function driveLegal(page, dir) {
+  const sentence =
+    "Our order process is conducted by our online reseller Paddle.com. Paddle.com is the Merchant of Record for all our orders. Paddle provides all customer service inquiries and handles returns.";
+  const terms = await page.getByRole("heading", { level: 1 }).innerText();
+  if (terms !== "Terms") fail(`terms heading was ${terms}`);
+  if ((await page.getByText(sentence).count()) < 1) fail("paddle sentence was missing on terms");
+  await page.getByRole("button", { name: "Decline" }).click();
+  await page.goto(`${base}/privacy`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  await page.getByRole("button", { name: "Decline" }).waitFor({ state: "detached", timeout: 5_000 });
+  const privacy = await page.getByRole("heading", { level: 1 }).innerText();
+  if (privacy !== "Privacy") fail(`privacy heading was ${privacy}`);
+  await page.goto(`${base}/refund`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
+  const refund = await page.getByRole("heading", { level: 1 }).innerText();
+  if (refund !== "Refunds") fail(`refund heading was ${refund}`);
+  if ((await page.getByText(sentence).count()) < 1) fail("paddle sentence was missing on refunds");
+  const health = await page.request.get(`${base}/api/health`);
+  const healthBody = await health.json();
+  if (health.status() !== 200 || healthBody.ok !== true) fail(`health was ${health.status()} ${JSON.stringify(healthBody)}`);
+  const missing = await page.request.get(`${base}/p/${"ab".repeat(16)}`);
+  if (missing.status() !== 404) fail(`unknown policy status was ${missing.status()}`);
+  const lines = [
+    "action: open /terms",
+    "visible: Paddle merchant sentence",
+    "action: click Decline",
+    "action: open /privacy",
+    "absent: cookie banner",
+    "action: open /refund",
+    "visible: Paddle merchant sentence",
+    "action: GET /api/health",
+    "status: 200",
+    "action: GET unknown /p id",
+    "status: 404",
+  ];
+  await snap(page, dir, "aria.txt", "page.png");
+  writeFileSync(path.join(dir, "actions.txt"), `${lines.join("\n")}\n`);
+}
+
 const drivers = {
-  "scaffold-tool": { path: "/scaffold-check", run: driveScaffold },
   landing: { path: "/", run: driveLanding },
   "planned-tool": { path: "/", run: drivePlanned },
   pricing: { path: "/pricing", run: drivePricing },
@@ -677,6 +689,7 @@ const drivers = {
   video: { path: "/compress-video-for-discord", run: driveVideo },
   data: { path: "/csv-to-json", run: driveData },
   subtitles: { path: "/srt-to-vtt", run: driveSubtitles },
+  "legal-pages": { path: "/terms", run: driveLegal },
 };
 
 async function drive(featureId) {

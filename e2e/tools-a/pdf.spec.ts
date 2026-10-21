@@ -65,7 +65,8 @@ withViewports(() => {
     const compressed = await readDownload(await clickNamed(page, "compressed.pdf"));
     expectPdf(compressed);
     expect(await pageCount(compressed)).toBe(1);
-    expect(compressed.length).toBeGreaterThan(200);
+    expect(compressed.toString("latin1")).toContain("/DCTDecode");
+    expect(compressed.length).toBeLessThan(images.length * 2);
   });
 
   test("a file over 25 MB and a sixth run show the free pricing prompt", async ({ page }) => {

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { connection } from "next/server";
 import { AppShell } from "@/components/app-shell";
+import { CookieBanner } from "@/components/cookie-banner";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { shellTools } from "@/lib/catalog/shell";
 import { planLabelFor } from "@/lib/payments/plan-label";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AppShell tools={shellTools()} planLabel={<PlanSlot />} drawerPlanLabel={<PlanSlot />}>
           {children}
         </AppShell>
+        <CookieBanner />
       </body>
     </html>
   );
