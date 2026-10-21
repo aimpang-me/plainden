@@ -2,7 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { user, subscription } from "../../db/schema";
 import { getDb } from "../db/client";
 import { priceByLookupKey } from "../pricing/catalog";
-import { blocksAnotherCheckout } from "./access";
+import { blocksAnotherCheckout, canManageBilling } from "./access";
 import type { CheckoutInput, CheckoutResult, PortalInput, PortalResult } from "./types";
 import { PaymentsNotConfigured } from "./errors";
 import { paddlePriceEnv } from "./subscription";
@@ -57,11 +57,27 @@ export async function createPortal(input: PortalInput): Promise<PortalResult> {
   const rows = await db.select({ providerCustomerId: user.providerCustomerId }).from(user).where(eq(user.id, userId));
   const customer = rows[0]?.providerCustomerId;
   if (!customer) throw new Error("No billing customer for this user");
-  const payload = await paddlePost(`/customers/${encodeURIComponent(customer)}/portal-sessions`, {});
+  const subscriptions = await db
+    .select({ status: subscription.status, providerSubscriptionId: subscription.providerSubscriptionId })
+    .from(subscription)
+    .where(eq(subscription.userId, userId));
+  const open = subscriptions.filter(
+    (row): row is { status: string; providerSubscriptionId: string } =>
+      canManageBilling(row.status) && typeof row.providerSubscriptionId === "string" && row.providerSubscriptionId.length > 0,
+  );
+  const chosen = open.find((row) => row.status === "active") ?? open[0];
+  if (!chosen) throw new Error("No active subscription for this user");
+  const payload = await paddlePost(`/customers/${encodeURIComponent(customer)}/portal-sessions`, {
+    subscription_ids: [chosen.providerSubscriptionId],
+  });
   const urls = record(record(record(payload)?.data)?.urls);
-  const overview = text(record(urls?.general), "overview");
-  if (!overview) throw new Error("Paddle did not return a portal URL");
-  return { url: overview };
+  const listed = Array.isArray(urls?.subscriptions) ? urls.subscriptions : [];
+  const match = listed
+    .map((item) => record(item))
+    .find((item) => text(item, "id") === chosen.providerSubscriptionId);
+  const view = text(match ?? null, "view_subscription");
+  if (!view) throw new Error("Paddle did not return a portal URL");
+  return { url: view };
 }
 
 function assertCheckoutReady(): void {

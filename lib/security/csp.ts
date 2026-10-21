@@ -30,6 +30,12 @@ function scriptSources(mode: HeaderMode): readonly string[] {
   }
 }
 
+function styleSources(): readonly string[] {
+  const sources = ["'self'", "'unsafe-inline'"] as const;
+  if (process.env.NEXT_PUBLIC_PADDLE_ENV !== "sandbox") return sources;
+  return [...sources, sandboxCdn];
+}
+
 function paddleSources(sources: readonly string[]): readonly string[] {
   if (process.env.NEXT_PUBLIC_PADDLE_ENV !== "sandbox") return sources;
   return sources.flatMap((source) => (source === paddleScript ? [source, sandboxCdn] : [source]));
@@ -44,7 +50,7 @@ function policy(mode: HeaderMode): string {
   const directives: readonly Directive[] = [
     { name: "default-src", sources: ["'self'"] },
     { name: "script-src", sources: scriptSources(mode) },
-    { name: "style-src", sources: ["'self'", "'unsafe-inline'"] },
+    { name: "style-src", sources: styleSources() },
     { name: "img-src", sources: ["'self'", "blob:", "data:"] },
     { name: "font-src", sources: ["'self'"] },
     { name: "connect-src", sources: paddleSources(["'self'", "blob:", turnstile, ...paddleConnect]) },

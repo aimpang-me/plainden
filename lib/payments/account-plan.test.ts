@@ -3,7 +3,7 @@ import { accountPlanCopy } from "./account-plan";
 
 const now = new Date("2026-10-21T00:00:00.000Z");
 
-test("an all-tools subscription is All tools and a single tool stays One tool", () => {
+test("an all-tools subscription is All tools and a single tool names that tool", () => {
   expect(
     accountPlanCopy(
       [{ entitlementKey: "all", status: "active", currentPeriodEnd: null, cancelAt: null }],
@@ -15,7 +15,7 @@ test("an all-tools subscription is All tools and a single tool stays One tool", 
       [{ entitlementKey: "pdf", status: "active", currentPeriodEnd: null, cancelAt: null }],
       now,
     ),
-  ).toEqual({ plan: "One tool", ends: null });
+  ).toEqual({ plan: "Pro: Merge PDF", ends: null });
   expect(accountPlanCopy([], now)).toEqual({ plan: "Free", ends: null });
 });
 

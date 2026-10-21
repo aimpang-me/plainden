@@ -88,7 +88,7 @@ async function AccountBody({ query }: { query: AccountQuery }) {
 }
 
 async function loadBilling(userId: string | null): Promise<{
-  plan: "Free" | "One tool" | "All tools";
+  plan: string;
   ends: string | null;
   manage: boolean;
   usage: { id: string; count: number; kind: string; entitlementKey: string; period: string }[];

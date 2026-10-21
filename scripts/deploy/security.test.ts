@@ -27,6 +27,9 @@ test("sandbox CSP allows the sandbox Paddle CDN and a production env does not", 
       "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://challenges.cloudflare.com https://cdn.paddle.com https://sandbox-cdn.paddle.com;",
     );
     expect(contentSecurityPolicy("production")).toContain(
+      "style-src 'self' 'unsafe-inline' https://sandbox-cdn.paddle.com;",
+    );
+    expect(contentSecurityPolicy("production")).toContain(
       "connect-src 'self' blob: https://challenges.cloudflare.com https://cdn.paddle.com https://sandbox-cdn.paddle.com https://sandbox-api.paddle.com",
     );
     expect(contentSecurityPolicy("development")).toContain("https://cdn.paddle.com https://sandbox-cdn.paddle.com");
