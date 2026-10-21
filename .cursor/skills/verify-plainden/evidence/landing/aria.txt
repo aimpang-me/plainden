@@ -2,20 +2,19 @@
   - article:
     - heading "Small tools that run in the browser" [level=1]
     - paragraph: Free with limits. $5/mo removes the limits on one tool. $9/mo covers every tool.
-    - list:
-      - listitem:
-        - link "Invoice generator":
-          - /url: /invoice-generator
-        - paragraph: Fill in a client, line items, and tax, then download a PDF.
-      - listitem:
-        - link "PDF tools":
-          - /url: /merge-pdf
-        - paragraph: Merge, split, compress, or turn JPG files into a PDF in the browser.
-      - listitem:
-        - link "QR code generator":
-          - /url: /qr-code-generator
-        - paragraph: Make a QR code for a link, text, wifi network, or contact card.
-      - listitem:
-        - link "Receipt generator":
-          - /url: /receipt-generator
-        - paragraph: Make a receipt with a payment method, receipt number, and paid stamp.
+    - region "Tools":
+      - text: Search tools
+      - textbox "Search tools"
+      - list:
+        - listitem:
+          - link "Invoice generator":
+            - /url: /invoice-generator
+          - paragraph: Fill in a client, line items, and tax, then download a PDF.
+        - listitem:
+          - link "PDF tools":
+            - /url: /merge-pdf
+          - paragraph: Merge, split, compress, or turn JPG files into a PDF in the browser.
+        - listitem:
+          - link "QR code generator":
+            - /url: /qr-code-generator
+          - paragraph: Make a QR code for a link, text, wifi network, or contact card.

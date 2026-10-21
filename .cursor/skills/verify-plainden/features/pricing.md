@@ -13,7 +13,6 @@ The pricing page shows three plans. Free lists the public limits. One tool is `$
 
 - Choose `Pricing` in the header.
 - Open `http://127.0.0.1:3100/pricing`.
-- On a blocked scaffold check, choose `See pricing`.
 
 ## Driving it with plainden-verify
 

@@ -1,29 +1,27 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import { resolveSlug, staticSlugs } from "@/lib/pages/resolve";
 import { buildRobots, buildSitemap, jsonLdScript, metadataFor, sitemapXml } from "./document";
 import { JsonLd } from "./json-ld";
 import { OgImage } from "./og-image";
-import { pageByPath, parseDisabledToolIds, renderLongTail, siteOrigin } from "./pages";
+import { listPages, longTailWordCount, longTailWordMinimum, pageByPath, parseDisabledToolIds, renderLongTail, siteOrigin } from "./pages";
 
 const origin = "https://plainden.com";
 const listed = { disabledIds: [] as const, origin };
 
-test("the sitemap lists every page the site already resolves", () => {
-  const paths = new Set<string>(["/", "/pricing"]);
-  for (const slug of staticSlugs()) {
-    if (resolveSlug(slug)) paths.add(`/${slug}`);
-  }
+test("the sitemap lists indexed pages and drops a short long-tail", () => {
+  const paths = listPages(listed).filter((page) => page.index).map((page) => `${origin}${page.path}`);
   const xml = sitemapXml(listed);
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  expect(locs.sort()).toEqual([...paths].map((path) => `${origin}${path}`).sort());
+  expect(locs.sort()).toEqual([...paths].sort());
   expect(xml).toContain("<loc>https://plainden.com/</loc>");
   expect(xml).toContain("<loc>https://plainden.com/pricing</loc>");
   expect(xml).toContain("<loc>https://plainden.com/invoice-generator</loc>");
-  expect(xml).toContain("<loc>https://plainden.com/scaffold-check-limit</loc>");
   expect(xml).toContain("<loc>https://plainden.com/privacy-policy-generator</loc>");
-  expect(xml).toContain("<loc>https://plainden.com/refund-policy-generator</loc>");
+  const short = renderLongTail("merge-pdf-files", listed);
+  expect(longTailWordCount(short?.description ?? "", short?.faq ?? [])).toBeLessThan(longTailWordMinimum);
+  expect(short?.index).toBe(false);
+  expect(xml).not.toContain("https://plainden.com/merge-pdf-files");
 });
 
 test("a disabled tool id leaves the sitemap and stays noindex", () => {
@@ -40,30 +38,32 @@ test("a disabled tool id leaves the sitemap and stays noindex", () => {
 });
 
 test("a long-tail page uses its own title, intro, and faq", () => {
-  const page = renderLongTail("scaffold-check-limit", listed);
+  const page = renderLongTail("merge-pdf-files", listed);
   expect(page).toMatchObject({
     kind: "long-tail",
-    path: "/scaffold-check-limit",
-    title: "Scaffold limit check",
-    description: "A count of 4 is over the free limit of 3.",
-    toolId: "scaffold",
+    path: "/merge-pdf-files",
+    title: "Merge PDF files",
+    description: "Add two or more PDFs. The merged file keeps the page order you added.",
+    toolId: "pdf",
+    index: false,
   });
   const script = jsonLdScript(page!, origin);
-  expect(script).toContain("What count is blocked?");
-  expect(script).toContain("4 or more on the free plan.");
-  expect(script).not.toContain("What does this page check?");
+  expect(script).toContain("Can I merge a single PDF?");
+  expect(script).toContain("No. Merge needs at least two PDF files.");
+  expect(script).not.toContain("Do my files get uploaded?");
   expect(script).toContain("SoftwareApplication");
   expect(script).toContain("FAQPage");
   expect(script).toContain("BreadcrumbList");
-  expect(metadataFor(page!, origin).alternates).toEqual({ canonical: "https://plainden.com/scaffold-check-limit" });
+  expect(metadataFor(page!, origin).alternates).toEqual({ canonical: "https://plainden.com/merge-pdf-files" });
+  expect(metadataFor(page!, origin).robots).toEqual({ index: false, follow: true });
   expect(metadataFor(page!, origin).openGraph).toMatchObject({
-    images: [{ url: "https://plainden.com/scaffold-check-limit/opengraph-image", width: 1200, height: 630 }],
+    images: [{ url: "https://plainden.com/merge-pdf-files/opengraph-image", width: 1200, height: 630 }],
   });
 });
 
 test("a primary tool page keeps the tool faq and an unregistered slug has no faq", () => {
-  const tool = pageByPath("/scaffold-check", listed);
-  expect(jsonLdScript(tool!, origin)).toContain("What does this page check?");
+  const tool = pageByPath("/merge-pdf", listed);
+  expect(jsonLdScript(tool!, origin)).toContain("Do my files get uploaded?");
   const legal = pageByPath("/privacy-policy-generator", listed);
   expect(legal).toMatchObject({ kind: "tool", title: "Privacy policy generator", toolId: "legal" });
   expect(jsonLdScript(legal!, origin)).toContain("FAQPage");
@@ -102,9 +102,17 @@ test("home and pricing metadata stay on the plainden origin", () => {
     rules: { userAgent: "*", allow: "/", disallow: "/account" },
     sitemap: "https://plainden.com/sitemap.xml",
   });
-  expect(buildRobots({ origin })).toEqual({
-    rules: { userAgent: "*", disallow: "/" },
-  });
+  const previous = process.env.NEXT_PUBLIC_SITE_PUBLIC;
+  delete process.env.NEXT_PUBLIC_SITE_PUBLIC;
+  try {
+    expect(buildRobots({ origin })).toEqual({
+      rules: { userAgent: "*", disallow: "/" },
+      sitemap: "https://plainden.com/sitemap.xml",
+    });
+  } finally {
+    if (previous === undefined) delete process.env.NEXT_PUBLIC_SITE_PUBLIC;
+    else process.env.NEXT_PUBLIC_SITE_PUBLIC = previous;
+  }
 });
 
 test("the default tool list hides unbuilt tools and keeps the built ones", () => {
@@ -118,7 +126,7 @@ test("the default tool list hides unbuilt tools and keeps the built ones", () =>
   expect(xml).toContain("https://plainden.com/qr-code-generator");
   expect(xml).not.toContain("https://plainden.com/receipt-generator");
   expect(xml).not.toContain("https://plainden.com/privacy-policy-generator");
-  expect(xml).not.toContain("https://plainden.com/scaffold-check");
+  expect(xml).not.toContain("https://plainden.com/merge-pdf-files");
   expect(xml).not.toContain("https://plainden.com/compress-image");
   expect(xml).not.toContain("https://plainden.com/compress-video");
   expect(xml).not.toContain("https://plainden.com/csv-to-json");
@@ -130,15 +138,15 @@ test("the default tool list hides unbuilt tools and keeps the built ones", () =>
 
 test("unknown paths and primary slugs are not long-tail pages", () => {
   expect(pageByPath("/no-such-page", listed)).toBeNull();
-  expect(renderLongTail("scaffold-check", listed)).toBeNull();
+  expect(renderLongTail("merge-pdf", listed)).toBeNull();
   expect(renderLongTail("missing-tail", listed)).toBeNull();
 });
 
 test("a disabled long-tail page is noindex and absent from the sitemap", () => {
-  const page = renderLongTail("scaffold-check-count", { disabledIds: ["scaffold"], origin });
+  const page = renderLongTail("merge-pdf-files", { disabledIds: ["pdf"], origin });
   expect(page?.index).toBe(false);
-  expect(sitemapXml({ disabledIds: ["scaffold"], origin })).not.toContain("scaffold-check");
-  expect(sitemapXml({ disabledIds: ["scaffold"], origin })).toContain("https://plainden.com/invoice-generator");
+  expect(sitemapXml({ disabledIds: ["pdf"], origin })).not.toContain("merge-pdf");
+  expect(sitemapXml({ disabledIds: ["pdf"], origin })).toContain("https://plainden.com/invoice-generator");
 });
 
 test("site origin falls back when the value is empty or not http", () => {
@@ -168,11 +176,11 @@ test("json-ld escapes a less-than sign and the og card shows the page title", ()
   expect(markup).toContain("WebSite");
   const card = renderToStaticMarkup(
     createElement(OgImage, {
-      title: "Scaffold limit check",
-      description: "A count of 4 is over the free limit of 3.",
+      title: "Merge PDF files",
+      description: "Add two or more PDFs. The merged file keeps the page order you added.",
     }),
   );
-  expect(card).toContain("Scaffold limit check");
+  expect(card).toContain("Merge PDF files");
   expect(card).toContain("plainden");
   expect(card).toContain("#1d4ed8");
 });

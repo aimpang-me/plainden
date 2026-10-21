@@ -7,7 +7,6 @@ export type LimitSubject =
   | "receipt"
   | "qr"
   | "policy"
-  | "scaffold"
   | "pdf"
   | "image"
   | "video"
@@ -44,7 +43,6 @@ const overrides: Partial<Record<LimitKind, Partial<Record<LimitSubject, Sentence
   perMonth: {
     invoice: (plan, limit) => `The ${plan} plan includes ${limit} invoices a month.`,
     receipt: (plan, limit) => `The ${plan} plan includes ${limit} receipts a month.`,
-    scaffold: (plan, limit) => `The ${plan} plan allows a count of ${limit}.`,
   },
   perDay: {
     pdf: (plan, limit) => `The ${plan} plan allows ${limit} PDF runs a day.`,

@@ -1,12 +1,11 @@
 import { expect, test } from "vitest";
 import { amountFor, bundlePlan, lookupKeyFor, pricesToCreate, singleToolPlans } from "./catalog";
 
-test("visitor plans cover every paid lookup key and hide the scaffold price", () => {
+test("visitor plans cover every paid lookup key", () => {
   const plans = [...singleToolPlans(), bundlePlan()];
   const keys = plans.flatMap((plan) => [lookupKeyFor(plan, "month"), lookupKeyFor(plan, "year")]);
   expect(new Set(keys)).toEqual(new Set(pricesToCreate().map((price) => price.lookupKey)));
   expect(keys).toHaveLength(18);
-  expect(keys.some((key) => key.includes("scaffold"))).toBe(false);
   expect(plans.map((plan) => plan.name).some((name) => name.includes("plainden_"))).toBe(false);
 });
 

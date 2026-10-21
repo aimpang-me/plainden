@@ -42,7 +42,7 @@ Run doctor before a drive. If it fails, do not click through a server you do not
 node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive <feature-id>
 ```
 
-Feature ids: `scaffold-tool`, `landing`, `planned-tool`, `pricing`, `theme`, `sign-in`, `invoice-generator`, `receipt-generator`, `pdf`, `qr`, `seo`, `privacy-policy`, `image`, `video`, `data`, `subtitles`.
+Feature ids: `landing`, `planned-tool`, `pricing`, `theme`, `sign-in`, `invoice-generator`, `receipt-generator`, `pdf`, `qr`, `seo`, `privacy-policy`, `image`, `video`, `data`, `subtitles`, `legal-pages`.
 
 The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[data-hydrated="true"]`, then uses accessible names:
 
@@ -63,18 +63,15 @@ The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[dat
 | Unit price | textbox `Unit price` |
 | Payment method | combobox `Payment method` |
 | Download | button `Download PDF` |
-| Scaffold heading | heading `Scaffold check` |
-| Note | textbox `Note` |
-| Count | textbox `Count` |
-| Check | button `Check` |
-| Result | status role |
+| Terms | link `Terms` |
+| Cookie decline | button `Decline` |
 | Upgrade | link `See pricing` |
 | Account nav | link `Sign in` |
 | Email | textbox `Email` |
 | Send link | button `Email me a sign-in link` |
 | Sign out | button `Sign out` |
 
-`scaffold-tool` fills Note `Hello` and Count `1`, clicks Check, and expects status `Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.` It then sets Count to `4`, clicks Check, and expects status `The free plan allows a count of 3.` plus link `See pricing`.
+`legal-pages` opens `/terms`, checks the Paddle merchant sentence, clicks Decline, then checks `/privacy`, `/refund`, `/api/health`, and a 404 for an unknown hosted policy id.
 
 Recipes for the other ids are in `features/`. Drive one id per command.
 
@@ -84,9 +81,9 @@ Each drive writes `.cursor/skills/verify-plainden/evidence/<feature-id>/`:
 
 - `actions.txt` lists each user action and the status or attribute that followed.
 - `aria.txt` is the ARIA snapshot of `main` after the last action. `theme` also writes `aria-dark.txt` while `data-theme` is `dark`.
-- `page.png` is a full page screenshot after the last action. `scaffold-tool` also writes `allowed.png` after the count of 1. `theme` also writes `dark.png`.
+- `page.png` is a full page screenshot after the last action. `theme` also writes `dark.png`.
 
-The screenshot includes the header link `plainden`. Proof uses the real pages. It does not call test-only endpoints. The scaffold check runs `decideLimit` in the browser. `sign-in` writes `evidence/sign-in/` after the account page shows the address from a `.dev-mail` link. That drive uses the file mail transport and the Turnstile test key. It does not call Paddle, Resend, or Neon.
+The screenshot includes the header link `plainden`. Proof uses the real pages. It does not call test-only endpoints. `sign-in` writes `evidence/sign-in/` after the account page shows the address from a `.dev-mail` link. That drive uses the file mail transport and the Turnstile test key. It does not call Paddle, Resend, or Neon.
 
 ## Cleanup
 

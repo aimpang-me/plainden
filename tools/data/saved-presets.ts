@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { getEntitlement } from "@/lib/entitlements/get-entitlement";
 import { acceptedPreset, type SavedPreset } from "./presets";
@@ -62,6 +62,17 @@ export async function saveSavedPreset(userId: string, input: unknown): Promise<S
     updatedAt: now,
   });
   return { ok: true, id };
+}
+
+export async function deleteSavedPreset(userId: string, input: unknown): Promise<SavedPresetResult> {
+  if (!isRecord(input) || typeof input.name !== "string" || input.name.trim().length === 0) {
+    return { ok: false, error: "invalid", message: "Name the preset." };
+  }
+  const entitlement = await getEntitlement({ userId }, "data");
+  if (entitlement.plan !== "paid") return { ok: false, error: "limit", message: paidReason };
+  const db = await getDb();
+  await db.delete(dataPreset).where(and(eq(dataPreset.userId, userId), eq(dataPreset.name, input.name.trim())));
+  return { ok: true, id: input.name.trim() };
 }
 
 export function toPresetResponse(result: SavedPresetResult): Response {

@@ -26,6 +26,7 @@ import {
   type Options,
 } from "./convert";
 import { deletePreset, presetsFromSnapshot, presetSnapshot, savePreset, subscribePresets, type SavedPreset } from "./presets";
+import { deleteRemotePreset, readRemotePresets, saveRemotePreset } from "./remote-presets";
 
 const previewCap = 8;
 
@@ -70,7 +71,10 @@ function Converter({ slug, preset }: ToolProps) {
   const direction = directionForSlug(slug);
   const entitlement = useEntitlement(config.entitlementKey);
   const snapshot = useSyncExternalStore(subscribePresets, presetSnapshot, emptySnapshot);
-  const presets = presetsFromSnapshot(snapshot);
+  const localPresets = presetsFromSnapshot(snapshot);
+  const [remotePresets, setRemotePresets] = useState<readonly SavedPreset[] | null>(null);
+  const paid = entitlement.status === "ready" && entitlement.plan === "paid";
+  const presets = paid && remotePresets !== null ? remotePresets : localPresets;
   const [options, setOptions] = useState<Options>(() => optionsFromPreset(preset));
   const [file, setFile] = useState<File | null>(null);
   const [presetName, setPresetName] = useState("");
@@ -82,6 +86,18 @@ function Converter({ slug, preset }: ToolProps) {
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!paid) return;
+    let cancelled = false;
+    readRemotePresets().then((result) => {
+      if (cancelled || !result.ok) return;
+      setRemotePresets(result.presets);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [paid]);
 
   function publish(next: Status) {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -122,10 +138,23 @@ function Converter({ slug, preset }: ToolProps) {
     });
   }
 
-  function onSave() {
+  async function onSave() {
     if (entitlement.plan !== "paid") {
       publish({ kind: "blocked", text: "Saved presets are on the paid plan." });
       return;
+    }
+    if (paid) {
+      const saved = await saveRemotePreset(presetName, options);
+      if (saved.ok) {
+        setRemotePresets(saved.presets);
+        publish({ kind: "idle", text: `Saved preset ${presetName.trim()}.` });
+        return;
+      }
+      if (!saved.fallback) {
+        publish({ kind: "error", text: saved.message });
+        return;
+      }
+      setRemotePresets(null);
     }
     const saved = savePreset(localStorage, presetName, options);
     if (!saved.ok) {
@@ -133,6 +162,19 @@ function Converter({ slug, preset }: ToolProps) {
       return;
     }
     publish({ kind: "idle", text: `Saved preset ${presetName.trim()}.` });
+  }
+
+  async function onRemove(name: string) {
+    if (remotePresets) {
+      const removed = await deleteRemotePreset(name);
+      if (removed.ok) {
+        setRemotePresets(removed.presets);
+        return;
+      }
+      if (!removed.fallback) return;
+      setRemotePresets(null);
+    }
+    deletePreset(localStorage, name);
   }
 
   function onLoad(saved: SavedPreset) {
@@ -265,7 +307,7 @@ function Converter({ slug, preset }: ToolProps) {
                   <Button type="button" variant="plain" onClick={() => onLoad(saved)}>
                     Load {saved.name}
                   </Button>
-                  <Button type="button" variant="plain" onClick={() => deletePreset(localStorage, saved.name)}>
+                  <Button type="button" variant="plain" onClick={() => onRemove(saved.name)}>
                     Remove {saved.name}
                   </Button>
                 </span>

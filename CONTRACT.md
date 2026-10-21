@@ -67,7 +67,7 @@ The generator loads every `tools/<id>/config.ts` that exists. It rejects a folde
 
 `app/[slug]/page.tsx` is the only tool route. It calls `resolveSlug` from `lib/pages/resolve.ts`. A registry tool wins when the slug matches. Otherwise a planned tool renders the placeholder `This tool is not built yet.` Unknown slugs call `notFound()`.
 
-The scaffold tool id is `scaffold`. Its slug is `scaffold-check`. It is not in the planned catalog and the landing page does not link to it. Remove `tools/scaffold/` before public launch.
+There is no scaffold tool. Built tools live under `tools/<id>/` and the landing page lists the ones `shellTools()` returns.
 
 ## Subject and limits
 
