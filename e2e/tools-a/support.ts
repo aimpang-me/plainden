@@ -125,7 +125,7 @@ export async function signIn(page: Page, info: TestInfo): Promise<void> {
   await expect(page.getByRole("status")).toHaveText("Check your email for a sign-in link.");
   const link = await readMagicLink(email);
   await page.goto(link);
-  await expect(page.getByText(email)).toHaveCount(1);
+  await expect(page.locator("#content").getByText(email, { exact: true })).toBeVisible();
 }
 
 export async function seedAllToolsPlan(page: Page): Promise<{ userId: string; subscriptionId: string }> {

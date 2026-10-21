@@ -11,7 +11,7 @@ test("a used magic link does not sign in again and sign-out clears the account",
   await expect(page.getByRole("status")).toHaveText("Check your email for a sign-in link.");
   const link = await readMagicLink(email);
   await page.goto(link);
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page.locator("#content").getByText(email, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByLabel("Email")).toBeVisible();
   await expect(page.getByText(email)).toHaveCount(0);
@@ -29,7 +29,7 @@ test("a used magic link does not sign in again and sign-out clears the account",
 
 test("sign-out from a session removes the email", async ({ page }) => {
   await signIn(page, test.info());
-  const email = page.getByText(/@example\.com/);
+  const email = page.locator("#content").getByText(/@example\.com/);
   await expect(email).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByLabel("Email")).toBeVisible();

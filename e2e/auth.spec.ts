@@ -14,7 +14,7 @@ test("a magic link from the account page signs in", async ({ page }) => {
   const link = await readMagicLink(email);
   await page.goto(link);
   await expect(page.getByRole("heading", { level: 1, name: "Account" })).toBeVisible();
-  await expect(page.getByText(email)).toHaveCount(1);
+  await expect(page.locator("#content").getByText(email, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 });
 
