@@ -1,5 +1,5 @@
 import { plannedTools } from "../catalog/planned";
-import { shellTools } from "../catalog/shell";
+import { shellTools, type ShellTool } from "../catalog/shell";
 import type { Faq, RegisteredTool, ToolConfig, ToolCopy } from "../contract/types";
 import { registry } from "../../tools/registry.generated";
 import { titleForSlug } from "./slug-title";
@@ -70,6 +70,6 @@ export function staticSlugs(tools: readonly RegisteredTool[] = registry): string
   return [...slugs];
 }
 
-export function relatedTools(currentId: string): ToolConfig[] {
+export function relatedTools(currentId: string): ShellTool[] {
   return shellTools().filter((tool) => tool.id !== currentId).slice(0, 3);
 }
