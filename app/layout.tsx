@@ -57,5 +57,5 @@ async function PlanLabel() {
   } catch {
     planLabel = "Free plan";
   }
-  return <span className="block text-[11px] text-muted">{planLabel}</span>;
+  return <span className="block text-[11px] text-secondary">{planLabel}</span>;
 }

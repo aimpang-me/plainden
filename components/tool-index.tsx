@@ -19,26 +19,23 @@ export function ToolIndex({ tools }: { tools: readonly ToolIndexItem[] }) {
 
   return (
     <section id="tools" className="grid gap-4" aria-label="Tools">
-      <label className="grid gap-1.5 text-[13px] text-muted" htmlFor="tool-search">
+      <label className="grid gap-1.5 text-[13px] text-secondary" htmlFor="tool-search">
         Search tools
         <input
           id="tool-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="h-9 w-full min-w-0 rounded-[7px] border border-line bg-field px-2.5 text-[13px] text-ink"
+          className="field"
         />
       </label>
       {shown.length === 0 ? <p>No tools match.</p> : null}
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <ul className="stagger panel-row">
         {shown.map((tool) => (
-          <li
-            key={tool.id}
-            className="rounded-[10px] border border-line bg-paper p-4 shadow-[0_1px_2px_rgba(40,30,10,0.05),0_4px_14px_rgba(40,30,10,0.05)]"
-          >
+          <li key={tool.id} className="surface">
             <Link href={tool.href} className="text-[15px] font-medium tracking-[-0.01em]">
               {tool.name}
             </Link>
-            <p className="mt-1 text-[13px] text-muted">{tool.description}</p>
+            <p className="mt-1 text-[13px] text-secondary">{tool.description}</p>
           </li>
         ))}
       </ul>

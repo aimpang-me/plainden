@@ -211,7 +211,7 @@ export function PolicyForm({ slug, preset, plan }: PolicyFormProps) {
   return (
     <Card title={form.title}>
       <form
-        className="grid gap-3"
+        className="field-grid"
         onSubmit={(event) => {
           event.preventDefault();
         }}
@@ -224,24 +224,30 @@ export function PolicyForm({ slug, preset, plan }: PolicyFormProps) {
             onValue={(value) => setAnswer(field.id, value)}
           />
         ))}
-        <Button type="button" onClick={() => void copyText()}>
-          Copy text
-        </Button>
-        <Button type="button" onClick={() => void copyHtml()}>
-          Copy HTML
-        </Button>
-        <Button type="button" onClick={downloadMarkdown}>
-          Download Markdown
-        </Button>
-        <Button type="button" onClick={() => void downloadPdf()}>
-          Download PDF
-        </Button>
-        <Button type="button" onClick={() => void publishPolicy()}>
-          Publish
-        </Button>
-        <p role="status">{status}</p>
-        <pre className="whitespace-pre-wrap">{result.ok ? result.text : ""}</pre>
-        {upgrade ? <UpgradePrompt reason={upgrade} /> : null}
+        <div className="action-row">
+          <Button type="button" onClick={() => void copyText()}>
+            Copy text
+          </Button>
+          <Button type="button" onClick={() => void copyHtml()}>
+            Copy HTML
+          </Button>
+          <Button type="button" onClick={downloadMarkdown}>
+            Download Markdown
+          </Button>
+          <Button type="button" onClick={() => void downloadPdf()}>
+            Download PDF
+          </Button>
+          <Button type="button" onClick={() => void publishPolicy()}>
+            Publish
+          </Button>
+        </div>
+        <p className="col-span-full" role="status">{status}</p>
+        <pre className="col-span-full whitespace-pre-wrap">{result.ok ? result.text : ""}</pre>
+        {upgrade ? (
+          <div className="col-span-full">
+            <UpgradePrompt reason={upgrade} />
+          </div>
+        ) : null}
       </form>
       {hostedPath ? (
         <p>

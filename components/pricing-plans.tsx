@@ -26,8 +26,7 @@ const freeLimits = [
   "One subtitle file at a time",
 ] as const;
 
-const cardClass =
-  "flex h-full flex-col gap-5 rounded-[10px] border border-line bg-paper p-5 shadow-[0_1px_2px_rgba(40,30,10,0.05),0_4px_14px_rgba(40,30,10,0.05)]";
+const cardClass = "surface flex flex-col gap-4";
 
 export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) {
   const tools = singleToolPlans();
@@ -54,7 +53,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
   return (
     <div className="grid grid-cols-1 gap-6">
       <BillingToggle interval={interval} onChange={setInterval} />
-      <ul className="grid grid-cols-1 items-stretch gap-4 min-[801px]:grid-cols-3">
+      <ul className="stagger panel-stack">
         <li className={cardClass}>
           <PlanHeading name="Free" price="$0" />
           <FeatureList items={freeLimits} />
@@ -69,7 +68,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
                 "Cookie and refund policies are included with Privacy and terms.",
               ]}
             />
-            <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto grid gap-4">
+            <form action={checkoutEnabled ? startCheckout : undefined} className="grid gap-4">
               <input type="hidden" name="lookupKey" value={lookupKeyFor(selected, interval)} />
               <Select
                 label="Tool"
@@ -87,7 +86,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
         <li className={cardClass}>
           <PlanHeading name="All tools" price={priceLabel(bundle, interval)} recommended />
           <FeatureList items={["Limits removed on every tool."]} />
-          <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto">
+          <form action={checkoutEnabled ? startCheckout : undefined}>
             <input type="hidden" name="lookupKey" value={lookupKeyFor(bundle, interval)} />
             <Button type="submit" className="w-full" disabled={!checkoutEnabled}>
               Checkout
@@ -97,7 +96,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
       </ul>
       {checkoutEnabled ? null : <p>Checkout is turned off.</p>}
       {error ? (
-        <p role="alert" className="text-sm text-muted">
+        <p role="alert" className="text-sm text-secondary">
           {error}
         </p>
       ) : null}
@@ -116,7 +115,7 @@ function BillingToggle({
     <div className="grid justify-items-start gap-3">
       <fieldset className="w-fit">
         <legend className="sr-only">Billing period</legend>
-        <div className="flex rounded-full bg-fill p-1">
+        <div className="flex rounded-pill bg-hover p-1">
           <PeriodOption
             label="Monthly"
             value="month"
@@ -126,7 +125,7 @@ function BillingToggle({
           <PeriodOption label="Annual" value="year" checked={interval === "year"} onChange={onChange} />
         </div>
       </fieldset>
-      <p className="text-sm text-muted">Annual billing is two months free.</p>
+      <p className="text-sm text-secondary">Annual billing is two months free.</p>
     </div>
   );
 }
@@ -143,7 +142,7 @@ function PeriodOption({
   onChange: (interval: BillingInterval) => void;
 }) {
   return (
-    <label className="relative inline-flex h-9 cursor-pointer items-center rounded-full px-3 text-[13px] font-medium has-[:checked]:bg-ink has-[:checked]:text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink">
+    <label className="relative inline-flex h-9 cursor-pointer items-center rounded-pill px-3 text-[13px] font-medium has-[:checked]:bg-text has-[:checked]:text-canvas has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-text">
       <input
         className="absolute inset-0 cursor-pointer opacity-0 focus-visible:outline-none"
         type="radio"
@@ -161,10 +160,8 @@ function PlanHeading({ name, price, recommended = false }: { name: string; price
   return (
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-serif text-[22px] font-normal tracking-[-0.01em]">{name}</h2>
-        {recommended ? (
-          <span className="inline-flex rounded-full bg-fill px-2.5 py-0.5 text-[11px] text-ink">Recommended</span>
-        ) : null}
+        <h2 className="title text-[22px]">{name}</h2>
+        {recommended ? <span className="pill pill-gray">Recommended</span> : null}
       </div>
       <p className="text-[28px] font-medium tabular-nums tracking-[-0.02em]">{price}</p>
     </div>
@@ -173,7 +170,7 @@ function PlanHeading({ name, price, recommended = false }: { name: string; price
 
 function FeatureList({ items }: { items: readonly string[] }) {
   return (
-    <ul className="grid list-disc gap-2 pl-5 text-sm text-muted">
+    <ul className="grid list-disc gap-2 pl-5 text-sm text-secondary">
       {items.map((item) => (
         <li key={item}>{item}</li>
       ))}

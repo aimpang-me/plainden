@@ -28,7 +28,7 @@ export default function Home() {
       {page ? <JsonLd page={page} origin={origin} /> : null}
       <header className="max-w-3xl">
         <PageHeading>Small tools that run in the browser</PageHeading>
-        <p className="mt-2 text-pretty text-[13px] text-muted">
+        <p className="mt-2 text-pretty text-[13px] text-secondary">
           Free with limits. {toolLabel} removes the limits on one tool. {bundleLabel} covers every tool.
         </p>
       </header>

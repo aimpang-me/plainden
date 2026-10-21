@@ -10,9 +10,9 @@ export function ToolScreen({ page }: { page: ResolvedPage }) {
         <article className="grid grid-cols-1 gap-8">
           <header className="max-w-3xl">
             <PageHeading>{titleForSlug(page.slug) ?? page.tool.name}</PageHeading>
-            <p className="mt-2 text-pretty text-[13px] text-muted">{page.tool.description}</p>
+            <p className="mt-2 text-pretty text-[13px] text-secondary">{page.tool.description}</p>
           </header>
-          <p className="text-center text-muted">This tool is not built yet.</p>
+          <p className="text-center text-secondary">This tool is not built yet.</p>
           <Related currentId={page.tool.id} />
         </article>
       );
@@ -31,11 +31,11 @@ function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "t
     <article className="grid grid-cols-1 gap-8">
       <header className="min-w-0 max-w-3xl">
         <PageHeading>{page.headline}</PageHeading>
-        <p className="mt-2 text-pretty text-[13px] text-muted">{page.intro ? page.intro : page.config.description}</p>
+        <p className="mt-2 text-pretty text-[13px] text-secondary">{page.intro ? page.intro : page.config.description}</p>
       </header>
       <Tool slug={page.slug} preset={page.preset} />
       <section aria-labelledby="steps-heading">
-        <h2 id="steps-heading" className="mb-3 text-[13px] text-faint">
+        <h2 id="steps-heading" className="mb-3 text-[13px] text-tertiary">
           Steps
         </h2>
         <ol className="list-decimal pl-5">
@@ -45,7 +45,7 @@ function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "t
         </ol>
       </section>
       <section aria-labelledby="faq-heading">
-        <h2 id="faq-heading" className="mb-3 text-[13px] text-faint">
+        <h2 id="faq-heading" className="mb-3 text-[13px] text-tertiary">
           FAQ
         </h2>
         <ul className="grid gap-3">
@@ -66,7 +66,7 @@ function Related({ currentId }: { currentId: string }) {
   const tools = relatedTools(currentId);
   return (
     <section aria-labelledby="related-heading">
-      <h2 id="related-heading" className="mb-3 text-[13px] text-faint">
+      <h2 id="related-heading" className="mb-3 text-[13px] text-tertiary">
         Related tools
       </h2>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">

@@ -49,15 +49,15 @@ async function AccountBody({ query }: { query: AccountQuery }) {
         {current ? (
           <div className="grid gap-4">
             <p>{current.email}</p>
-            <p className="text-muted">Plan</p>
+            <p className="text-secondary">Plan</p>
             <p>{billing.plan}</p>
             {notice ? <p role="status">{notice}</p> : null}
             <div className="grid gap-2">
               <p>Usage</p>
               {billing.usage.length === 0 ? (
-                <p className="text-sm text-muted">No usage recorded.</p>
+                <p className="text-sm text-secondary">No usage recorded.</p>
               ) : (
-                <ul className="grid gap-1 text-sm text-muted">
+                <ul className="grid gap-1 text-sm text-secondary">
                   {billing.usage.map((row) => (
                     <li key={row.id}>{`${row.count} ${row.kind} on ${row.entitlementKey} for ${row.period}`}</li>
                   ))}
