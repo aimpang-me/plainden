@@ -1,15 +1,34 @@
+"use client";
+
+import { motion } from "motion/react";
 import type { ButtonHTMLAttributes } from "react";
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type ButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart"
+> & {
   variant?: "primary" | "plain";
 };
 
-export function Button({ variant = "primary", className = "", ...props }: ButtonProps) {
-  const tone = variant === "primary" ? "bg-ink text-paper" : "bg-fill text-ink";
+const press = { duration: 0.12, ease: "easeOut" } as const;
+
+export function Button({ variant = "primary", className = "", disabled, type, ...props }: ButtonProps) {
+  const tone =
+    variant === "primary" ? "border border-ink bg-ink text-paper" : "border border-line bg-paper text-ink";
+  const stretch = className.includes("w-full") ? "w-full" : "";
   return (
-    <button
-      className={`inline-flex h-12 items-center justify-center rounded-full border-0 px-[18px] text-sm font-medium transition-transform duration-150 ease-out active:scale-[0.96] disabled:opacity-50 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100 ${tone} ${className}`}
-      {...props}
-    />
+    <motion.span
+      className={`inline-flex ${stretch}`}
+      initial={false}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
+      transition={press}
+    >
+      <button
+        type={type}
+        className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-[13px] font-medium disabled:opacity-50 ${tone} ${className}`}
+        disabled={disabled}
+        {...props}
+      />
+    </motion.span>
   );
 }

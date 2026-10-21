@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { PageHeading } from "@/components/page-heading";
 import { SignInForm } from "@/components/sign-in-form";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
@@ -30,21 +31,21 @@ async function AccountBody() {
   const user = await getCurrentUser();
   return (
     <>
-      <h1 className="mb-8 text-balance text-center text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
-        Account
-      </h1>
-      {user ? (
-        <div className="grid gap-3">
-          <p>{user.email}</p>
-          <form action={signOut}>
-            <Button type="submit" variant="plain">
-              Sign out
-            </Button>
-          </form>
-        </div>
-      ) : (
-        <SignInForm />
-      )}
+      <PageHeading>Account</PageHeading>
+      <div className="mt-6">
+        {user ? (
+          <div className="grid gap-3">
+            <p>{user.email}</p>
+            <form action={signOut}>
+              <Button type="submit" variant="plain">
+                Sign out
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <SignInForm />
+        )}
+      </div>
     </>
   );
 }
