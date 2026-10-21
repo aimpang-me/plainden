@@ -30,7 +30,7 @@ export function ThemeToggle() {
 
   const label = theme === "dark" ? "Switch to light" : "Switch to dark";
   return (
-    <button type="button" className="inline-flex h-12 items-center text-sm text-ink" onClick={toggle} aria-pressed={theme === "dark"}>
+    <button type="button" className="inline-flex items-center rounded-lg px-2 py-1 text-[13px] text-ink" onClick={toggle} aria-pressed={theme === "dark"}>
       {label}
     </button>
   );

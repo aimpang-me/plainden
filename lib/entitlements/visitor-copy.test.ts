@@ -35,7 +35,5 @@ test("visitor copy names the plan in plain sentences", () => {
     expect(copy).toBe(sentence);
     expect(copy).not.toMatch(/savedItems|fileSize|batchCount|perMonth|perDay|unknown entitlement|plainden_/);
   }
-  expect(visitorLimitCopy("invoice", { ok: false, plan: "free", kind: "unknown", limit: 0, reason: "unknown entitlement missing" })).toBe(
-    "This action is not available.",
-  );
+  expect(visitorLimitCopy("invoice", { plan: "free", kind: "unknown", limit: 0 })).toBe("This action is not available.");
 });

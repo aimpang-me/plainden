@@ -185,17 +185,16 @@ async function driveLanding(page, dir) {
 
 async function drivePlanned(page, dir) {
   const names = [
-    "Privacy and terms generator",
-    "Privacy policy generator",
+    "Receipt maker",
+    "Privacy and terms",
     "Image tools",
     "Video compressor",
     "Data converter",
-    "Subtitle converter",
-    "Cookie and refund policy generator",
-    "Receipt generator",
+    "Subtitles",
+    "Cookie and refund",
   ];
   for (const name of names) {
-    if ((await page.getByRole("link", { name }).count()) > 0) fail(`landing linked hidden ${name}`);
+    if ((await page.getByRole("link", { name, exact: true }).count()) < 1) fail(`landing missed ${name}`);
   }
   await page.goto(`${base}/privacy-policy-generator`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
@@ -207,7 +206,7 @@ async function drivePlanned(page, dir) {
   if (business < 1) fail("legal form was missing");
   const lines = [
     "action: open /",
-    "absent: hidden wave links",
+    "visible: sidebar tools",
     "action: open /privacy-policy-generator",
     "url: /privacy-policy-generator",
     `heading: ${heading}`,

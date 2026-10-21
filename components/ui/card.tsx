@@ -7,9 +7,9 @@ type CardProps = {
 
 export function Card({ title, children }: CardProps) {
   return (
-    <section className="rounded-3xl border border-line-soft bg-paper p-8 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_12px_40px_rgba(0,0,0,0.04)] max-[800px]:p-6">
-      {title ? <h2 className="mb-6 text-[28px] font-medium tracking-[-0.02em]">{title}</h2> : null}
-      {children}
+    <section className="overflow-hidden rounded-[10px] border border-line bg-paper shadow-[0_1px_2px_rgba(40,30,10,0.05),0_4px_14px_rgba(40,30,10,0.05)]">
+      {title ? <h2 className="border-b border-line px-4 py-3 text-[13px] font-medium">{title}</h2> : null}
+      <div className="p-4">{children}</div>
     </section>
   );
 }
