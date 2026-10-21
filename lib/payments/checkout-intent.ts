@@ -9,11 +9,17 @@ const waitForMs = 10_000;
 const pollMs = 250;
 
 export type AcquiredCheckout = { ownerId: string } | { transactionId: string };
+export type CancelUnpaid = (transactionId: string) => Promise<"canceled" | "paid">;
 
-export async function acquireCheckout(db: AppDatabase, userId: string, priceLookupKey: string): Promise<AcquiredCheckout> {
+export async function acquireCheckout(
+  db: AppDatabase,
+  userId: string,
+  priceLookupKey: string,
+  cancelUnpaid: CancelUnpaid,
+): Promise<AcquiredCheckout> {
   const deadline = Date.now() + waitForMs;
   for (;;) {
-    const claimed = await claimOnce(db, userId, priceLookupKey);
+    const claimed = await claimOnce(db, userId, priceLookupKey, cancelUnpaid);
     if (claimed.kind === "owner") return { ownerId: claimed.id };
     if (claimed.kind === "reuse") return { transactionId: claimed.transactionId };
     if (Date.now() >= deadline) throw new CheckoutError("upstream", "Checkout is already in progress");
@@ -21,12 +27,14 @@ export async function acquireCheckout(db: AppDatabase, userId: string, priceLook
   }
 }
 
-export async function bindCheckoutIntent(db: AppDatabase, id: string, transactionId: string): Promise<void> {
-  await db.execute(sql`
+export async function bindCheckoutIntent(db: AppDatabase, id: string, transactionId: string): Promise<boolean> {
+  const updated = await db.execute(sql`
     UPDATE "checkout_intents"
     SET "transactionId" = ${transactionId}, "expiresAt" = now() + interval '30 minutes'
-    WHERE "id" = ${id}
+    WHERE "id" = ${id} AND "transactionId" IS NULL
+    RETURNING "id"
   `);
+  return text(record(updated.rows[0]), "id") === id;
 }
 
 export async function releaseCheckoutIntent(db: AppDatabase, id: string): Promise<void> {
@@ -38,7 +46,7 @@ export async function releaseCheckoutIntent(db: AppDatabase, id: string): Promis
 
 type ClaimOnce = { kind: "owner"; id: string } | { kind: "reuse"; transactionId: string } | { kind: "wait" };
 
-async function claimOnce(db: AppDatabase, userId: string, priceLookupKey: string): Promise<ClaimOnce> {
+async function claimOnce(db: AppDatabase, userId: string, priceLookupKey: string, cancelUnpaid: CancelUnpaid): Promise<ClaimOnce> {
   const id = randomUUID();
   const claimed = await db.execute(sql`
     INSERT INTO "checkout_intents" ("id", "userId", "priceLookupKey", "transactionId", "createdAt", "expiresAt")
@@ -58,9 +66,37 @@ async function claimOnce(db: AppDatabase, userId: string, priceLookupKey: string
   const [existing] = await db.select().from(checkoutIntent).where(eq(checkoutIntent.userId, userId)).limit(1);
   if (!existing) return { kind: "wait" };
   if (existing.priceLookupKey !== priceLookupKey) {
-    throw new CheckoutError("open-checkout", "Finish or cancel your open checkout first.");
+    if (!existing.transactionId) throw new CheckoutError("open-checkout", "Finish or cancel your open checkout first.");
+    const outcome = await cancelUnpaid(existing.transactionId);
+    switch (outcome) {
+      case "paid":
+        throw new CheckoutError("open-checkout", "Finish or cancel your open checkout first.");
+      case "canceled":
+        return takeOver(db, existing.id, existing.transactionId, priceLookupKey);
+      default: {
+        const unreachable: never = outcome;
+        throw new CheckoutError("upstream", `unexpected cancel result ${unreachable}`);
+      }
+    }
   }
   if (existing.transactionId) return { kind: "reuse", transactionId: existing.transactionId };
+  return { kind: "wait" };
+}
+
+async function takeOver(db: AppDatabase, oldId: string, transactionId: string, priceLookupKey: string): Promise<ClaimOnce> {
+  const id = randomUUID();
+  const taken = await db.execute(sql`
+    UPDATE "checkout_intents"
+    SET
+      "id" = ${id},
+      "priceLookupKey" = ${priceLookupKey},
+      "transactionId" = NULL,
+      "createdAt" = now(),
+      "expiresAt" = now() + interval '60 seconds'
+    WHERE "id" = ${oldId} AND "transactionId" = ${transactionId}
+    RETURNING "id"
+  `);
+  if (text(record(taken.rows[0]), "id") === id) return { kind: "owner", id };
   return { kind: "wait" };
 }
 
