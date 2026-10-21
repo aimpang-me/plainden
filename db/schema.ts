@@ -141,7 +141,7 @@ export const checkoutIntent = pgTable(
     createdAt: timestamp("createdAt", { withTimezone: true, mode: "date" }).notNull(),
     expiresAt: timestamp("expiresAt", { withTimezone: true, mode: "date" }).notNull(),
   },
-  (table) => [unique("checkout_intents_user_price").on(table.userId, table.priceLookupKey)],
+  (table) => [unique("checkout_intents_userId_unique").on(table.userId)],
 );
 
 export const schema = {

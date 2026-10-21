@@ -1,7 +1,19 @@
 import { readFileSync } from "node:fs";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import { contentSecurityPolicy, securityHeaders } from "../../lib/security/csp";
 import { decideRateLimit, rateRule } from "../../lib/security/rateLimit";
+
+let paddleEnv: string | undefined;
+
+beforeEach(() => {
+  paddleEnv = process.env.NEXT_PUBLIC_PADDLE_ENV;
+  delete process.env.NEXT_PUBLIC_PADDLE_ENV;
+});
+
+afterEach(() => {
+  if (paddleEnv === undefined) delete process.env.NEXT_PUBLIC_PADDLE_ENV;
+  else process.env.NEXT_PUBLIC_PADDLE_ENV = paddleEnv;
+});
 
 const paddleScript = "https://cdn.paddle.com";
 const paddleConnect =

@@ -124,12 +124,13 @@ test("checkout opens a sandbox transaction with the user id in custom data", asy
   process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
   process.env.PADDLE_PRICE_YEARLY = "pri_year";
   process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
-  const calls: Array<{ url: string; body: unknown; authorization: string }> = [];
+  const calls: Array<{ url: string; body: unknown; authorization: string; idempotencyKey: string | null }> = [];
   vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
     calls.push({
       url,
       body: JSON.parse(String(init.body)),
       authorization: String(new Headers(init.headers).get("authorization")),
+      idempotencyKey: new Headers(init.headers).get("idempotency-key"),
     });
     return new Response(JSON.stringify({ data: { id: "txn_1" } }), { status: 200 });
   });
@@ -153,6 +154,7 @@ test("checkout opens a sandbox transaction with the user id in custom data", asy
         },
         customer: { email: "ada@example.com" },
       },
+      idempotencyKey: null,
     },
   ]);
 });
@@ -219,6 +221,10 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
   await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_1" });
   expect(calls).toEqual([expect.objectContaining({ customer: { email: "ada@example.com" } })]);
   process.env.PADDLE_PRICE_YEARLY = "pri_year";
+  await expect(createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" })).rejects.toThrow(
+    "Finish or cancel your open checkout first.",
+  );
+  await db.execute(sql`UPDATE "checkout_intents" SET "expiresAt" = now() - interval '1 second'`);
   await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" });
   expect(calls[1]).toEqual(expect.objectContaining({ customer_id: "ctm_saved" }));
   await db.insert(subscription).values({
@@ -499,6 +505,139 @@ test("two concurrent checkouts for a new user create one Paddle transaction", as
   expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
 });
 
+test("a second price is refused while one checkout is open", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.PADDLE_PRICE_YEARLY = "pri_year";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  let releaseFirst: () => void = () => {};
+  const holdFirst = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (init.method !== "POST") return Response.json({ data: [] });
+    posts.push(url);
+    if (posts.length === 1) await holdFirst;
+    return Response.json({ data: { id: "txn_month", customer_id: "ctm_race" } });
+  });
+  const month = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  const pending = createCheckout(month);
+  const started = Date.now();
+  while (posts.length === 0 && Date.now() - started < 2000) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  const year = await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" }).catch((error: unknown) => error);
+  expect(year).toBeInstanceOf(CheckoutError);
+  expect((year as CheckoutError).code).toBe("open-checkout");
+  expect(checkoutErrorCopy(year)).toBe("Finish or cancel your open checkout first.");
+  expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
+  releaseFirst();
+  await expect(pending).resolves.toEqual({ transactionId: "txn_month" });
+  const again = await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" }).catch((error: unknown) => error);
+  expect(again).toBeInstanceOf(CheckoutError);
+  expect(checkoutErrorCopy(again)).toBe("Finish or cancel your open checkout first.");
+  expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
+});
+
+test("an expired unbound checkout is taken over with a one minute lease", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  await db.execute(sql`
+    INSERT INTO "checkout_intents" ("id", "userId", "priceLookupKey", "createdAt", "expiresAt")
+    VALUES ('intent_stale', 'user_1', 'plainden_pdf_month', now() - interval '2 minutes', now() - interval '1 second')
+  `);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  let claimLeaseSeconds = 0;
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (init.method !== "POST") return Response.json({ data: [] });
+    posts.push(url);
+    const lease = await db.execute(sql`
+      SELECT EXTRACT(EPOCH FROM ("expiresAt" - now())) AS "seconds" FROM "checkout_intents" WHERE "transactionId" IS NULL
+    `);
+    claimLeaseSeconds = Number((lease.rows[0] as { seconds: string | number }).seconds);
+    return Response.json({ data: { id: "txn_taken", customer_id: "ctm_taken" } });
+  });
+  await expect(
+    createCheckout({
+      priceLookupKey: "plainden_pdf_month",
+      subject: { userId: "user_1" },
+      successPath: "/account",
+      cancelPath: "/pricing",
+    }),
+  ).resolves.toEqual({ transactionId: "txn_taken" });
+  expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
+  expect(claimLeaseSeconds).toBeGreaterThan(30);
+  expect(claimLeaseSeconds).toBeLessThan(90);
+  const bound = await db.execute(sql`
+    SELECT EXTRACT(EPOCH FROM ("expiresAt" - now())) AS "seconds" FROM "checkout_intents"
+  `);
+  const boundSeconds = Number((bound.rows[0] as { seconds: string | number }).seconds);
+  expect(boundSeconds).toBeGreaterThan(20 * 60);
+  expect(boundSeconds).toBeLessThan(40 * 60);
+});
+
+test("an open claim expires in about a minute, and a waiter does not poll every tick", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  let releaseFirst: () => void = () => {};
+  const holdFirst = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const execute = db.execute.bind(db);
+  let intentReads = 0;
+  db.execute = (async (query: Parameters<typeof execute>[0]) => {
+    const rendered = sqlText(query);
+    if (rendered.includes("checkout_intents")) intentReads += 1;
+    return execute(query);
+  }) as typeof db.execute;
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (init.method !== "POST") return Response.json({ data: [] });
+    posts.push(url);
+    if (posts.length === 1) {
+      const lease = await db.execute(sql`
+        SELECT EXTRACT(EPOCH FROM ("expiresAt" - now())) AS "seconds" FROM "checkout_intents"
+      `);
+      const seconds = Number((lease.rows[0] as { seconds: string | number }).seconds);
+      expect(seconds).toBeGreaterThan(30);
+      expect(seconds).toBeLessThan(90);
+      await holdFirst;
+    }
+    return Response.json({ data: { id: "txn_held", customer_id: "ctm_held" } });
+  });
+  const input = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  const pending = Promise.all([createCheckout(input), createCheckout(input)]);
+  const started = Date.now();
+  while (posts.length === 0 && Date.now() - started < 2000) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  const before = intentReads;
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  expect(intentReads - before).toBeGreaterThan(0);
+  expect(intentReads - before).toBeLessThan(8);
+  releaseFirst();
+  await expect(pending).resolves.toEqual([{ transactionId: "txn_held" }, { transactionId: "txn_held" }]);
+});
+
 test("checkout failures carry a code and the browser sees safe copy", async () => {
   const db = await freshDb();
   await insertUser(db);
@@ -530,6 +669,18 @@ test("checkout failures carry a code and the browser sees safe copy", async () =
 async function processed(db: Awaited<ReturnType<typeof getDb>>): Promise<string[]> {
   const result = await db.execute(sql`SELECT "id" FROM "processed_events" ORDER BY "id"`);
   return (result.rows as { id: string }[]).map((row) => row.id);
+}
+
+function sqlText(query: unknown): string {
+  if (!query || typeof query !== "object" || !("queryChunks" in query)) return "";
+  const chunks = (query as { queryChunks: unknown[] }).queryChunks;
+  return chunks
+    .map((chunk) => {
+      if (!chunk || typeof chunk !== "object" || !("value" in chunk)) return "";
+      const value = (chunk as { value: unknown }).value;
+      return Array.isArray(value) ? value.join("") : "";
+    })
+    .join("");
 }
 
 function hmac(rawBody: string, ts: number): string {
