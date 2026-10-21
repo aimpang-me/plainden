@@ -25,7 +25,7 @@ for (const viewport of viewports) {
       await page.getByLabel("Target").selectOption({ label: "100 KB" });
       await button.click();
       const file = await downloadFile(page);
-      await expectTargetOrAdmittedMiss(page, file.bytes.length, 100 * 1024);
+      await expectWithinTenPercent(page, file.bytes.length, 100 * 1024);
       expect(imageInfo(file.bytes).format).toBe("jpeg");
     });
 
@@ -35,7 +35,7 @@ for (const viewport of viewports) {
       await page.getByLabel("Target").selectOption({ label: "200 KB" });
       await page.getByRole("button", { name: "Compress images" }).click();
       const file = await downloadFile(page);
-      await expectTargetOrAdmittedMiss(page, file.bytes.length, 200 * 1024);
+      await expectWithinTenPercent(page, file.bytes.length, 200 * 1024);
       expect(imageInfo(file.bytes).format).toBe("jpeg");
     });
 
@@ -130,7 +130,7 @@ for (const viewport of viewports) {
       if ((await target.count()) > 0) await target.selectOption({ label: "100 KB" });
       await page.getByRole("button", { name: "Compress images" }).click();
       const file = await downloadFile(page);
-      await expectTargetOrAdmittedMiss(page, file.bytes.length, 100 * 1024);
+      await expectWithinTenPercent(page, file.bytes.length, 100 * 1024);
     });
 
     test("compress-image-to-200kb lands within 10 percent", async ({ page }) => {
@@ -140,7 +140,7 @@ for (const viewport of viewports) {
       if ((await target.count()) > 0) await target.selectOption({ label: "200 KB" });
       await page.getByRole("button", { name: "Compress images" }).click();
       const file = await downloadFile(page);
-      await expectTargetOrAdmittedMiss(page, file.bytes.length, 200 * 1024);
+      await expectWithinTenPercent(page, file.bytes.length, 200 * 1024);
     });
 
     test("resize-image-to-20kb lands within 10 percent of 20 KB", async ({ page }) => {
@@ -148,15 +148,12 @@ for (const viewport of viewports) {
       await page.getByLabel("Images").setInputFiles(photo);
       await page.getByRole("button", { name: "Compress images" }).click();
       const file = await downloadFile(page);
-      await expectTargetOrAdmittedMiss(page, file.bytes.length, 20 * 1024);
+      await expectWithinTenPercent(page, file.bytes.length, 20 * 1024);
     });
 
     test("opens the other image long-tail pages and returns an image", async ({ page }) => {
       const slugs = longTailSlugs("image");
-      if (slugs === null) {
-        test.fixme(true, "image long-tail pages are not on this branch");
-        return;
-      }
+      if (slugs === null) throw new Error("image long-tail pages are not on this branch");
       expect(slugs.length).toBeGreaterThanOrEqual(5);
       const extra = slugs.filter((slug) => !seeds.has(slug));
       expect(extra.length).toBeGreaterThan(0);
@@ -176,8 +173,10 @@ for (const viewport of viewports) {
   });
 }
 
-async function expectTargetOrAdmittedMiss(page: Page, actual: number, target: number) {
+async function expectWithinTenPercent(page: Page, actual: number, target: number): Promise<void> {
   const near = Math.abs(actual - target) <= target * 0.1;
-  if (near) return;
-  await expect(page.getByRole("status")).toContainText("outside 10%");
+  const status = near
+    ? `Compressed 1 image to within 10% of ${target} bytes.`
+    : `Closest is ${actual} bytes, outside 10% of ${target} bytes.`;
+  await expect(page.getByRole("status")).toHaveText(status);
 }

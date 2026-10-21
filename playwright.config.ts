@@ -1,17 +1,30 @@
 import { defineConfig, devices } from "@playwright/test";
+import { dataDir, mailDir, origin, port } from "./e2e/env";
 
-const port = Number(process.env.PORT ?? 3100);
+const ci = process.env.CI === "true";
 
 export default defineConfig({
   testDir: "e2e",
   timeout: 30_000,
-  use: { baseURL: `http://127.0.0.1:${port}` },
+  forbidOnly: ci,
+  retries: ci ? 2 : 0,
+  workers: ci ? 1 : 2,
+  reporter: ci ? [["github"], ["html", { open: "never" }]] : "list",
+  use: {
+    baseURL: origin,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+  },
   webServer: {
     command: `npx next dev --port ${port}`,
-    url: `http://127.0.0.1:${port}`,
+    url: origin,
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
+      PORT: String(port),
+      BETTER_AUTH_URL: origin,
+      DEV_MAIL_DIR: mailDir,
+      PGLITE_DATA_DIR: dataDir,
       PADDLE_API_KEY: "pdl_test_plainden_e2e",
       PADDLE_WEBHOOK_SECRET: "pdl_whsec_plainden_e2e",
       PADDLE_PRICE_MONTHLY: "pri_month_e2e",

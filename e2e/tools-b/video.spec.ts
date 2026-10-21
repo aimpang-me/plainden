@@ -86,10 +86,7 @@ for (const viewport of viewports) {
 
     test("opens the other video long-tail pages and returns a video", async ({ page }) => {
       const slugs = longTailSlugs("video");
-      if (slugs === null) {
-        test.fixme(true, "video long-tail pages are not on this branch");
-        return;
-      }
+      if (slugs === null) throw new Error("video long-tail pages are not on this branch");
       expect(slugs.length).toBeGreaterThanOrEqual(5);
       const extra = slugs.filter((slug) => slug !== "compress-video-for-discord");
       expect(extra.length).toBeGreaterThan(0);

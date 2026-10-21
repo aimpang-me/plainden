@@ -86,7 +86,8 @@ export function probeVideo(bytes: Buffer): VideoInfo {
       { encoding: "utf8" },
     );
     if (result.status !== 0) {
-      throw new Error(result.stderr || "ffprobe failed");
+      const detail = result.stderr || result.error?.message || "ffprobe failed";
+      throw new Error(detail);
     }
     return readProbe(result.stdout);
   } finally {
