@@ -376,7 +376,7 @@ function subscriptionEvent(
   occurredAt: string,
   endsAt = periodEnd,
   entitlementKey = lookupKey.includes("_all_") ? "all" : "pdf",
-) {
+): { event_id: string; event_type: string; occurred_at: string; data: Record<string, unknown> } {
   return {
     event_id: id,
     event_type: eventType,

@@ -15,5 +15,19 @@ export type AccountPlanCopy = {
 export function accountPlanCopy(rows: readonly AccountPlanRow[], now: Date): AccountPlanCopy {
   const paid = rows.filter((row) => subscriptionGrantsAccess(row.status, row.currentPeriodEnd, now));
   const plan = paid.some((row) => row.entitlementKey === "all") ? "All tools" : paid.length > 0 ? "One tool" : "Free";
-  return { plan, ends: null };
+  const cancelAt = paid
+    .map((row) => row.cancelAt)
+    .filter((date): date is Date => date !== null && date.getTime() > now.getTime())
+    .sort((left, right) => left.getTime() - right.getTime())[0];
+  return { plan, ends: cancelAt ? proEndsOn(cancelAt) : null };
+}
+
+function proEndsOn(cancelAt: Date): string {
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(cancelAt);
+  return `Pro ends ${formatted}`;
 }

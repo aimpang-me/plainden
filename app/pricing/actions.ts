@@ -5,18 +5,19 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createCheckout, createPortal } from "@/lib/payments";
 
-export type CheckoutActionResult = { transactionId: string } | { error: string };
+export type CheckoutActionResult = { transactionId: string; email: string } | { error: string };
 
 export async function checkoutAction(formData: FormData): Promise<CheckoutActionResult> {
   const current = await getCurrentUser();
   if (!current) redirect("/account");
   try {
-    return await createCheckout({
+    const checkout = await createCheckout({
       priceLookupKey: String(formData.get("lookupKey") ?? ""),
       subject: { userId: current.id },
       successPath: "/account?checkout=pending",
       cancelPath: "/pricing",
     });
+    return { transactionId: checkout.transactionId, email: current.email };
   } catch (error) {
     if (isRedirectError(error)) throw error;
     if (error instanceof Error && error.message) return { error: error.message };

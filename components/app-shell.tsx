@@ -91,11 +91,15 @@ function useNarrow(): boolean {
 
 export function AppShell({
   tools,
+  accountLabel,
+  drawerAccountLabel,
   planLabel,
   drawerPlanLabel,
   children,
 }: {
   tools: readonly ShellTool[];
+  accountLabel: ReactNode;
+  drawerAccountLabel: ReactNode;
   planLabel: ReactNode;
   drawerPlanLabel: ReactNode;
   children: ReactNode;
@@ -149,7 +153,7 @@ export function AppShell({
         data-drawer={open ? "open" : "closed"}
       >
         <aside className="sticky top-0 hidden h-screen flex-col bg-sidebar px-3 py-3 min-[901px]:flex">
-          <Sidebar tools={tools} pathname={pathname} planLabel={planLabel} />
+          <Sidebar tools={tools} pathname={pathname} accountLabel={accountLabel} planLabel={planLabel} />
         </aside>
         <div className="flex min-h-screen min-w-0 flex-col" inert={open ? true : undefined}>
           <header className="sticky top-0 z-20 flex min-h-[52px] flex-wrap items-center gap-3 border-b border-line bg-canvas px-6 py-2 max-[900px]:px-4">
@@ -216,7 +220,14 @@ export function AppShell({
                   Close
                 </button>
               </div>
-              <Sidebar tools={tools} pathname={pathname} planLabel={drawerPlanLabel} hideBrand onNavigate={() => setOpen(false)} />
+              <Sidebar
+                tools={tools}
+                pathname={pathname}
+                accountLabel={drawerAccountLabel}
+                planLabel={drawerPlanLabel}
+                hideBrand
+                onNavigate={() => setOpen(false)}
+              />
             </div>
           </>
         ) : null}
@@ -228,12 +239,14 @@ export function AppShell({
 function Sidebar({
   tools,
   pathname,
+  accountLabel,
   planLabel,
   hideBrand = false,
   onNavigate,
 }: {
   tools: readonly ShellTool[];
   pathname: string;
+  accountLabel: ReactNode;
   planLabel: ReactNode;
   hideBrand?: boolean;
   onNavigate?: () => void;
@@ -273,17 +286,12 @@ function Sidebar({
           Pricing
         </Link>
       </nav>
-      <Link
-        href="/account"
-        aria-label="Sign in"
-        onClick={onNavigate}
-        className="mt-auto flex items-center gap-2 px-2 pt-3 no-underline"
-      >
-        <span className="grid size-8 place-items-center rounded-pill border border-line text-secondary" aria-hidden="true">
+      <Link href="/account" onClick={onNavigate} className="mt-auto flex min-w-0 items-center gap-2 px-2 pt-3 no-underline">
+        <span className="grid size-8 shrink-0 place-items-center rounded-pill border border-line text-secondary" aria-hidden="true">
           <SignedOutIcon />
         </span>
-        <span>
-          <span className="block text-[13px]">Sign in</span>
+        <span className="min-w-0">
+          {accountLabel}
           {planLabel}
         </span>
       </Link>

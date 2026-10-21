@@ -1,4 +1,5 @@
 export function sidebarAccountLabel(email: string | null): string {
-  void email;
-  return "Sign in";
+  const trimmed = email?.trim() ?? "";
+  if (trimmed.length === 0) return "Sign in";
+  return trimmed;
 }

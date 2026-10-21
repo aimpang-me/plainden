@@ -23,7 +23,9 @@ export async function requestMagicLink(email: string, turnstileToken: string): P
       headers: headerList,
     });
     return { ok: true };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error && error.message.length > 0 ? error.message : "Could not send the sign-in link.";
+    console.error(message);
     return { ok: false, error: "Could not send the sign-in link." };
   }
 }

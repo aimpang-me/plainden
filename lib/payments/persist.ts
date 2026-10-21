@@ -1,11 +1,12 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "../db/client";
-import type { SubscriptionApply } from "./subscription";
+import type { ScheduledCancel, SubscriptionApply } from "./subscription";
 
 export async function persistSubscription(apply: Exclude<SubscriptionApply, { kind: "ignore" }>): Promise<void> {
   const db = await getDb();
   const now = new Date();
   const statusOnly = apply.userId === null || apply.entitlementKey === null || apply.priceLookupKey === null;
+  const cancel = cancelColumn(apply.scheduledCancel);
   await db.execute(sql`
     WITH claim AS (
       INSERT INTO "processed_events" ("id", "occurredAt")
@@ -22,6 +23,7 @@ export async function persistSubscription(apply: Exclude<SubscriptionApply, { ki
         "providerSubscriptionId" = ${apply.providerSubscriptionId},
         "providerEventAt" = ${apply.eventAt},
         "currentPeriodEnd" = COALESCE(${apply.currentPeriodEnd}, "currentPeriodEnd"),
+        "cancelAt" = CASE WHEN ${cancel.keep} THEN "cancelAt" ELSE ${cancel.cancelAt} END,
         "updatedAt" = ${now}
       WHERE "providerSubscriptionId" = ${apply.providerSubscriptionId}
         AND ("providerEventAt" IS NULL OR "providerEventAt" <= ${apply.eventAt})
@@ -33,7 +35,7 @@ export async function persistSubscription(apply: Exclude<SubscriptionApply, { ki
       INSERT INTO "subscriptions" (
         "id", "userId", "entitlementKey", "status", "priceLookupKey",
         "providerCustomerId", "providerSubscriptionId", "providerEventAt",
-        "currentPeriodEnd", "createdAt", "updatedAt"
+        "currentPeriodEnd", "cancelAt", "createdAt", "updatedAt"
       )
       SELECT
         ${apply.providerSubscriptionId},
@@ -45,6 +47,7 @@ export async function persistSubscription(apply: Exclude<SubscriptionApply, { ki
         ${apply.providerSubscriptionId},
         ${apply.eventAt},
         ${apply.currentPeriodEnd},
+        ${cancel.cancelAt},
         ${now},
         ${now}
       WHERE ${statusOnly} = false
@@ -72,4 +75,19 @@ export async function persistSubscription(apply: Exclude<SubscriptionApply, { ki
         )
       )
   `);
+}
+
+function cancelColumn(scheduled: ScheduledCancel): { keep: boolean; cancelAt: Date | null } {
+  switch (scheduled.kind) {
+    case "unchanged":
+      return { keep: true, cancelAt: null };
+    case "clear":
+      return { keep: false, cancelAt: null };
+    case "cancel":
+      return { keep: false, cancelAt: scheduled.effectiveAt };
+    default: {
+      const unreachable: never = scheduled;
+      throw new Error(`unknown scheduled cancel ${unreachable}`);
+    }
+  }
 }

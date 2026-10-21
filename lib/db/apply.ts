@@ -55,6 +55,7 @@ export async function applySchema(db: { execute: (query: SQL) => Promise<unknown
     await db.execute(sql.raw(createTableSql(table)));
   }
   await db.execute(sql.raw(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "providerCustomerId" text`));
+  await db.execute(sql.raw(`ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "cancelAt" timestamp with time zone`));
   await db.execute(sql.raw(`CREATE UNIQUE INDEX IF NOT EXISTS "user_providerCustomerId_unique" ON "user" ("providerCustomerId")`));
   await db.execute(sql.raw(`
     DO $$
