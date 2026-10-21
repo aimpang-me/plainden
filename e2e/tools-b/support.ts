@@ -1,5 +1,5 @@
 import path from "node:path";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export const fixtures = path.join(process.cwd(), "e2e/tools-b/fixtures");
 
@@ -13,7 +13,7 @@ export async function openTool(page: Page, route: string, unbuiltReason: string)
   await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
   const unbuilt = await page.getByText("This tool is not built yet.").isVisible();
   const missing = await page.getByRole("heading", { name: "Page not found" }).isVisible();
-  if (unbuilt || missing) test.fixme(true, unbuiltReason);
+  if (unbuilt || missing) throw new Error(unbuiltReason);
 }
 
 export async function downloadFile(page: Page, timeout = 20_000): Promise<{ name: string; bytes: Buffer }> {

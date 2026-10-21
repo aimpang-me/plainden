@@ -1,11 +1,12 @@
-import { inflateSync } from "node:zlib";
 import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { inflateSync } from "node:zlib";
 import { expect, test, type Download, type Page, type TestInfo } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 import QRCode from "qrcode";
 import Stripe from "stripe";
+import { mailDir } from "../env";
 
 export const webhookSecret = "whsec_plainden_e2e";
 
@@ -36,12 +37,6 @@ export async function expectPreviewTotal(page: Page, amount: string): Promise<vo
 export async function openTool(page: Page, slug: string): Promise<void> {
   await page.goto(slug);
   await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
-}
-
-export async function plannedOrMissing(page: Page): Promise<boolean> {
-  const placeholder = await page.getByText("This tool is not built yet.").count();
-  const missing = await page.getByRole("heading", { name: "Page not found" }).count();
-  return placeholder > 0 || missing > 0;
 }
 
 export async function readDownload(download: Download): Promise<Buffer> {
@@ -135,13 +130,12 @@ export async function signIn(page: Page, info: TestInfo): Promise<void> {
   await expect(page.getByText(email)).toBeVisible();
 }
 
-export async function seedAllToolsPlan(page: Page): Promise<void> {
+export async function seedAllToolsPlan(page: Page): Promise<{ userId: string; subscriptionId: string }> {
   const session = await page.request.get("/api/auth/get-session");
   expect(session.ok()).toBeTruthy();
   const body = (await session.json()) as { user?: { id?: string } };
   const userId = body.user?.id;
-  expect(userId).toEqual(expect.any(String));
-  if (!userId) return;
+  if (typeof userId !== "string" || userId.length === 0) throw new Error("signed-in session has no user id");
   const eventId = `evt_${crypto.randomUUID()}`;
   const subscriptionId = `sub_${crypto.randomUUID()}`;
   const payload = {
@@ -171,10 +165,11 @@ export async function seedAllToolsPlan(page: Page): Promise<void> {
     data: rawBody,
   });
   expect(response.status(), await response.text()).toBe(200);
+  return { userId, subscriptionId };
 }
 
-async function readMagicLink(email: string): Promise<string> {
-  const dir = path.resolve(".dev-mail");
+export async function readMagicLink(email: string): Promise<string> {
+  const dir = path.resolve(mailDir);
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
     const names = await readdir(dir).catch(() => []);

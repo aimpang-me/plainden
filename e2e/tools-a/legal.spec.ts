@@ -14,7 +14,7 @@ const answers = {
 withViewports(() => {
   test("a privacy questionnaire copies text and HTML that contain every answer", async ({ page }) => {
     await openTool(page, "/privacy-policy-generator");
-    await fillQuestionnaire(page);
+    await fillPrivacy(page);
     const text = await copied(page, "Copy text");
     expect(text).toContain(answers.business);
     expect(text).toContain(answers.site);
@@ -33,12 +33,13 @@ withViewports(() => {
 
   test("the terms slug puts the same answers in a terms draft", async ({ page }) => {
     await openTool(page, "/terms-and-conditions-generator");
-    await fillQuestionnaire(page);
+    await fillTerms(page);
     const text = await copied(page, "Copy text");
     expect(text).toContain("Terms");
     expect(text).toContain(answers.business);
     expect(text).toContain(answers.site);
-    expect(text).toContain(answers.detail);
+    expect(text).toContain(`These terms cover ${answers.detail}`);
+    expect(text).toContain("either party stops");
     expect(text.toLowerCase()).toContain("not legal advice");
   });
 
@@ -50,7 +51,7 @@ withViewports(() => {
     ]) {
       await openTool(page, slug);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await fillQuestionnaire(page);
+      await fillPrivacy(page);
       const text = await copied(page, "Copy text");
       expect(text).toContain(answers.business);
       expect(text.toLowerCase()).toContain("not legal advice");
@@ -59,19 +60,21 @@ withViewports(() => {
 
   test("cookie and refund drafts contain every answer", async ({ page }) => {
     await openTool(page, "/cookie-policy-generator");
-    await fillQuestionnaire(page);
+    await fillCookie(page);
     const cookie = await copied(page, "Copy text");
     expect(cookie.toLowerCase()).toContain("cookie");
     expect(cookie).toContain(answers.business);
-    expect(cookie).toContain(answers.detail);
+    expect(cookie).toContain("cart_id");
+    expect(cookie).toContain("The cookie lasts 1 day");
     expect(cookie.toLowerCase()).toContain("not legal advice");
 
     await openTool(page, "/refund-policy-generator");
-    await fillQuestionnaire(page);
+    await fillRefund(page);
     const refund = await copied(page, "Copy text");
     expect(refund.toLowerCase()).toContain("refund");
     expect(refund).toContain(answers.business);
-    expect(refund).toContain(answers.detail);
+    expect(refund).toContain("14 days");
+    expect(refund).toContain("bank transfer");
     expect(refund.toLowerCase()).toContain("not legal advice");
   });
 });
@@ -80,7 +83,7 @@ test("a signed-in free account that publishes sees the pricing prompt", async ({
   await openTool(page, "/privacy-policy-generator");
   await signIn(page, test.info());
   await openTool(page, "/privacy-policy-generator");
-  await fillQuestionnaire(page);
+  await fillPrivacy(page);
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByRole("status")).toHaveText("Hosting a policy is part of the paid plan.");
   await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
@@ -95,7 +98,7 @@ test("a paid hosted policy link shows the answers", async ({ page }) => {
   );
   await openTool(page, "/privacy-policy-generator");
   await entitlement;
-  await fillQuestionnaire(page);
+  await fillPrivacy(page);
   const pdf = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download PDF" }).click();
   await pdf;
@@ -113,20 +116,38 @@ test("a paid hosted policy link shows the answers", async ({ page }) => {
   await expect(page.getByText(/not legal advice/i)).toBeVisible();
 });
 
-async function fillQuestionnaire(page: Page): Promise<void> {
+async function fillShared(page: Page): Promise<void> {
   await fillLabel(page, "Business name", answers.business);
   await fillLabel(page, "Contact email", answers.email);
   await fillLabel(page, "Website", answers.site);
   const jurisdiction = page.getByLabel("Jurisdiction");
-  if ((await jurisdiction.count()) > 0) await jurisdiction.selectOption(answers.jurisdiction);
+  if ((await jurisdiction.count()) === 0) throw new Error("missing field Jurisdiction");
+  await jurisdiction.selectOption(answers.jurisdiction);
+}
+
+async function fillPrivacy(page: Page): Promise<void> {
+  await fillShared(page);
   await fillLabel(page, "Data collected", answers.detail);
   await fillLabel(page, "Purpose", answers.detail);
   await fillLabel(page, "Retention", "30 days");
+}
+
+async function fillTerms(page: Page): Promise<void> {
+  await fillShared(page);
   await fillLabel(page, "Product", answers.detail);
   await fillLabel(page, "Acceptable use", answers.detail);
   await fillLabel(page, "Termination", "either party stops");
+}
+
+async function fillCookie(page: Page): Promise<void> {
+  await fillShared(page);
   await fillLabel(page, "Cookie name", "cart_id");
+  await fillLabel(page, "Purpose", answers.detail);
   await fillLabel(page, "Duration", "1 day");
+}
+
+async function fillRefund(page: Page): Promise<void> {
+  await fillShared(page);
   await fillLabel(page, "Refund window", "14 days");
   await fillLabel(page, "Refund method", "bank transfer");
   await fillLabel(page, "Exceptions", answers.detail);
@@ -134,7 +155,7 @@ async function fillQuestionnaire(page: Page): Promise<void> {
 
 async function fillLabel(page: Page, label: string, value: string): Promise<void> {
   const field = page.getByLabel(label);
-  if ((await field.count()) === 0) return;
+  if ((await field.count()) === 0) throw new Error(`missing field ${label}`);
   await field.fill(value);
 }
 

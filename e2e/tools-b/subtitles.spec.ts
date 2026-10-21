@@ -65,10 +65,7 @@ for (const viewport of viewports) {
 
     test("opens each subtitle long-tail page and returns the cues", async ({ page }) => {
       const slugs = longTailSlugs("subtitles");
-      if (slugs === null) {
-        test.fixme(true, "subtitle long-tail pages are not on this branch");
-        return;
-      }
+      if (slugs === null) throw new Error("subtitle long-tail pages are not on this branch");
       expect(slugs.length).toBeGreaterThanOrEqual(5);
       for (const slug of slugs) {
         await openTool(page, `/${slug}`, `subtitle long-tail /${slug} is not on this branch`);

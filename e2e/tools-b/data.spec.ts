@@ -80,10 +80,7 @@ for (const viewport of viewports) {
 
     test("opens each data long-tail page and returns a file", async ({ page }) => {
       const slugs = longTailSlugs("data");
-      if (slugs === null) {
-        test.fixme(true, "data long-tail pages are not on this branch");
-        return;
-      }
+      if (slugs === null) throw new Error("data long-tail pages are not on this branch");
       expect(slugs.length).toBeGreaterThanOrEqual(5);
       for (const slug of slugs) {
         await openTool(page, `/${slug}`, `data long-tail /${slug} is not on this branch`);

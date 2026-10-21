@@ -35,6 +35,7 @@ yarn-error.log*
 !.env.development
 !.env.example
 .dev-mail
+.dev-mail-*
 .data
 tools/registry.generated.ts
 .cursor/skills/verify-plainden/.run
