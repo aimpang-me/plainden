@@ -20,7 +20,7 @@ export default function PricingPage() {
           Free with limits, $5 a month for one tool, or $9 a month for every tool. Receipt shares the invoice plan. Cookie and refund share the legal plan.
         </p>
       </header>
-      <PricingPlans />
+      <PricingPlans checkoutEnabled={process.env.CHECKOUT_ENABLED !== "false"} />
     </article>
   );
 }

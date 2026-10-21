@@ -1,7 +1,11 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { connection } from "next/server";
 import { AppShell } from "@/components/app-shell";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { shellTools } from "@/lib/catalog/shell";
+import { planLabelFor } from "@/lib/payments/plan-label";
 import { siteOrigin } from "@/lib/seo";
 import "./globals.css";
 
@@ -26,8 +30,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <AppShell tools={shellTools()}>{children}</AppShell>
+        <AppShell tools={shellTools()} planLabel={<PlanSlot />} drawerPlanLabel={<PlanSlot />}>
+          {children}
+        </AppShell>
       </body>
     </html>
   );
+}
+
+function PlanSlot() {
+  return (
+    <Suspense fallback={null}>
+      <PlanLabel />
+    </Suspense>
+  );
+}
+
+async function PlanLabel() {
+  await connection();
+  let planLabel = "Free plan";
+  try {
+    const current = await getCurrentUser();
+    if (current) planLabel = await planLabelFor(current.id);
+  } catch {
+    planLabel = "Free plan";
+  }
+  return <span className="block text-[11px] text-muted">{planLabel}</span>;
 }

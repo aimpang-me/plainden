@@ -33,7 +33,17 @@ const iconPaths: Record<Exclude<ShellToolId, "cookie-refund">, string> = {
 
 const drawerMove = { duration: 0.22, ease: "easeOut" } as const;
 
-export function AppShell({ tools, children }: { tools: readonly ShellTool[]; children: ReactNode }) {
+export function AppShell({
+  tools,
+  planLabel,
+  drawerPlanLabel,
+  children,
+}: {
+  tools: readonly ShellTool[];
+  planLabel: ReactNode;
+  drawerPlanLabel: ReactNode;
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
@@ -68,7 +78,7 @@ export function AppShell({ tools, children }: { tools: readonly ShellTool[]; chi
       <ActionSlotContext.Provider value={slot}>
         <div className="min-h-screen overflow-x-clip bg-app min-[901px]:grid min-[901px]:grid-cols-[232px_minmax(0,1fr)] min-[901px]:items-start">
           <aside className="sticky top-0 hidden h-screen flex-col border-r border-line bg-panel px-2.5 py-3.5 min-[901px]:flex">
-            <Sidebar tools={tools} pathname={pathname} />
+            <Sidebar tools={tools} pathname={pathname} planLabel={planLabel} />
           </aside>
           <div className="flex min-h-screen min-w-0 flex-col">
             <header className="sticky top-0 z-20 flex min-h-[52px] flex-wrap items-center gap-2.5 border-b border-line bg-app px-6 py-2 max-[900px]:px-3.5">
@@ -143,7 +153,7 @@ export function AppShell({ tools, children }: { tools: readonly ShellTool[]; chi
                     Close
                   </button>
                 </div>
-                <Sidebar tools={tools} pathname={pathname} hideBrand onNavigate={() => setOpen(false)} />
+                <Sidebar tools={tools} pathname={pathname} planLabel={drawerPlanLabel} hideBrand onNavigate={() => setOpen(false)} />
               </motion.div>
             ) : null}
           </AnimatePresence>
@@ -156,11 +166,13 @@ export function AppShell({ tools, children }: { tools: readonly ShellTool[]; chi
 function Sidebar({
   tools,
   pathname,
+  planLabel,
   hideBrand = false,
   onNavigate,
 }: {
   tools: readonly ShellTool[];
   pathname: string;
+  planLabel: ReactNode;
   hideBrand?: boolean;
   onNavigate?: () => void;
 }) {
@@ -207,7 +219,7 @@ function Sidebar({
         </span>
         <span>
           <span className="block text-[13px]">Sign in</span>
-          <span className="block text-[11px] text-muted">Free plan</span>
+          {planLabel}
         </span>
       </Link>
     </>

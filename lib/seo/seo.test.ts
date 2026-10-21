@@ -98,9 +98,12 @@ test("home and pricing metadata stay on the plainden origin", () => {
     changeFrequency: "monthly",
     priority: 0.4,
   });
-  expect(buildRobots({ origin })).toEqual({
+  expect(buildRobots({ origin, sitePublic: true })).toEqual({
     rules: { userAgent: "*", allow: "/", disallow: "/account" },
     sitemap: "https://plainden.com/sitemap.xml",
+  });
+  expect(buildRobots({ origin })).toEqual({
+    rules: { userAgent: "*", disallow: "/" },
   });
 });
 

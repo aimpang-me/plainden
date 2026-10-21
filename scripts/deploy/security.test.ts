@@ -3,11 +3,16 @@ import { expect, test } from "vitest";
 import { contentSecurityPolicy, vercelConfigHeaders } from "../../lib/security/csp";
 import { decideRateLimit, rateLimitFlag, rateRule, unenforcedRateLimit } from "../../lib/security/rateLimit";
 
+const paddleScript = "https://cdn.paddle.com";
+const paddleConnect =
+  "https://cdn.paddle.com https://sandbox-api.paddle.com https://api.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com";
+const paddleFrames = "https://sandbox-buy.paddle.com https://buy.paddle.com";
+
 const productionPolicy =
-  "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' blob: https://challenges.cloudflare.com; media-src 'self' blob:; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
+  `default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://challenges.cloudflare.com ${paddleScript}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' blob: https://challenges.cloudflare.com ${paddleConnect}; media-src 'self' blob:; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com ${paddleFrames}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests`;
 
 const developmentPolicy =
-  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' blob: https://challenges.cloudflare.com; media-src 'self' blob:; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
+  `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://challenges.cloudflare.com ${paddleScript}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' blob: https://challenges.cloudflare.com ${paddleConnect}; media-src 'self' blob:; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com ${paddleFrames}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests`;
 
 test("production CSP is the static header browsers get on Vercel", () => {
   expect(contentSecurityPolicy("production")).toBe(productionPolicy);

@@ -9,7 +9,7 @@ test("the generated migration applies on PGlite and stores a data preset", async
   const files = readdirSync(migrationDir)
     .filter((name) => name.endsWith(".sql"))
     .sort();
-  expect(files).toEqual(["0000_initial.sql"]);
+  expect(files).toEqual(["0000_initial.sql", "0001_paddle_provider.sql"]);
   const client = new PGlite();
   try {
     for (const file of files) {
@@ -28,6 +28,13 @@ test("the generated migration applies on PGlite and stores a data preset", async
     const names = tables.rows.map((row) => row.table_name);
     expect(names).toContain("data_presets");
     expect(names).toContain("policy_docs");
+    expect(names).toContain("processed_events");
+    const columns = await client.query<{ column_name: string; data_type: string }>(
+      `select column_name, data_type from information_schema.columns where table_name = 'subscriptions'`,
+    );
+    const subscriptionColumns = new Map(columns.rows.map((row) => [row.column_name, row.data_type]));
+    expect(subscriptionColumns.get("providerEventAt")).toBe("timestamp with time zone");
+    expect(subscriptionColumns.has("stripeEventCreated")).toBe(false);
     const now = "2026-10-20T00:00:00.000Z";
     await client.query(
       `insert into "user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt") values ($1, $2, $3, $4, $5, $6)`,

@@ -73,7 +73,8 @@ test("pricing shows three plans and keeps checkout keys off the page", async ({ 
     .locator("input[name=lookupKey]");
   await expect(bundleKey).toHaveValue("plainden_all_year");
   await expect(page.getByRole("button", { name: "Checkout" })).toHaveCount(2);
-  await expect(page.getByRole("button", { name: "Open billing portal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open billing portal" })).toHaveCount(0);
+  await expect(page.getByText("Free plan").first()).toBeVisible();
 });
 
 test("the theme toggle switches to dark and back", async ({ page }) => {
