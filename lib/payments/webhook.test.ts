@@ -9,7 +9,9 @@ import { getDb } from "../db/client";
 import { getEntitlement } from "../entitlements/get-entitlement";
 import { prices, pricesToCreate } from "../pricing/catalog";
 import { WebhookSignatureError } from "./errors";
+import { accountPlanCopy } from "./account-plan";
 import { createCheckout, createPortal, handleWebhook } from "./index";
+import { applyForNotification } from "./subscription";
 
 const dirs: string[] = [];
 const webhookSecret = "pdl_whsec_plainden_test";
@@ -253,6 +255,68 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
   ).rejects.toThrow("Site URL is not configured");
 });
 
+test("a portal cancel keeps the price and records when Pro ends", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_WEBHOOK_SECRET = webhookSecret;
+  await handleWebhook(signed(transactionEvent("evt_checkout", "2026-01-01T00:00:05.000Z")));
+  const scheduled = subscriptionEvent(
+    "evt_schedule",
+    "subscription.updated",
+    "active",
+    "plainden_pdf_month",
+    "2026-01-01T00:00:20.000Z",
+    "2026-11-21T00:00:00.000Z",
+  );
+  delete scheduled.data.custom_data;
+  scheduled.data.scheduled_change = { action: "cancel", effective_at: "2026-11-21T00:00:00.000Z" };
+  expect(applyForNotification(scheduled)).toMatchObject({
+    kind: "replace",
+    scheduledCancel: { kind: "cancel", effectiveAt: new Date("2026-11-21T00:00:00.000Z") },
+  });
+  await handleWebhook(signed(scheduled));
+  const cancelAt = new Date("2026-11-21T00:00:00.000Z");
+  expect((await rows(db))[0]).toEqual(expect.objectContaining({ status: "active", cancelAt }));
+  expect(
+    accountPlanCopy(
+      [
+        {
+          entitlementKey: "pdf",
+          status: "active",
+          currentPeriodEnd: cancelAt,
+          cancelAt,
+        },
+      ],
+      new Date("2026-10-21T00:00:00.000Z"),
+    ),
+  ).toEqual({ plan: "One tool", ends: "Pro ends November 21, 2026" });
+  const cleared = subscriptionEvent(
+    "evt_clear",
+    "subscription.updated",
+    "active",
+    "plainden_pdf_month",
+    "2026-01-01T00:00:30.000Z",
+    "2026-11-21T00:00:00.000Z",
+  );
+  delete cleared.data.custom_data;
+  cleared.data.scheduled_change = null;
+  await handleWebhook(signed(cleared));
+  expect((await rows(db))[0]).toEqual(expect.objectContaining({ status: "active", cancelAt: null }));
+});
+
+test("a price change to all tools replaces a stale one-tool entitlement", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_WEBHOOK_SECRET = webhookSecret;
+  await handleWebhook(signed(transactionEvent("evt_checkout", "2026-01-01T00:00:05.000Z")));
+  await handleWebhook(
+    signed(subscriptionEvent("evt_upgrade", "subscription.updated", "active", "plainden_all_month", "2026-01-01T00:00:20.000Z", periodEnd, "pdf")),
+  );
+  expect((await rows(db))[0]).toEqual(
+    expect.objectContaining({ entitlementKey: "all", priceLookupKey: "plainden_all_month", status: "active" }),
+  );
+});
+
 test("the price list keeps the paid catalog prices and drops the scaffold", () => {
   const created = pricesToCreate();
   expect(created.find((price) => price.lookupKey === "plainden_pdf_month")?.amountCents).toBe(500);
@@ -304,8 +368,15 @@ function adjustmentEvent(id: string, eventType: string, action: string, status: 
   };
 }
 
-function subscriptionEvent(id: string, eventType: string, status: string, lookupKey: string, occurredAt: string, endsAt = periodEnd) {
-  const entitlementKey = lookupKey.includes("_all_") ? "all" : "pdf";
+function subscriptionEvent(
+  id: string,
+  eventType: string,
+  status: string,
+  lookupKey: string,
+  occurredAt: string,
+  endsAt = periodEnd,
+  entitlementKey = lookupKey.includes("_all_") ? "all" : "pdf",
+) {
   return {
     event_id: id,
     event_type: eventType,
