@@ -1,3 +1,4 @@
+import { clientAddress, takeRateLimit } from "@/lib/security/enforce-rate-limit";
 import { originAllowed } from "@/lib/security/origin";
 import { deleteDocument, readDocument } from "@/tools/invoice/save";
 import { requireUser } from "../require-user";
@@ -14,6 +15,8 @@ export async function GET(_request: Request, context: Context): Promise<Response
 }
 
 export async function DELETE(request: Request, context: Context): Promise<Response> {
+  const limited = await takeRateLimit("write", clientAddress(request.headers));
+  if (limited) return limited;
   const gate = await requireUser();
   if (!gate.ok) return gate.response;
   if (!originAllowed(request)) {

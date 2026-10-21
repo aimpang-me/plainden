@@ -4,7 +4,7 @@ export const PLAN_DOWNLOAD_MESSAGE = "Markdown and PDF need the legal plan.";
 
 export const legalLimits = {
   free: { savedItems: 0 },
-  paid: {},
+  paid: { savedItems: 4 },
 } as const;
 
 export const jurisdictions = ["US", "Canada", "EU/UK", "Australia", "Other"] as const;

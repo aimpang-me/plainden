@@ -11,7 +11,7 @@ export const plannedTools: readonly ToolConfig[] = [
     description: "Fill in a client, line items, and tax, then download a PDF.",
     entitlementKey: "invoice",
     priceLookupKey: "plainden_invoice_month",
-    limits: { free: { perMonth: 3, savedItems: 0 }, paid: {} },
+    limits: { free: { perMonth: 3, savedItems: 0 }, paid: { savedItems: 100 } },
     seoPages: [],
   },
   {
@@ -22,7 +22,7 @@ export const plannedTools: readonly ToolConfig[] = [
     description: "Answer a questionnaire and copy a privacy policy or terms draft.",
     entitlementKey: "legal",
     priceLookupKey: "plainden_legal_month",
-    limits: { free: { savedItems: 0 }, paid: {} },
+    limits: { free: { savedItems: 0 }, paid: { savedItems: 4 } },
     seoPages: [],
   },
   {
@@ -105,7 +105,7 @@ export const plannedTools: readonly ToolConfig[] = [
     description: "Make a receipt with a payment method, receipt number, and paid stamp.",
     entitlementKey: "invoice",
     priceLookupKey: "plainden_invoice_month",
-    limits: { free: { perMonth: 3, savedItems: 0 }, paid: {} },
+    limits: { free: { perMonth: 3, savedItems: 0 }, paid: { savedItems: 100 } },
     seoPages: [],
   },
   {
@@ -116,7 +116,7 @@ export const plannedTools: readonly ToolConfig[] = [
     description: "Draft a cookie policy or a refund policy from the same questionnaire engine.",
     entitlementKey: "legal",
     priceLookupKey: "plainden_legal_month",
-    limits: { free: { savedItems: 0 }, paid: {} },
+    limits: { free: { savedItems: 0 }, paid: { savedItems: 4 } },
     seoPages: [],
   },
 ];

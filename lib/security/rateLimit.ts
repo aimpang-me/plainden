@@ -34,11 +34,6 @@ export type UnenforcedDecision = {
   remaining: null;
 };
 
-export const rateLimitFlag = {
-  sharedStore: false,
-  enforced: false,
-} as const;
-
 export function rateRule(limit: number, windowMs: number): RateRule {
   if (!Number.isInteger(limit) || limit < 0) {
     throw new Error("limit must be a non-negative integer");

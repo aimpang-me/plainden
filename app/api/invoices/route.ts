@@ -1,3 +1,4 @@
+import { clientAddress, takeRateLimit } from "@/lib/security/enforce-rate-limit";
 import { invoiceWriteLimit, originAllowed, parseJsonBody, readLimitedBody } from "@/lib/security/origin";
 import { listDocuments, saveDocument, toResponse } from "@/tools/invoice/save";
 import type { ToolId } from "@/tools/invoice/month-count";
@@ -19,6 +20,8 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const limited = await takeRateLimit("write", clientAddress(request.headers));
+  if (limited) return limited;
   const gate = await requireUser();
   if (!gate.ok) return gate.response;
   if (!originAllowed(request)) {

@@ -53,15 +53,21 @@ export function contentSecurityPolicy(mode: HeaderMode = "production"): string {
   return policy(mode);
 }
 
+const permissionsPolicy = "camera=(), microphone=(), geolocation=()";
+
 export function securityHeaders(mode: HeaderMode = "production"): SecurityHeader[] {
-  return [
+  const headers: SecurityHeader[] = [
     { key: "Content-Security-Policy", value: contentSecurityPolicy(mode) },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     { key: "X-Frame-Options", value: "DENY" },
+    { key: "Permissions-Policy", value: permissionsPolicy },
   ];
-}
-
-export function vercelConfigHeaders(): { source: string; headers: SecurityHeader[] }[] {
-  return [{ source: "/(.*)", headers: securityHeaders("production") }];
+  if (mode === "production") {
+    headers.push({
+      key: "Strict-Transport-Security",
+      value: "max-age=63072000; includeSubDomains",
+    });
+  }
+  return headers;
 }

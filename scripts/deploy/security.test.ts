@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { contentSecurityPolicy, vercelConfigHeaders } from "../../lib/security/csp";
-import { decideRateLimit, rateLimitFlag, rateRule, unenforcedRateLimit } from "../../lib/security/rateLimit";
+import { contentSecurityPolicy, securityHeaders } from "../../lib/security/csp";
+import { decideRateLimit, rateRule, unenforcedRateLimit } from "../../lib/security/rateLimit";
 
 const productionPolicy =
   "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' blob: https://challenges.cloudflare.com; media-src 'self' blob:; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
@@ -18,9 +18,22 @@ test("development CSP adds unsafe-eval for the Next dev server", () => {
   expect(contentSecurityPolicy("development")).toBe(developmentPolicy);
 });
 
-test("vercel.json repeats the production security headers", () => {
+test("vercel.json does not carry a second copy of the CSP", () => {
   const parsed: unknown = JSON.parse(readFileSync("vercel.json", "utf8"));
-  expect(parsed).toEqual({ framework: "nextjs", headers: vercelConfigHeaders() });
+  expect(parsed).toEqual({ framework: "nextjs" });
+  expect(JSON.stringify(parsed)).not.toContain("Content-Security-Policy");
+});
+
+test("production responses send HSTS and a permissions policy from the one header list", () => {
+  const headers = securityHeaders("production");
+  expect(headers.find((header) => header.key === "Content-Security-Policy")?.value).toBe(productionPolicy);
+  expect(headers.find((header) => header.key === "Strict-Transport-Security")?.value).toBe(
+    "max-age=63072000; includeSubDomains",
+  );
+  expect(headers.find((header) => header.key === "Permissions-Policy")?.value).toBe(
+    "camera=(), microphone=(), geolocation=()",
+  );
+  expect(securityHeaders("development").some((header) => header.key === "Strict-Transport-Security")).toBe(false);
 });
 
 test("a fixed window allows the limit, then denies until the window ends", () => {
@@ -104,12 +117,11 @@ test("rate rules reject fractional and negative numbers", () => {
   expect(() => rateRule(1, 0)).toThrow("windowMs must be a positive integer");
 });
 
-test("the wired limiter is unenforced until a shared store exists", () => {
+test("an unenforced decision stays allow with no remaining count", () => {
   expect(unenforcedRateLimit(rateRule(5, 1_000))).toEqual({
     allowed: true,
     enforced: false,
     limit: 5,
     remaining: null,
   });
-  expect(rateLimitFlag).toEqual({ sharedStore: false, enforced: false });
 });
