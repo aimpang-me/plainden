@@ -1,8 +1,18 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { getCurrentUser } from "../auth/get-current-user";
 import { createCheckout, createPortal, handleWebhook } from "./index";
 
 const subject = { userId: "user_1" } as const;
+
+beforeEach(() => {
+  for (const name of ["PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET", "PADDLE_PRICE_MONTHLY", "PADDLE_PRICE_YEARLY"]) {
+    vi.stubEnv(name, "");
+  }
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 test("payment calls fail closed until Paddle is configured", async () => {
   await expect(

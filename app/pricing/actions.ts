@@ -3,7 +3,7 @@
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
-import { createCheckout, createPortal } from "@/lib/payments";
+import { CheckoutError, checkoutErrorCopy, createCheckout, createPortal } from "@/lib/payments";
 
 export type CheckoutActionResult = { transactionId: string; email: string } | { error: string };
 
@@ -20,8 +20,7 @@ export async function checkoutAction(formData: FormData): Promise<CheckoutAction
     return { transactionId: checkout.transactionId, email: current.email };
   } catch (error) {
     if (isRedirectError(error)) throw error;
-    if (error instanceof Error && error.message) return { error: error.message };
-    return { error: "Checkout could not start." };
+    return { error: checkoutErrorCopy(error) };
   }
 }
 
@@ -36,7 +35,7 @@ export async function portalAction(): Promise<void> {
     redirect(session.url);
   } catch (error) {
     if (isRedirectError(error)) throw error;
-    if (error instanceof Error && error.message === "Checkout is turned off.") redirect("/account?billing=off");
+    if (error instanceof CheckoutError && error.code === "off") redirect("/account?billing=off");
     redirect("/account?billing=error");
   }
 }

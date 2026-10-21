@@ -1,4 +1,4 @@
-import { handleWebhook, PaymentsNotConfigured, WebhookSignatureError } from "@/lib/payments";
+import { handleWebhook, PaymentsNotConfigured, WebhookDeferred, WebhookSignatureError } from "@/lib/payments";
 
 export async function POST(request: Request): Promise<Response> {
   const rawBody = await request.text();
@@ -12,6 +12,9 @@ export async function POST(request: Request): Promise<Response> {
     }
     if (error instanceof WebhookSignatureError) {
       return Response.json({ error: error.message }, { status: 400 });
+    }
+    if (error instanceof WebhookDeferred) {
+      return Response.json({ error: error.message }, { status: 409 });
     }
     throw error;
   }

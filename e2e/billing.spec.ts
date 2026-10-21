@@ -66,7 +66,7 @@ test("a signed cancel downgrades a paid plan", async ({ page }) => {
   };
   const rawBody = JSON.stringify(payload);
   const response = await page.request.post("/api/paddle/webhook", {
-    headers: { "paddle-signature": signPaddleWebhook(rawBody, webhookSecret, 1_700_000_000), "content-type": "application/json" },
+    headers: { "paddle-signature": signPaddleWebhook(rawBody, webhookSecret, Math.floor(Date.now() / 1000)), "content-type": "application/json" },
     data: rawBody,
   });
   expect(response.status(), await response.text()).toBe(200);
