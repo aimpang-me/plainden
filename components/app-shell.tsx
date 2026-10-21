@@ -117,11 +117,17 @@ export function AppShell({
   useEffect(() => armFirstPaint(document.documentElement), []);
 
   useEffect(() => {
-    if (!narrow) setOpen(false);
-  }, [narrow]);
+    const query = window.matchMedia("(max-width: 900px)");
+    const onChange = () => {
+      if (!query.matches) setOpen(false);
+    };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     if (!open || !narrow) return;
+    const menu = menuRef.current;
     closeRef.current?.focus();
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -132,7 +138,7 @@ export function AppShell({
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
-      menuRef.current?.focus();
+      menu?.focus();
     };
   }, [open, narrow]);
 
