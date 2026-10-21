@@ -90,7 +90,11 @@ test("a paid hosted policy link shows the answers", async ({ page }) => {
   await openTool(page, "/privacy-policy-generator");
   await signIn(page, test.info());
   await seedAllToolsPlan(page);
+  const entitlement = page.waitForResponse(
+    (response) => response.url().includes("/api/entitlement") && response.ok(),
+  );
   await openTool(page, "/privacy-policy-generator");
+  await entitlement;
   await fillQuestionnaire(page);
   const pdf = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download PDF" }).click();

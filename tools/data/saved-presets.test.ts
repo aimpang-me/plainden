@@ -5,7 +5,7 @@ import { afterEach, expect, test } from "vitest";
 import { subscription, user } from "@/db/schema";
 import { getDb } from "@/lib/db/client";
 import { defaultOptions } from "./convert";
-import { listSavedPresets, saveSavedPreset } from "./saved-presets";
+import { deleteSavedPreset, listSavedPresets, saveSavedPreset } from "./saved-presets";
 
 const dirs: string[] = [];
 
@@ -51,4 +51,6 @@ test("a free account cannot save a preset and a paid account can replace one", a
   const replaced = await saveSavedPreset("user_data", { name: "Europe", options: defaultOptions });
   expect(replaced).toEqual({ ok: true, id: saved.id });
   expect(await listSavedPresets("user_data")).toEqual([{ name: "Europe", options: defaultOptions }]);
+  expect(await deleteSavedPreset("user_data", { name: "Europe" })).toEqual({ ok: true, id: "Europe" });
+  expect(await listSavedPresets("user_data")).toEqual([]);
 });

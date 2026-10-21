@@ -44,16 +44,7 @@ function rowsForTool(tool: (typeof toolPrices)[number]): Price[] {
   ];
 }
 
-export const prices: readonly Price[] = [
-  ...toolPrices.flatMap(rowsForTool),
-  {
-    lookupKey: "plainden_scaffold_month",
-    name: "Scaffold monthly",
-    amountCents: 0,
-    interval: "month",
-    entitlementKey: "scaffold",
-  },
-];
+export const prices: readonly Price[] = toolPrices.flatMap(rowsForTool);
 
 export function pricesToCreate(): readonly Price[] {
   return prices.filter((price) => price.amountCents > 0);

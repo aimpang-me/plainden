@@ -48,7 +48,21 @@ export type ListInput = {
   disabledIds?: readonly string[];
   tools?: readonly RegisteredTool[];
   origin?: string;
+  sitePublic?: boolean;
 };
+
+export const longTailWordMinimum = 150;
+
+export function longTailWordCount(description: string, faq: readonly Faq[]): number {
+  const text = [description, ...faq.flatMap((item) => [item.question, item.answer])].join(" ").trim();
+  if (text.length === 0) return 0;
+  return text.split(/\s+/).length;
+}
+
+export function siteIsPublic(explicit?: boolean): boolean {
+  if (explicit !== undefined) return explicit;
+  return process.env.NEXT_PUBLIC_SITE_PUBLIC === "true";
+}
 
 export function siteOrigin(explicit?: string): string {
   const raw = explicit !== undefined ? explicit : (process.env.NEXT_PUBLIC_SITE_URL ?? "");
@@ -145,12 +159,16 @@ function fromRegistered(
   page: Extract<ResolvedPage, { kind: "tool" }>,
   disabled: ReadonlySet<string>,
 ): ToolSeoPage | LongTailSeoPage {
-  const primary = page.config.slugs[0] ?? page.slug;
+  const parentSlug = page.config.slugs[0] ?? page.slug;
+  const description = page.intro ?? page.config.description;
+  const hidden = disabled.has(page.config.id);
+  const primaryPage = page.config.slugs.includes(page.slug);
+  const index = primaryPage ? !hidden : !hidden && longTailWordCount(description, page.faq) >= longTailWordMinimum;
   const shared = {
     path: `/${page.slug}`,
     title: page.headline,
-    description: page.intro ?? page.config.description,
-    index: !disabled.has(page.config.id),
+    description,
+    index,
     toolId: page.config.id,
     applicationName: page.config.name,
     faq: page.faq,
@@ -158,9 +176,9 @@ function fromRegistered(
   };
   const parent: Crumb[] = [
     { name: "plainden", path: "/" },
-    { name: page.config.name, path: `/${primary}` },
+    { name: page.config.name, path: `/${parentSlug}` },
   ];
-  if (page.config.slugs.includes(page.slug)) {
+  if (primaryPage) {
     return { kind: "tool", crumbs: parent, ...shared };
   }
   return {

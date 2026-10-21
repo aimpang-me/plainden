@@ -8,6 +8,5 @@ loc: https://plainden.com/merge-pdf
 loc: https://plainden.com/qr-code-generator
 action: GET /robots.txt
 status: 200
-visible: Allow: /
-visible: Disallow: /account
+visible: Disallow: /
 visible: Sitemap: https://plainden.com/sitemap.xml

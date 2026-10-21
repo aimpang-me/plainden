@@ -18,8 +18,6 @@ test("visitor copy names the plan in plain sentences", () => {
     ["policy", denied("free", "savedItems", 0), "Hosting a policy is part of the paid plan."],
     ["invoice", denied("free", "perMonth", 3), "The free plan includes 3 invoices a month."],
     ["receipt", denied("free", "perMonth", 3), "The free plan includes 3 receipts a month."],
-    ["scaffold", denied("free", "perMonth", 3), "The free plan allows a count of 3."],
-    ["scaffold", denied("paid", "perMonth", 30), "The paid plan allows a count of 30."],
     ["pdf", denied("free", "fileSize", 25 * 1024 * 1024), "The free plan allows files up to 25 MB."],
     ["pdf", denied("paid", "fileSize", 200 * 1024 * 1024), "The paid plan allows files up to 200 MB."],
     ["image", denied("free", "fileSize", 10 * 1024 * 1024), "The free plan allows files up to 10 MB."],

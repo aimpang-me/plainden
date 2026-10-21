@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 import { plannedTools } from "@/lib/catalog/planned";
 import { assertUniqueSlugs, validateToolModule } from "../../scripts/gen-registry";
-import { config } from "../../tools/scaffold/config";
-import { copy } from "../../tools/scaffold/copy";
+import { config } from "../../tools/pdf/config";
+import { copy } from "../../tools/pdf/copy";
 import { registry } from "../../tools/registry.generated";
 
 test("duplicate slugs fail the registry check", () => {
@@ -14,11 +14,11 @@ test("duplicate slugs fail the registry check", () => {
   ).toThrow("duplicate slug invoice-generator");
 });
 
-test("the scaffold tool meets the copy contract", () => {
+test("a registered tool meets the copy contract", () => {
   validateToolModule(config, copy);
-  expect(copy.headline).toBe("Scaffold check");
-  expect(copy.faq).toHaveLength(6);
-  expect(copy.longTail).toHaveLength(5);
+  expect(copy.headline).toBe("PDF tools");
+  expect(copy.faq.length).toBeGreaterThanOrEqual(6);
+  expect(copy.longTail.length).toBeGreaterThanOrEqual(5);
 });
 
 test("registered slugs do not collide", () => {
@@ -37,7 +37,6 @@ test("registered slugs do not collide", () => {
     "pdf",
     "qr",
     "receipt",
-    "scaffold",
     "subtitles",
     "video",
   ]);

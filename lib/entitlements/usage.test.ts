@@ -55,7 +55,7 @@ test("a free monthly counter blocks at 3 and a later period starts at zero", asy
 test("a paid counter passes where the free counter is already full", async () => {
   const db = await freshDb();
   const now = new Date("2026-10-20T00:00:00.000Z");
-  const period = monthPeriod();
+  const period = dayPeriod();
   await db.insert(user).values({
     id: "user_paid",
     name: "Ada",
@@ -67,48 +67,54 @@ test("a paid counter passes where the free counter is already full", async () =>
   await db.insert(subscription).values({
     id: "sub_paid",
     userId: "user_paid",
-    entitlementKey: "scaffold",
+    entitlementKey: "pdf",
     status: "active",
-    priceLookupKey: "plainden_scaffold_month",
+    priceLookupKey: "plainden_pdf_month",
     createdAt: now,
     updatedAt: now,
   });
   await db.insert(usage).values({
     id: "usage_paid",
     userId: "user_paid",
-    entitlementKey: "scaffold",
-    kind: LimitKind.perMonth,
+    entitlementKey: "pdf",
+    kind: LimitKind.perDay,
     period,
-    count: 3,
+    count: 5,
     updatedAt: now,
   });
   await db.insert(usage).values({
     id: "usage_free",
-    deviceId: "dev_scaffold",
-    entitlementKey: "scaffold",
-    kind: LimitKind.perMonth,
+    deviceId: "dev_pdf",
+    entitlementKey: "pdf",
+    kind: LimitKind.perDay,
     period,
-    count: 3,
+    count: 5,
     updatedAt: now,
   });
 
-  expect(await checkLimit({ userId: "user_paid" }, "scaffold", LimitKind.perMonth, 1)).toEqual({ ok: true });
-  expect(await checkLimit({ deviceId: "dev_scaffold" }, "scaffold", LimitKind.perMonth, 1)).toEqual({
+  expect(await checkLimit({ userId: "user_paid" }, "pdf", LimitKind.perDay, 1)).toEqual({ ok: true });
+  expect(await checkLimit({ deviceId: "dev_pdf" }, "pdf", LimitKind.perDay, 1)).toEqual({
     ok: false,
     plan: "free",
-    kind: "perMonth",
-    limit: 3,
-    reason: "free perMonth allows 3",
+    kind: "perDay",
+    limit: 5,
+    reason: "free perDay allows 5",
   });
   const paid = await db.select({ count: usage.count }).from(usage).where(eq(usage.id, "usage_paid"));
   const free = await db.select({ count: usage.count }).from(usage).where(eq(usage.id, "usage_free"));
-  expect(paid).toEqual([{ count: 4 }]);
-  expect(free).toEqual([{ count: 3 }]);
+  expect(paid).toEqual([{ count: 5 }]);
+  expect(free).toEqual([{ count: 5 }]);
 });
 
 function monthPeriod(): string {
   const period = usagePeriod(LimitKind.perMonth, new Date());
   if (!period) throw new Error("perMonth has a period");
+  return period;
+}
+
+function dayPeriod(): string {
+  const period = usagePeriod(LimitKind.perDay, new Date());
+  if (!period) throw new Error("perDay has a period");
   return period;
 }
 

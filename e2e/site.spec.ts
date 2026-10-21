@@ -1,27 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-test("scaffold check blocks a count of 4 and allows a count of 1", async ({ page }) => {
-  await page.goto("/scaffold-check");
-  await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
-  await expect(page.getByRole("heading", { level: 1, name: "Scaffold check" })).toBeVisible();
-  await page.getByLabel("Note").fill("Hello");
-  await page.getByLabel("Count").fill("1");
-  await page.getByRole("button", { name: "Check" }).click();
-  await expect(page.getByRole("status")).toHaveText(
-    "Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.",
-  );
-  await page.getByLabel("Count").fill("4");
-  await page.getByRole("button", { name: "Check" }).click();
-  await expect(page.getByRole("status")).toHaveText("The free plan allows a count of 3.");
-  await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
-});
-
 test("the landing page hides later waves and a direct legal url opens the generator", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("link", { name: "support@plainden.com" })).toHaveAttribute(
     "href",
     "mailto:support@plainden.com",
   );
+  await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
+  await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+  await expect(page.getByRole("link", { name: "Refunds" })).toHaveAttribute("href", "/refund");
+  await expect(page.getByRole("button", { name: "Decline" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Invoice generator" })).toBeVisible();
   await expect(page.getByRole("link", { name: "PDF tools" })).toBeVisible();
   await expect(page.getByRole("link", { name: "QR code generator" })).toBeVisible();
@@ -55,7 +43,6 @@ test("pricing shows three plans and keeps checkout keys off the page", async ({ 
   await expect(page.getByText("$5/mo").first()).toBeVisible();
   await expect(page.getByText("$9/mo")).toBeVisible();
   await expect(page.getByText("plainden_invoice_month")).toHaveCount(0);
-  await expect(page.getByText("plainden_scaffold_month")).toHaveCount(0);
 
   const toolForm = page.locator("form").filter({ has: page.getByLabel("Tool") });
   await expect(toolForm.locator("input[name=lookupKey]")).toHaveValue("plainden_invoice_month");

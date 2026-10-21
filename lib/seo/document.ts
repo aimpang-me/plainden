@@ -1,5 +1,5 @@
 import type { Metadata, MetadataRoute } from "next";
-import { listPages, siteOrigin, type CatalogSeoPage, type ListInput, type SeoKind, type SeoPage } from "./pages";
+import { listPages, siteIsPublic, siteOrigin, type CatalogSeoPage, type ListInput, type SeoKind, type SeoPage } from "./pages";
 
 export function metadataFor(page: SeoPage, origin: string): Metadata {
   const canonical = `${origin}${page.path}`;
@@ -74,8 +74,11 @@ export function sitemapXml(input: ListInput = {}): string {
 }
 
 export function buildRobots(input: ListInput = {}): MetadataRoute.Robots {
+  const open = siteIsPublic(input.sitePublic);
   return {
-    rules: { userAgent: "*", allow: "/", disallow: "/account" },
+    rules: open
+      ? { userAgent: "*", allow: "/", disallow: "/account" }
+      : { userAgent: "*", disallow: "/" },
     sitemap: `${siteOrigin(input.origin)}/sitemap.xml`,
   };
 }

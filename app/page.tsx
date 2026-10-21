@@ -1,6 +1,5 @@
 import { ToolIndex } from "@/components/tool-index";
-import { plannedTools } from "@/lib/catalog/planned";
-import { disabledToolIds } from "@/lib/catalog/visibility";
+import { shellTools } from "@/lib/catalog/shell";
 import { formatPrice, priceByLookupKey } from "@/lib/pricing/catalog";
 import { JsonLd, metadataFor, pageByPath, siteOrigin } from "@/lib/seo";
 
@@ -17,9 +16,7 @@ export default function Home() {
   const bundlePrice = priceByLookupKey("plainden_all_month");
   const toolLabel = toolPrice ? formatPrice(toolPrice.amountCents, toolPrice.interval) : "";
   const bundleLabel = bundlePrice ? formatPrice(bundlePrice.amountCents, bundlePrice.interval) : "";
-  const tools = plannedTools
-    .filter((tool) => !disabledToolIds().includes(tool.id))
-    .map((tool) => ({
+  const tools = shellTools().map((tool) => ({
       id: tool.id,
       href: `/${tool.slugs[0]}`,
       name: tool.name,

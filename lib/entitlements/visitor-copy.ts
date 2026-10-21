@@ -6,7 +6,6 @@ export type LimitSubject =
   | "receipt"
   | "qr"
   | "policy"
-  | "scaffold"
   | "pdf"
   | "image"
   | "video"
@@ -50,7 +49,6 @@ function savedCopy(subject: LimitSubject, plan: Plan, limit: number): string {
       return limit === 0 ? "Saving QR codes is part of the paid plan." : `The ${plan} plan saves ${limit} QR codes.`;
     case "policy":
       return limit === 0 ? "Hosting a policy is part of the paid plan." : `The ${plan} plan hosts ${limit} policies.`;
-    case "scaffold":
     case "pdf":
     case "image":
     case "video":
@@ -70,8 +68,6 @@ function monthCopy(subject: LimitSubject, plan: Plan, limit: number): string {
       return `The ${plan} plan includes ${limit} invoices a month.`;
     case "receipt":
       return `The ${plan} plan includes ${limit} receipts a month.`;
-    case "scaffold":
-      return `The ${plan} plan allows a count of ${limit}.`;
     case "qr":
     case "policy":
     case "pdf":
@@ -95,7 +91,6 @@ function dayCopy(subject: LimitSubject, plan: Plan, limit: number): string {
     case "receipt":
     case "qr":
     case "policy":
-    case "scaffold":
     case "image":
     case "video":
     case "data":
@@ -120,7 +115,6 @@ function batchCopy(subject: LimitSubject, plan: Plan, limit: number): string {
     case "receipt":
     case "qr":
     case "policy":
-    case "scaffold":
     case "pdf":
     case "video":
     case "data":
