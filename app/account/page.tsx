@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { subscription, usage, user as userTable } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getDb } from "@/lib/db/client";
-import { canManageBilling, subscriptionGrantsAccess } from "@/lib/payments/access";
+import { accountPlanCopy } from "@/lib/payments/account-plan";
+import { canManageBilling } from "@/lib/payments/access";
 import { siteOrigin } from "@/lib/seo";
 import { signOut } from "./actions";
 
@@ -51,6 +52,7 @@ async function AccountBody({ query }: { query: AccountQuery }) {
             <p>{current.email}</p>
             <p className="text-secondary">Plan</p>
             <p>{billing.plan}</p>
+            {billing.ends ? <p>{billing.ends}</p> : null}
             {notice ? <p role="status">{notice}</p> : null}
             <div className="grid gap-2">
               <p>Usage</p>
@@ -87,10 +89,11 @@ async function AccountBody({ query }: { query: AccountQuery }) {
 
 async function loadBilling(userId: string | null): Promise<{
   plan: "Free" | "One tool" | "All tools";
+  ends: string | null;
   manage: boolean;
   usage: { id: string; count: number; kind: string; entitlementKey: string; period: string }[];
 }> {
-  if (!userId) return { plan: "Free", manage: false, usage: [] };
+  if (!userId) return { plan: "Free", ends: null, manage: false, usage: [] };
   const db = await getDb();
   const subs = await db.select().from(subscription).where(eq(subscription.userId, userId));
   const counts = await db
@@ -105,10 +108,17 @@ async function loadBilling(userId: string | null): Promise<{
     .where(eq(usage.userId, userId));
   const customers = await db.select({ providerCustomerId: userTable.providerCustomerId }).from(userTable).where(eq(userTable.id, userId));
   const now = new Date();
-  const paid = subs.filter((row) => subscriptionGrantsAccess(row.status, row.currentPeriodEnd, now));
-  const plan = paid.some((row) => row.entitlementKey === "all") ? "All tools" : paid.length > 0 ? "One tool" : "Free";
+  const copy = accountPlanCopy(
+    subs.map((row) => ({
+      entitlementKey: row.entitlementKey,
+      status: row.status,
+      currentPeriodEnd: row.currentPeriodEnd,
+      cancelAt: row.cancelAt,
+    })),
+    now,
+  );
   const manage = Boolean(customers[0]?.providerCustomerId) && subs.some((row) => canManageBilling(row.status));
-  return { plan, manage, usage: counts };
+  return { plan: copy.plan, ends: copy.ends, manage, usage: counts };
 }
 
 function noticeFor(query: AccountQuery, plan: string): string | null {

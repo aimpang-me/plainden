@@ -44,7 +44,7 @@ export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) 
       return;
     }
     try {
-      await openPaddleCheckout(result.transactionId);
+      await openPaddleCheckout(result.transactionId, result.email);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Payments are not configured.");
     }

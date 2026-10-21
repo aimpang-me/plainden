@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { AppShell } from "@/components/app-shell";
 import { CookieBanner } from "@/components/cookie-banner";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { sidebarAccountLabel } from "@/lib/auth/sidebar-account";
 import { shellTools } from "@/lib/catalog/shell";
 import { planLabelFor } from "@/lib/payments/plan-label";
 import { siteOrigin } from "@/lib/seo";
@@ -31,13 +32,39 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <AppShell tools={shellTools()} planLabel={<PlanSlot />} drawerPlanLabel={<PlanSlot />}>
+        <AppShell
+          tools={shellTools()}
+          accountLabel={<AccountSlot />}
+          drawerAccountLabel={<AccountSlot />}
+          planLabel={<PlanSlot />}
+          drawerPlanLabel={<PlanSlot />}
+        >
           {children}
         </AppShell>
         <CookieBanner />
       </body>
     </html>
   );
+}
+
+function AccountSlot() {
+  return (
+    <Suspense fallback={<span className="block min-w-0 truncate text-[13px]">Sign in</span>}>
+      <AccountLabel />
+    </Suspense>
+  );
+}
+
+async function AccountLabel() {
+  await connection();
+  let email: string | null = null;
+  try {
+    const current = await getCurrentUser();
+    email = current?.email ?? null;
+  } catch {
+    email = null;
+  }
+  return <span className="block min-w-0 truncate text-[13px]">{sidebarAccountLabel(email)}</span>;
 }
 
 function PlanSlot() {

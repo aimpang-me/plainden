@@ -5,6 +5,11 @@ export const subscriptionStatuses = ["incomplete", "trialing", "active", "past_d
 
 export type SubscriptionStatus = (typeof subscriptionStatuses)[number];
 
+export type ScheduledCancel =
+  | { kind: "unchanged" }
+  | { kind: "clear" }
+  | { kind: "cancel"; effectiveAt: Date };
+
 export type SubscriptionApply =
   | { kind: "ignore" }
   | {
@@ -18,6 +23,7 @@ export type SubscriptionApply =
       userId: string | null;
       entitlementKey: string | null;
       priceLookupKey: string | null;
+      scheduledCancel: ScheduledCancel;
     };
 
 export type PaddleNotification = {
@@ -78,6 +84,7 @@ function applyTransaction(data: Record<string, unknown>): ApplyBody | { kind: "i
     ...fields,
     status: "active",
     currentPeriodEnd: periodEnd(data.billing_period),
+    scheduledCancel: { kind: "unchanged" },
   };
 }
 
@@ -95,6 +102,7 @@ function applySubscription(eventType: string, data: Record<string, unknown>): Ap
     userId: fields?.userId ?? null,
     entitlementKey: fields?.entitlementKey ?? null,
     priceLookupKey: fields?.priceLookupKey ?? null,
+    scheduledCancel: scheduledCancelFrom(data),
   };
 }
 
@@ -113,7 +121,23 @@ function applyAdjustment(data: Record<string, unknown>): ApplyBody | { kind: "ig
     userId: null,
     entitlementKey: null,
     priceLookupKey: null,
+    scheduledCancel: { kind: "clear" },
   };
+}
+
+function scheduledCancelFrom(data: Record<string, unknown>): ScheduledCancel {
+  if (!Object.hasOwn(data, "scheduled_change")) return { kind: "unchanged" };
+  const change = record(data.scheduled_change);
+  const action = change ? text(change, "action") : null;
+  const effectiveAt = change ? instant(text(change, "effective_at")) : null;
+  if (action === "cancel" && effectiveAt) return { kind: "cancel", effectiveAt };
+  return { kind: "clear" };
+}
+
+function instant(value: string | null): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function fieldsFrom(
@@ -128,14 +152,13 @@ function fieldsFrom(
 } | null {
   const custom = record(data.custom_data);
   const userId = custom ? text(custom, "userId") : null;
-  const entitlementKey = custom ? text(custom, "entitlementKey") : null;
   const priceLookupKey = custom ? text(custom, "priceLookupKey") : null;
-  if (!userId || !providerSubscriptionId || !entitlementKey || !priceLookupKey) return null;
+  if (!userId || !providerSubscriptionId || !priceLookupKey) return null;
   const price = priceByLookupKey(priceLookupKey);
-  if (!price || price.amountCents <= 0 || price.entitlementKey !== entitlementKey) return null;
+  if (!price || price.amountCents <= 0) return null;
   return {
     userId,
-    entitlementKey,
+    entitlementKey: price.entitlementKey,
     priceLookupKey,
     providerCustomerId: text(data, "customer_id"),
     providerSubscriptionId,

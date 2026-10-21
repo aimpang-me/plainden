@@ -64,6 +64,7 @@ export const subscription = pgTable("subscriptions", {
   providerSubscriptionId: text("providerSubscriptionId"),
   providerEventAt: timestamp("providerEventAt", { withTimezone: true, mode: "date" }),
   currentPeriodEnd: timestamp("currentPeriodEnd", { withTimezone: true, mode: "date" }),
+  cancelAt: timestamp("cancelAt", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("createdAt", { withTimezone: true, mode: "date" }).notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true, mode: "date" }).notNull(),
 });

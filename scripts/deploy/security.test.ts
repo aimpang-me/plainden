@@ -19,6 +19,25 @@ test("production CSP is the static header browsers get on Vercel", () => {
   expect(contentSecurityPolicy()).toBe(productionPolicy);
 });
 
+test("sandbox CSP allows the sandbox Paddle CDN and a production env does not", () => {
+  const previous = process.env.NEXT_PUBLIC_PADDLE_ENV;
+  try {
+    process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+    expect(contentSecurityPolicy("production")).toContain(
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://challenges.cloudflare.com https://cdn.paddle.com https://sandbox-cdn.paddle.com;",
+    );
+    expect(contentSecurityPolicy("production")).toContain(
+      "connect-src 'self' blob: https://challenges.cloudflare.com https://cdn.paddle.com https://sandbox-cdn.paddle.com https://sandbox-api.paddle.com",
+    );
+    expect(contentSecurityPolicy("development")).toContain("https://cdn.paddle.com https://sandbox-cdn.paddle.com");
+    process.env.NEXT_PUBLIC_PADDLE_ENV = "production";
+    expect(contentSecurityPolicy("production")).not.toContain("sandbox-cdn.paddle.com");
+  } finally {
+    if (previous === undefined) delete process.env.NEXT_PUBLIC_PADDLE_ENV;
+    else process.env.NEXT_PUBLIC_PADDLE_ENV = previous;
+  }
+});
+
 test("development CSP adds unsafe-eval for the Next dev server", () => {
   expect(contentSecurityPolicy("development")).toBe(developmentPolicy);
 });
