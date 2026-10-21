@@ -183,33 +183,37 @@ export function AppShell({
             <SiteFooter />
           </div>
         </div>
-        <button
-          type="button"
-          className="drawer-backdrop"
-          aria-label="Close menu"
-          inert={!open || !narrow}
-          tabIndex={open && narrow ? 0 : -1}
-          onClick={() => setOpen(false)}
-        />
-        <div
-          id="app-drawer"
-          className="drawer flex flex-col bg-sidebar px-2.5 py-3.5"
-          role={open && narrow ? "dialog" : undefined}
-          aria-modal={open && narrow ? true : undefined}
-          aria-labelledby={open && narrow ? titleId : undefined}
-          inert={!open || !narrow}
-        >
-          <div className="mb-1 flex items-center justify-between px-2.5">
-            <p id={titleId} className="title flex items-center gap-2 text-[17px]">
-              <span className="size-[18px] shrink-0 rounded-pill bg-text" aria-hidden="true" />
-              plainden
-            </p>
-            <button ref={closeRef} type="button" className="press text-[13px] text-secondary" onClick={() => setOpen(false)}>
-              Close
-            </button>
-          </div>
-          <Sidebar tools={tools} pathname={pathname} planLabel={drawerPlanLabel} hideBrand onNavigate={() => setOpen(false)} />
-        </div>
+        {narrow ? (
+          <>
+            <button
+              type="button"
+              className="drawer-backdrop"
+              aria-label="Close menu"
+              inert={!open}
+              tabIndex={open ? 0 : -1}
+              onClick={() => setOpen(false)}
+            />
+            <div
+              id="app-drawer"
+              className="drawer flex flex-col bg-sidebar px-2.5 py-3.5"
+              role={open ? "dialog" : undefined}
+              aria-modal={open ? true : undefined}
+              aria-labelledby={open ? titleId : undefined}
+              inert={!open}
+            >
+              <div className="mb-1 flex items-center justify-between px-2.5">
+                <p id={titleId} className="title flex items-center gap-2 text-[17px]">
+                  <span className="size-[18px] shrink-0 rounded-pill bg-text" aria-hidden="true" />
+                  plainden
+                </p>
+                <button ref={closeRef} type="button" className="press text-[13px] text-secondary" onClick={() => setOpen(false)}>
+                  Close
+                </button>
+              </div>
+              <Sidebar tools={tools} pathname={pathname} planLabel={drawerPlanLabel} hideBrand onNavigate={() => setOpen(false)} />
+            </div>
+          </>
+        ) : null}
       </div>
     </ActionSlotContext.Provider>
   );
