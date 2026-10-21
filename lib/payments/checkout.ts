@@ -7,6 +7,8 @@ import {
   acquireCheckout,
   bindCheckoutIntent,
   releaseCheckoutIntent,
+  takeOverCheckout,
+  type AcquiredCheckout,
 } from "./checkout-intent";
 import { CheckoutError, PaymentsNotConfigured } from "./errors";
 import { record, text } from "./json";
@@ -34,10 +36,25 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     const open = await openCheckoutFor(account.providerCustomerId, priceId);
     if (open) return { transactionId: open };
   }
-  const acquired = await acquireCheckout(db, userId, price.lookupKey, cancelUnpaidTransaction);
-  if ("transactionId" in acquired) return { transactionId: acquired.transactionId };
-  const transactionId = await createOwnedTransaction(db, acquired.ownerId, userId, price.lookupKey, priceId, account);
-  return { transactionId };
+  let acquired = await acquireCheckout(db, userId, price.lookupKey);
+  if (acquired.kind === "switch") {
+    const switched = await switchCheckout(db, acquired, price.lookupKey);
+    acquired = switched ? { kind: "owner", id: switched } : await acquireCheckout(db, userId, price.lookupKey);
+  }
+  switch (acquired.kind) {
+    case "reuse":
+      return { transactionId: acquired.transactionId };
+    case "owner":
+      return {
+        transactionId: await createOwnedTransaction(db, acquired.id, userId, price.lookupKey, priceId, account),
+      };
+    case "switch":
+      throw new CheckoutError("upstream", "Checkout is already in progress");
+    default: {
+      const unreachable: never = acquired;
+      throw new CheckoutError("upstream", `unexpected checkout claim ${unreachable}`);
+    }
+  }
 }
 
 export async function createPortal(input: PortalInput): Promise<PortalResult> {
@@ -145,6 +162,27 @@ async function createOwnedTransaction(
   } catch (error) {
     await releaseCheckoutIntent(db, intentId);
     throw error;
+  }
+}
+
+async function switchCheckout(
+  db: AppDatabase,
+  acquired: Extract<AcquiredCheckout, { kind: "switch" }>,
+  priceLookupKey: string,
+): Promise<string | null> {
+  const ownerId = await takeOverCheckout(db, acquired.intentId, acquired.transactionId, priceLookupKey);
+  if (!ownerId) return null;
+  const outcome = await cancelUnpaidTransaction(acquired.transactionId);
+  switch (outcome) {
+    case "paid":
+      await releaseCheckoutIntent(db, ownerId);
+      throw new CheckoutError("open-checkout", "Finish or cancel your open checkout first.");
+    case "canceled":
+      return ownerId;
+    default: {
+      const unreachable: never = outcome;
+      throw new CheckoutError("upstream", `unexpected cancel result ${unreachable}`);
+    }
   }
 }
 
