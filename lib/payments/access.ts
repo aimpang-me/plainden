@@ -8,10 +8,6 @@ export function subscriptionGrantsAccess(status: string, currentPeriodEnd: Date 
   return now.getTime() <= currentPeriodEnd.getTime() + graceMs;
 }
 
-export function blocksAnotherCheckout(status: string): boolean {
-  return openStatuses.has(status);
-}
-
-export function canManageBilling(status: string): boolean {
+export function isOpenSubscription(status: string): boolean {
   return openStatuses.has(status);
 }

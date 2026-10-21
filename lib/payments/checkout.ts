@@ -1,51 +1,43 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { user, subscription } from "../../db/schema";
-import { getDb } from "../db/client";
+import { getDb, type AppDatabase } from "../db/client";
 import { priceByLookupKey } from "../pricing/catalog";
-import { blocksAnotherCheckout, canManageBilling } from "./access";
-import type { CheckoutInput, CheckoutResult, PortalInput, PortalResult } from "./types";
-import { PaymentsNotConfigured } from "./errors";
+import { isOpenSubscription } from "./access";
+import {
+  bindCheckoutIntent,
+  claimCheckoutIntent,
+  releaseCheckoutIntent,
+  waitForCheckoutTransaction,
+  type CheckoutClaim,
+} from "./checkout-intent";
+import { CheckoutError, PaymentsNotConfigured } from "./errors";
+import { record, text } from "./json";
 import { paddlePriceEnv } from "./subscription";
+import type { CheckoutInput, CheckoutResult, PortalInput, PortalResult } from "./types";
+
+type CheckoutAccount = { email: string; providerCustomerId: string | null };
 
 export async function createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const userId = userIdFrom(input.subject);
   const price = priceByLookupKey(input.priceLookupKey);
-  if (!price || price.amountCents <= 0) throw new Error(`Unknown price ${input.priceLookupKey}`);
+  if (!price || price.amountCents <= 0) throw new CheckoutError("unknown-price", `Unknown price ${input.priceLookupKey}`);
   assertCheckoutReady();
   const priceId = process.env[paddlePriceEnv(price.interval)];
   if (!priceId || !process.env.PADDLE_API_KEY) throw new PaymentsNotConfigured();
   const db = await getDb();
-  const rows = await db
-    .select({ email: user.email, providerCustomerId: user.providerCustomerId })
-    .from(user)
-    .where(eq(user.id, userId));
+  const [rows, existing] = await Promise.all([
+    db.select({ email: user.email, providerCustomerId: user.providerCustomerId }).from(user).where(eq(user.id, userId)),
+    db.select({ status: subscription.status }).from(subscription).where(eq(subscription.userId, userId)),
+  ]);
   const account = rows[0];
-  if (!account?.email) throw new Error("Unknown user");
-  const existing = await db
-    .select({ status: subscription.status })
-    .from(subscription)
-    .where(eq(subscription.userId, userId));
-  if (existing.some((row) => blocksAnotherCheckout(row.status))) {
-    throw new Error("You already have a subscription. Manage billing to change it.");
+  if (!account?.email) throw new CheckoutError("no-user", "Unknown user");
+  if (existing.some((row) => isOpenSubscription(row.status))) throw alreadySubscribed();
+  if (account.providerCustomerId) {
+    const open = await openCheckoutFor(account.providerCustomerId, priceId);
+    if (open) return { transactionId: open };
   }
-  const customData = {
-    userId,
-    entitlementKey: price.entitlementKey,
-    priceLookupKey: price.lookupKey,
-  };
-  const payload = await paddlePost(
-    "/transactions",
-    account.providerCustomerId
-      ? { items: [{ price_id: priceId, quantity: 1 }], custom_data: customData, customer_id: account.providerCustomerId }
-      : { items: [{ price_id: priceId, quantity: 1 }], custom_data: customData, customer: { email: account.email } },
-  );
-  const data = record(record(payload)?.data);
-  const transactionId = text(data, "id");
-  if (!transactionId) throw new Error("Paddle did not return a transaction");
-  const customerId = text(data, "customer_id");
-  if (customerId && !account.providerCustomerId) {
-    await db.update(user).set({ providerCustomerId: customerId }).where(and(eq(user.id, userId), isNull(user.providerCustomerId)));
-  }
+  const claim = await claimCheckoutIntent(db, userId, price.lookupKey);
+  const transactionId = await transactionForClaim(db, claim, userId, price.lookupKey, priceId, account);
   return { transactionId };
 }
 
@@ -54,68 +46,180 @@ export async function createPortal(input: PortalInput): Promise<PortalResult> {
   assertCheckoutReady();
   if (!process.env.PADDLE_API_KEY) throw new PaymentsNotConfigured();
   const db = await getDb();
-  const rows = await db.select({ providerCustomerId: user.providerCustomerId }).from(user).where(eq(user.id, userId));
+  const [rows, subscriptions] = await Promise.all([
+    db.select({ providerCustomerId: user.providerCustomerId }).from(user).where(eq(user.id, userId)),
+    db
+      .select({ status: subscription.status, providerSubscriptionId: subscription.providerSubscriptionId })
+      .from(subscription)
+      .where(eq(subscription.userId, userId)),
+  ]);
   const customer = rows[0]?.providerCustomerId;
-  if (!customer) throw new Error("No billing customer for this user");
-  const subscriptions = await db
-    .select({ status: subscription.status, providerSubscriptionId: subscription.providerSubscriptionId })
-    .from(subscription)
-    .where(eq(subscription.userId, userId));
+  if (!customer) throw new CheckoutError("no-customer", "No billing customer for this user");
   const open = subscriptions.filter(
     (row): row is { status: string; providerSubscriptionId: string } =>
-      canManageBilling(row.status) && typeof row.providerSubscriptionId === "string" && row.providerSubscriptionId.length > 0,
+      isOpenSubscription(row.status) && typeof row.providerSubscriptionId === "string" && row.providerSubscriptionId.length > 0,
   );
   const chosen = open.find((row) => row.status === "active") ?? open[0];
-  if (!chosen) throw new Error("No active subscription for this user");
-  const payload = await paddlePost(`/customers/${encodeURIComponent(customer)}/portal-sessions`, {
+  if (!chosen) throw new CheckoutError("no-subscription", "No active subscription for this user");
+  const payload = await paddle("POST", `/customers/${encodeURIComponent(customer)}/portal-sessions`, {
     subscription_ids: [chosen.providerSubscriptionId],
   });
   const urls = record(record(record(payload)?.data)?.urls);
   const listed = Array.isArray(urls?.subscriptions) ? urls.subscriptions : [];
-  const match = listed
-    .map((item) => record(item))
-    .find((item) => text(item, "id") === chosen.providerSubscriptionId);
+  const match = listed.map((item) => record(item)).find((item) => text(item, "id") === chosen.providerSubscriptionId);
   const view = text(match ?? null, "view_subscription");
-  if (!view) throw new Error("Paddle did not return a portal URL");
+  if (!view) throw new CheckoutError("upstream", "Paddle did not return a portal URL");
   return { url: view };
 }
 
+async function openCheckoutFor(customerId: string, priceId: string): Promise<string | null> {
+  const customer = encodeURIComponent(customerId);
+  const [subscriptions, transactions] = await Promise.all([
+    paddle("GET", `/subscriptions?customer_id=${customer}&status=active,trialing,past_due,paused`),
+    paddle("GET", `/transactions?customer_id=${customer}&status=draft,ready&order_by=created_at[DESC]`),
+  ]);
+  if (listed(subscriptions).length > 0) throw alreadySubscribed();
+  const pending = listed(transactions).find((transaction) => transactionHasPrice(transaction, priceId));
+  return text(pending ?? null, "id");
+}
+
+function listed(payload: unknown): Record<string, unknown>[] {
+  const data = record(payload)?.data;
+  if (!Array.isArray(data)) return [];
+  return data.map(record).filter((item): item is Record<string, unknown> => item !== null);
+}
+
+function transactionHasPrice(transaction: Record<string, unknown>, priceId: string): boolean {
+  const items = Array.isArray(transaction.items) ? transaction.items : [];
+  return items.some((item) => {
+    const line = record(item);
+    return text(line, "price_id") === priceId || text(record(line?.price), "id") === priceId;
+  });
+}
+
+function alreadySubscribed(): CheckoutError {
+  return new CheckoutError("already-subscribed", "You already have a subscription. Manage billing to change it.");
+}
+
 function assertCheckoutReady(): void {
-  if (process.env.CHECKOUT_ENABLED === "false") throw new Error("Checkout is turned off.");
+  if (process.env.CHECKOUT_ENABLED === "false") throw new CheckoutError("off", "Checkout is turned off.");
   if (process.env.NODE_ENV !== "production") return;
   if (!process.env.NEXT_PUBLIC_SITE_URL || !process.env.BETTER_AUTH_URL) {
-    throw new Error("Site URL is not configured");
+    throw new CheckoutError("site-url", "Site URL is not configured");
   }
 }
 
-async function paddlePost(path: string, body: unknown): Promise<unknown> {
+async function transactionForClaim(
+  db: AppDatabase,
+  claim: CheckoutClaim,
+  userId: string,
+  priceLookupKey: string,
+  priceId: string,
+  account: CheckoutAccount,
+): Promise<string> {
+  switch (claim.kind) {
+    case "reuse":
+      return claim.transactionId;
+    case "owner":
+      return createOwnedTransaction(db, claim.id, userId, priceLookupKey, priceId, account);
+    case "wait":
+      return transactionAfterWait(db, userId, priceLookupKey, priceId, account);
+    default: {
+      const unreachable: never = claim;
+      throw new Error(`unknown checkout claim ${unreachable}`);
+    }
+  }
+}
+
+async function transactionAfterWait(
+  db: AppDatabase,
+  userId: string,
+  priceLookupKey: string,
+  priceId: string,
+  account: CheckoutAccount,
+): Promise<string> {
+  const waited = await waitForCheckoutTransaction(db, userId, priceLookupKey);
+  switch (waited.kind) {
+    case "reuse":
+      return waited.transactionId;
+    case "released": {
+      const retried = await claimCheckoutIntent(db, userId, priceLookupKey);
+      switch (retried.kind) {
+        case "owner":
+          return createOwnedTransaction(db, retried.id, userId, priceLookupKey, priceId, account);
+        case "reuse":
+          return retried.transactionId;
+        case "wait":
+          throw new CheckoutError("upstream", "Checkout is already in progress");
+        default: {
+          const unreachable: never = retried;
+          throw new Error(`unknown checkout claim ${unreachable}`);
+        }
+      }
+    }
+    default: {
+      const unreachable: never = waited;
+      throw new Error(`unknown checkout wait ${unreachable}`);
+    }
+  }
+}
+
+async function createOwnedTransaction(
+  db: AppDatabase,
+  intentId: string,
+  userId: string,
+  priceLookupKey: string,
+  priceId: string,
+  account: CheckoutAccount,
+): Promise<string> {
+  try {
+    const items = [{ price_id: priceId, quantity: 1 }];
+    const customData = { userId, priceLookupKey };
+    const payload = await paddle(
+      "POST",
+      "/transactions",
+      account.providerCustomerId
+        ? { items, custom_data: customData, customer_id: account.providerCustomerId }
+        : { items, custom_data: customData, customer: { email: account.email } },
+      intentId,
+    );
+    const data = record(record(payload)?.data);
+    const transactionId = text(data, "id");
+    if (!transactionId) throw new CheckoutError("upstream", "Paddle did not return a transaction");
+    const customerId = text(data, "customer_id");
+    if (customerId && !account.providerCustomerId) {
+      await db
+        .update(user)
+        .set({ providerCustomerId: customerId })
+        .where(and(eq(user.id, userId), isNull(user.providerCustomerId)));
+    }
+    await bindCheckoutIntent(db, intentId, transactionId);
+    return transactionId;
+  } catch (error) {
+    await releaseCheckoutIntent(db, intentId);
+    throw error;
+  }
+}
+
+async function paddle(method: "GET" | "POST", path: string, body?: unknown, idempotencyKey?: string): Promise<unknown> {
   const key = process.env.PADDLE_API_KEY;
   if (!key) throw new PaymentsNotConfigured();
   const base = process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "https://api.paddle.com" : "https://sandbox-api.paddle.com";
   const response = await fetch(`${base}${path}`, {
-    method: "POST",
+    method,
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
       "Paddle-Version": "1",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!response.ok) throw new Error("Paddle refused the request");
+  if (!response.ok) throw new CheckoutError("upstream", "Paddle refused the request");
   return response.json();
 }
 
 function userIdFrom(subject: CheckoutInput["subject"]): string {
   if ("userId" in subject && typeof subject.userId === "string" && subject.userId.length > 0) return subject.userId;
-  throw new Error("Checkout needs a user");
-}
-
-function record(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function text(data: Record<string, unknown> | null, key: string): string | null {
-  const value = data?.[key];
-  return typeof value === "string" && value.length > 0 ? value : null;
+  throw new CheckoutError("no-user", "Checkout needs a user");
 }

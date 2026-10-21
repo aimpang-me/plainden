@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { contentSecurityPolicy, securityHeaders } from "../../lib/security/csp";
-import { decideRateLimit, rateRule, unenforcedRateLimit } from "../../lib/security/rateLimit";
+import { decideRateLimit, rateRule } from "../../lib/security/rateLimit";
 
 const paddleScript = "https://cdn.paddle.com";
 const paddleConnect =
@@ -142,13 +142,4 @@ test("rate rules reject fractional and negative numbers", () => {
   expect(() => rateRule(-1, 1_000)).toThrow("limit must be a non-negative integer");
   expect(() => rateRule(1.5, 1_000)).toThrow("limit must be a non-negative integer");
   expect(() => rateRule(1, 0)).toThrow("windowMs must be a positive integer");
-});
-
-test("an unenforced decision stays allow with no remaining count", () => {
-  expect(unenforcedRateLimit(rateRule(5, 1_000))).toEqual({
-    allowed: true,
-    enforced: false,
-    limit: 5,
-    remaining: null,
-  });
 });

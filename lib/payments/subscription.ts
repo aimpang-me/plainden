@@ -1,5 +1,6 @@
 import { priceByLookupKey } from "../pricing/catalog";
 import type { BillingInterval } from "../pricing/catalog";
+import { parseInstant, record, text } from "./json";
 
 export const subscriptionStatuses = ["incomplete", "trialing", "active", "past_due", "canceled", "unpaid", "paused"] as const;
 
@@ -42,8 +43,6 @@ const subscriptionEvents = new Set([
   "subscription.paused",
   "subscription.resumed",
 ]);
-
-const revokeActions = new Set(["refund", "chargeback"]);
 
 export function applyForNotification(event: PaddleNotification): SubscriptionApply {
   const data = record(event.data);
@@ -107,11 +106,8 @@ function applySubscription(eventType: string, data: Record<string, unknown>): Ap
 }
 
 function applyAdjustment(data: Record<string, unknown>): ApplyBody | { kind: "ignore" } {
-  const action = text(data, "action");
   const providerSubscriptionId = text(data, "subscription_id");
-  if (!providerSubscriptionId || !action || !revokeActions.has(action) || text(data, "status") !== "approved") {
-    return { kind: "ignore" };
-  }
+  if (!providerSubscriptionId || text(data, "status") !== "approved" || !revokesAccess(data)) return { kind: "ignore" };
   return {
     kind: "replace",
     status: "canceled",
@@ -125,19 +121,19 @@ function applyAdjustment(data: Record<string, unknown>): ApplyBody | { kind: "ig
   };
 }
 
+function revokesAccess(adjustment: Record<string, unknown>): boolean {
+  const action = text(adjustment, "action");
+  if (action === "chargeback") return true;
+  return action === "refund" && text(adjustment, "type") === "full";
+}
+
 function scheduledCancelFrom(data: Record<string, unknown>): ScheduledCancel {
   if (!Object.hasOwn(data, "scheduled_change")) return { kind: "unchanged" };
   const change = record(data.scheduled_change);
-  const action = change ? text(change, "action") : null;
-  const effectiveAt = change ? instant(text(change, "effective_at")) : null;
+  const action = text(change, "action");
+  const effectiveAt = parseInstant(text(change, "effective_at"));
   if (action === "cancel" && effectiveAt) return { kind: "cancel", effectiveAt };
   return { kind: "clear" };
-}
-
-function instant(value: string | null): Date | null {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function fieldsFrom(
@@ -151,8 +147,8 @@ function fieldsFrom(
   providerSubscriptionId: string;
 } | null {
   const custom = record(data.custom_data);
-  const userId = custom ? text(custom, "userId") : null;
-  const priceLookupKey = custom ? text(custom, "priceLookupKey") : null;
+  const userId = text(custom, "userId");
+  const priceLookupKey = text(custom, "priceLookupKey");
   if (!userId || !providerSubscriptionId || !priceLookupKey) return null;
   const price = priceByLookupKey(priceLookupKey);
   if (!price || price.amountCents <= 0) return null;
@@ -203,25 +199,9 @@ function mapStatus(status: string | null): SubscriptionStatus | null {
 }
 
 function periodEnd(value: unknown): Date | null {
-  const period = record(value);
-  const ends = period ? text(period, "ends_at") : null;
-  if (!ends) return null;
-  const date = new Date(ends);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return parseInstant(text(record(value), "ends_at"));
 }
 
 function eventAt(value: string | undefined): Date {
-  if (!value) return new Date(0);
-  const ms = Date.parse(value);
-  return Number.isFinite(ms) ? new Date(ms) : new Date(0);
-}
-
-function record(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function text(data: Record<string, unknown>, key: string): string | null {
-  const value = data[key];
-  return typeof value === "string" && value.length > 0 ? value : null;
+  return parseInstant(value ?? null) ?? new Date(0);
 }

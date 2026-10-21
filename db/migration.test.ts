@@ -9,7 +9,12 @@ test("the generated migration applies on PGlite and stores a data preset", async
   const files = readdirSync(migrationDir)
     .filter((name) => name.endsWith(".sql"))
     .sort();
-  expect(files).toEqual(["0000_initial.sql", "0001_paddle_provider.sql", "0002_cancel_at.sql"]);
+  expect(files).toEqual([
+    "0000_initial.sql",
+    "0001_paddle_provider.sql",
+    "0002_cancel_at.sql",
+    "0003_checkout_intents.sql",
+  ]);
   const client = new PGlite();
   try {
     for (const file of files) {
@@ -29,6 +34,7 @@ test("the generated migration applies on PGlite and stores a data preset", async
     expect(names).toContain("data_presets");
     expect(names).toContain("policy_docs");
     expect(names).toContain("processed_events");
+    expect(names).toContain("checkout_intents");
     const columns = await client.query<{ column_name: string; data_type: string }>(
       `select column_name, data_type from information_schema.columns where table_name = 'subscriptions'`,
     );
@@ -47,6 +53,18 @@ test("the generated migration applies on PGlite and stores a data preset", async
     );
     const stored = await client.query<{ name: string }>(`select "name" from "data_presets"`);
     expect(stored.rows).toEqual([{ name: "Europe" }]);
+    await client.query(
+      `insert into "checkout_intents" ("id", "userId", "priceLookupKey", "createdAt", "expiresAt") values ($1, $2, $3, $4, $5)`,
+      ["intent_1", "user_1", "plainden_pdf_month", now, now],
+    );
+    const intents = await client.query<{ id: string }>(`select "id" from "checkout_intents"`);
+    expect(intents.rows).toEqual([{ id: "intent_1" }]);
+    await expect(
+      client.query(
+        `insert into "checkout_intents" ("id", "userId", "priceLookupKey", "createdAt", "expiresAt") values ($1, $2, $3, $4, $5)`,
+        ["intent_2", "user_1", "plainden_pdf_month", now, now],
+      ),
+    ).rejects.toThrow("duplicate key");
   } finally {
     await client.close();
   }

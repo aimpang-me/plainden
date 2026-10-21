@@ -1,5 +1,6 @@
 import { clientAddress, takeRateLimit } from "@/lib/security/enforce-rate-limit";
-import { invoiceWriteLimit, originAllowed, parseJsonBody, readLimitedBody } from "@/lib/security/origin";
+import { originAllowed } from "@/lib/security/origin";
+import { invoiceWriteLimit, parseJsonBody, readLimitedBody } from "@/lib/security/body";
 import { listDocuments, saveDocument, toResponse } from "@/tools/invoice/save";
 import type { ToolId } from "@/tools/invoice/month-count";
 import { requireUser } from "./require-user";

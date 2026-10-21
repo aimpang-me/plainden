@@ -10,6 +10,7 @@ export type AccountPlanRow = {
 };
 
 export type AccountPlanCopy = {
+  paid: boolean;
   plan: string;
   ends: string | null;
 };
@@ -25,7 +26,7 @@ export function accountPlanCopy(rows: readonly AccountPlanRow[], now: Date): Acc
     .map((row) => row.cancelAt)
     .filter((date): date is Date => date !== null && date.getTime() > now.getTime())
     .sort((left, right) => left.getTime() - right.getTime())[0];
-  return { plan, ends: cancelAt ? proEndsOn(cancelAt) : null };
+  return { paid: paid.length > 0, plan, ends: cancelAt ? proEndsOn(cancelAt) : null };
 }
 
 function proToolName(entitlementKey: string): string {

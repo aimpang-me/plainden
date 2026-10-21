@@ -10,7 +10,7 @@ import { subscription, usage, user as userTable } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getDb } from "@/lib/db/client";
 import { accountPlanCopy } from "@/lib/payments/account-plan";
-import { canManageBilling } from "@/lib/payments/access";
+import { isOpenSubscription } from "@/lib/payments/access";
 import { siteOrigin } from "@/lib/seo";
 import { signOut } from "./actions";
 
@@ -117,7 +117,7 @@ async function loadBilling(userId: string | null): Promise<{
     })),
     now,
   );
-  const manage = Boolean(customers[0]?.providerCustomerId) && subs.some((row) => canManageBilling(row.status));
+  const manage = Boolean(customers[0]?.providerCustomerId) && subs.some((row) => isOpenSubscription(row.status));
   return { plan: copy.plan, ends: copy.ends, manage, usage: counts };
 }
 

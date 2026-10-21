@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { clientAddress, takeRateLimit } from "@/lib/security/enforce-rate-limit";
-import { originAllowed, parseJsonBody, policyWriteLimit, readLimitedBody } from "@/lib/security/origin";
+import { originAllowed } from "@/lib/security/origin";
+import { parseJsonBody, policyWriteLimit, readLimitedBody } from "@/lib/security/body";
 import { publish, readOwned, toPolicyResponse } from "@/tools/legal/publish";
 
 export const instant = false;

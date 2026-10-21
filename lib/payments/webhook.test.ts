@@ -8,10 +8,13 @@ import { subscription, user } from "../../db/schema";
 import { getDb } from "../db/client";
 import { getEntitlement } from "../entitlements/get-entitlement";
 import { prices, pricesToCreate } from "../pricing/catalog";
-import { WebhookSignatureError } from "./errors";
+import { CheckoutError, WebhookDeferred, WebhookSignatureError, checkoutErrorCopy } from "./errors";
 import { accountPlanCopy } from "./account-plan";
 import { createCheckout, createPortal, handleWebhook } from "./index";
+import { assertPaddleSignature } from "./signature";
 import { applyForNotification } from "./subscription";
+import { POST as webhookRoute } from "../../app/api/paddle/webhook/route";
+import { sql } from "drizzle-orm";
 
 const dirs: string[] = [];
 const webhookSecret = "pdl_whsec_plainden_test";
@@ -88,7 +91,8 @@ test("a bad webhook signature is rejected and a second h1 can match", async () =
   const rawBody = JSON.stringify(transactionEvent("evt_sig", "2026-01-01T00:00:05.000Z"));
   const db = await freshDb();
   await insertUser(db);
-  await handleWebhook({ rawBody, signature: `ts=1700000000;h1=deadbeef;h1=${hmac(rawBody, 1700000000)}` });
+  const ts = Math.floor(Date.now() / 1000);
+  await handleWebhook({ rawBody, signature: `ts=${ts};h1=deadbeef;h1=${hmac(rawBody, ts)}` });
   expect((await rows(db))[0]?.status).toBe("active");
 });
 
@@ -145,7 +149,6 @@ test("checkout opens a sandbox transaction with the user id in custom data", asy
         items: [{ price_id: "pri_year", quantity: 1 }],
         custom_data: {
           userId: "user_1",
-          entitlementKey: "pdf",
           priceLookupKey: "plainden_pdf_year",
         },
         customer: { email: "ada@example.com" },
@@ -202,22 +205,21 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
   process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
   const calls: unknown[] = [];
   vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+    if (init.method === "GET") return Response.json({ data: [] });
     calls.push(JSON.parse(String(init.body)));
     return new Response(JSON.stringify({ data: { id: "txn_1", customer_id: "ctm_saved" } }), { status: 200 });
   });
-  await createCheckout({
+  const month = {
     priceLookupKey: "plainden_pdf_month",
     subject: { userId: "user_1" },
     successPath: "/account",
     cancelPath: "/pricing",
-  });
-  await createCheckout({
-    priceLookupKey: "plainden_pdf_month",
-    subject: { userId: "user_1" },
-    successPath: "/account",
-    cancelPath: "/pricing",
-  });
-  expect(calls[0]).toEqual(expect.objectContaining({ customer: { email: "ada@example.com" } }));
+  };
+  await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_1" });
+  await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_1" });
+  expect(calls).toEqual([expect.objectContaining({ customer: { email: "ada@example.com" } })]);
+  process.env.PADDLE_PRICE_YEARLY = "pri_year";
+  await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" });
   expect(calls[1]).toEqual(expect.objectContaining({ customer_id: "ctm_saved" }));
   await db.insert(subscription).values({
     id: "sub_open",
@@ -347,7 +349,7 @@ test("a portal cancel keeps the price and records when Pro ends", async () => {
       ],
       new Date("2026-10-21T00:00:00.000Z"),
     ),
-  ).toEqual({ plan: "Pro: Merge PDF", ends: "Pro ends November 21, 2026" });
+  ).toEqual({ paid: true, plan: "Pro: Merge PDF", ends: "Pro ends November 21, 2026" });
   const cleared = subscriptionEvent(
     "evt_clear",
     "subscription.updated",
@@ -383,13 +385,160 @@ test("the price list keeps the paid catalog prices and drops the scaffold", () =
   expect(created).toHaveLength(prices.filter((price) => price.amountCents > 0).length);
 });
 
+test("a signature older or newer than five minutes is refused", async () => {
+  const rawBody = "{}";
+  const nowMs = Date.parse("2026-10-21T12:00:00.000Z");
+  const ts = nowMs / 1000;
+  expect(() => assertPaddleSignature(rawBody, `ts=${ts - 299};h1=${hmac(rawBody, ts - 299)}`, webhookSecret, nowMs)).not.toThrow();
+  expect(() => assertPaddleSignature(rawBody, `ts=${ts - 301};h1=${hmac(rawBody, ts - 301)}`, webhookSecret, nowMs)).toThrow(
+    "Invalid Paddle webhook signature",
+  );
+  expect(() => assertPaddleSignature(rawBody, `ts=${ts + 301};h1=${hmac(rawBody, ts + 301)}`, webhookSecret, nowMs)).toThrow(
+    "Invalid Paddle webhook signature",
+  );
+  process.env.PADDLE_WEBHOOK_SECRET = webhookSecret;
+  const old = Math.floor(Date.now() / 1000) - 6 * 60;
+  await expect(handleWebhook({ rawBody, signature: `ts=${old};h1=${hmac(rawBody, old)}` })).rejects.toThrow(
+    "Invalid Paddle webhook signature",
+  );
+});
+
+test("a partial refund keeps Pro and a full refund ends it", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_WEBHOOK_SECRET = webhookSecret;
+  await handleWebhook(signed(transactionEvent("evt_paid", "2026-01-01T00:00:10.000Z")));
+  await handleWebhook(signed(adjustmentEvent("evt_partial", "adjustment.created", "refund", "approved", "2026-01-01T00:00:20.000Z", "partial")));
+  expect((await rows(db))[0]?.status).toBe("active");
+  expect(await getEntitlement({ userId: "user_1" }, "pdf")).toEqual({ entitlementKey: "pdf", plan: "paid" });
+  await handleWebhook(signed(adjustmentEvent("evt_full", "adjustment.created", "refund", "approved", "2026-01-01T00:00:30.000Z", "full")));
+  expect((await rows(db))[0]?.status).toBe("canceled");
+});
+
+test("a second checkout reuses the open Paddle transaction and a live Paddle subscription blocks it", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  await db.update(user).set({ providerCustomerId: "ctm_saved" }).where(eq(user.id, "user_1"));
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  let liveSubscriptions: unknown[] = [];
+  const posts: string[] = [];
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (init.method === "POST") {
+      posts.push(url);
+      return Response.json({ data: { id: "txn_new" } });
+    }
+    if (url.includes("/subscriptions?")) return Response.json({ data: liveSubscriptions });
+    return Response.json({ data: [{ id: "txn_open", status: "ready", items: [{ price: { id: "pri_month" }, quantity: 1 }] }] });
+  });
+  const input = { priceLookupKey: "plainden_pdf_month", subject: { userId: "user_1" }, successPath: "/account", cancelPath: "/pricing" };
+  await expect(createCheckout(input)).resolves.toEqual({ transactionId: "txn_open" });
+  expect(posts).toEqual([]);
+  liveSubscriptions = [{ id: "sub_paddle", status: "active" }];
+  await expect(createCheckout(input)).rejects.toMatchObject({ code: "already-subscribed" });
+  expect(posts).toEqual([]);
+});
+
+test("an event that changes nothing yet is not marked processed and answers 409 so Paddle retries", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_WEBHOOK_SECRET = webhookSecret;
+  const early = subscriptionEvent("evt_early", "subscription.updated", "past_due", "plainden_pdf_month", "2026-01-01T00:00:20.000Z");
+  delete early.data.custom_data;
+  await expect(handleWebhook(signed(early))).rejects.toBeInstanceOf(WebhookDeferred);
+  const body = signed(early);
+  const response = await webhookRoute(
+    new Request("http://localhost/api/paddle/webhook", { method: "POST", body: body.rawBody, headers: { "paddle-signature": body.signature } }),
+  );
+  expect(response.status).toBe(409);
+  expect(await processed(db)).toEqual([]);
+  await handleWebhook(signed(transactionEvent("evt_paid", "2026-01-01T00:00:10.000Z")));
+  await handleWebhook(signed(early));
+  expect((await rows(db))[0]?.status).toBe("past_due");
+  expect(await processed(db)).toEqual(["evt_early", "evt_paid"]);
+  await handleWebhook(signed(transactionEvent("evt_late", "2026-01-01T00:00:30.000Z")));
+  expect((await rows(db))[0]?.status).toBe("past_due");
+  expect(await processed(db)).toEqual(["evt_early", "evt_paid"]);
+});
+
+test("two concurrent checkouts for a new user create one Paddle transaction", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  let releaseFirst: () => void = () => {};
+  const holdFirst = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (init.method !== "POST") return Response.json({ data: [] });
+    posts.push(url);
+    if (posts.length === 1) await holdFirst;
+    return Response.json({ data: { id: "txn_race", customer_id: "ctm_race" } });
+  });
+  const input = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  const pending = Promise.all([createCheckout(input), createCheckout(input)]);
+  const started = Date.now();
+  while (posts.length === 0 && Date.now() - started < 2000) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  releaseFirst();
+  await expect(pending).resolves.toEqual([
+    { transactionId: "txn_race" },
+    { transactionId: "txn_race" },
+  ]);
+  expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
+});
+
+test("checkout failures carry a code and the browser sees safe copy", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  vi.stubGlobal("fetch", async () => new Response("boom", { status: 500 }));
+  const failure = await createCheckout({
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(CheckoutError);
+  expect((failure as CheckoutError).code).toBe("upstream");
+  expect(checkoutErrorCopy(failure)).toBe("Checkout could not start. Try again.");
+  expect(checkoutErrorCopy(new CheckoutError("off", "Checkout is turned off."))).toBe("Checkout is turned off.");
+  expect(checkoutErrorCopy(new Error("relation subscriptions does not exist"))).toBe("Checkout could not start.");
+  vi.stubGlobal("fetch", async () => Response.json({ data: { id: "txn_retry", customer_id: "ctm_retry" } }));
+  await expect(
+    createCheckout({
+      priceLookupKey: "plainden_pdf_month",
+      subject: { userId: "user_1" },
+      successPath: "/account",
+      cancelPath: "/pricing",
+    }),
+  ).resolves.toEqual({ transactionId: "txn_retry" });
+});
+
+async function processed(db: Awaited<ReturnType<typeof getDb>>): Promise<string[]> {
+  const result = await db.execute(sql`SELECT "id" FROM "processed_events" ORDER BY "id"`);
+  return (result.rows as { id: string }[]).map((row) => row.id);
+}
+
 function hmac(rawBody: string, ts: number): string {
   return createHmac("sha256", webhookSecret).update(`${ts}:${rawBody}`).digest("hex");
 }
 
 function signed(payload: unknown): { rawBody: string; signature: string } {
   const rawBody = JSON.stringify(payload);
-  const ts = 1700000000;
+  const ts = Math.floor(Date.now() / 1000);
   return { rawBody, signature: `ts=${ts};h1=${hmac(rawBody, ts)}` };
 }
 
@@ -411,7 +560,14 @@ function transactionEvent(id: string, occurredAt: string) {
   };
 }
 
-function adjustmentEvent(id: string, eventType: string, action: string, status: string, occurredAt = "2026-01-01T00:00:40.000Z") {
+function adjustmentEvent(
+  id: string,
+  eventType: string,
+  action: string,
+  status: string,
+  occurredAt = "2026-01-01T00:00:40.000Z",
+  type = "full",
+) {
   return {
     event_id: id,
     event_type: eventType,
@@ -420,6 +576,7 @@ function adjustmentEvent(id: string, eventType: string, action: string, status: 
       id: "adj_1",
       action,
       status,
+      type,
       subscription_id: "sub_1",
       customer_id: "ctm_1",
     },

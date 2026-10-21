@@ -1,11 +1,19 @@
 import type { Payments, WebhookInput, WebhookResult } from "./types";
 import { createCheckout, createPortal } from "./checkout";
-import { PaymentsNotConfigured, WebhookSignatureError } from "./errors";
+import { CheckoutError, PaymentsNotConfigured, WebhookDeferred, WebhookSignatureError, checkoutErrorCopy } from "./errors";
 import { persistSubscription } from "./persist";
 import { assertPaddleSignature } from "./signature";
 import { applyForNotification, type PaddleNotification } from "./subscription";
 
-export { PaymentsNotConfigured, WebhookSignatureError, createCheckout, createPortal };
+export {
+  CheckoutError,
+  PaymentsNotConfigured,
+  WebhookDeferred,
+  WebhookSignatureError,
+  checkoutErrorCopy,
+  createCheckout,
+  createPortal,
+};
 
 export const payments: Payments = {
   createCheckout,
@@ -19,6 +27,7 @@ export async function handleWebhook(input: WebhookInput): Promise<WebhookResult>
   assertPaddleSignature(input.rawBody, input.signature, secret);
   const event = JSON.parse(input.rawBody) as PaddleNotification;
   const apply = applyForNotification(event);
-  if (apply.kind !== "ignore") await persistSubscription(apply);
+  if (apply.kind === "ignore") return { handled: true };
+  if ((await persistSubscription(apply)) === "deferred") throw new WebhookDeferred();
   return { handled: true };
 }

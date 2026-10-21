@@ -9,14 +9,14 @@ test("an all-tools subscription is All tools and a single tool names that tool",
       [{ entitlementKey: "all", status: "active", currentPeriodEnd: null, cancelAt: null }],
       now,
     ),
-  ).toEqual({ plan: "All tools", ends: null });
+  ).toEqual({ paid: true, plan: "All tools", ends: null });
   expect(
     accountPlanCopy(
       [{ entitlementKey: "pdf", status: "active", currentPeriodEnd: null, cancelAt: null }],
       now,
     ),
-  ).toEqual({ plan: "Pro: Merge PDF", ends: null });
-  expect(accountPlanCopy([], now)).toEqual({ plan: "Free", ends: null });
+  ).toEqual({ paid: true, plan: "Pro: Merge PDF", ends: null });
+  expect(accountPlanCopy([], now)).toEqual({ paid: false, plan: "Free", ends: null });
 });
 
 test("a scheduled cancel says when Pro ends", () => {
@@ -32,5 +32,5 @@ test("a scheduled cancel says when Pro ends", () => {
       ],
       now,
     ),
-  ).toEqual({ plan: "All tools", ends: "Pro ends November 21, 2026" });
+  ).toEqual({ paid: true, plan: "All tools", ends: "Pro ends November 21, 2026" });
 });

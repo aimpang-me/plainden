@@ -43,7 +43,7 @@ test("an unknown policy 404s, a republish keeps the link, and a canceled plan st
     },
   };
   const rawBody = JSON.stringify(payload);
-  const signature = signPaddleWebhook(rawBody, webhookSecret, 1_700_000_000);
+  const signature = signPaddleWebhook(rawBody, webhookSecret, Math.floor(Date.now() / 1000));
   const canceled = await page.request.post("/api/paddle/webhook", {
     headers: { "paddle-signature": signature, "content-type": "application/json" },
     data: rawBody,

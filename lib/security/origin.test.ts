@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { originAllowed, readLimitedBody } from "./origin";
+import { readLimitedBody } from "./body";
+import { originAllowed } from "./origin";
 
 test("writes accept the app origin and refuse a missing or foreign origin", () => {
   const previous = process.env.PORT;

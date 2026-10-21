@@ -20,12 +20,29 @@ const globals = globalThis as typeof globalThis & {
 };
 
 export class MemoryRateLimitStore implements RateLimitStore {
-  private readonly snapshots = new Map<string, RateSnapshot>();
+  private readonly entries = new Map<string, { snapshot: RateSnapshot; expiresAtMs: number }>();
+
+  constructor(private readonly maxKeys = 10_000) {}
+
+  get size(): number {
+    return this.entries.size;
+  }
 
   async consume(key: string, rule: RateRule, nowMs: number): Promise<RateDecision> {
-    const current = decideRateLimit(rule, this.snapshots.get(key), nowMs);
-    this.snapshots.set(key, current.next);
+    const entry = this.entries.get(key);
+    const current = decideRateLimit(rule, entry?.snapshot, nowMs);
+    this.entries.delete(key);
+    if (this.entries.size >= this.maxKeys) this.evict(nowMs);
+    this.entries.set(key, { snapshot: current.next, expiresAtMs: current.next.windowStartedAtMs + rule.windowMs });
     return current.decision;
+  }
+
+  private evict(nowMs: number): void {
+    for (const [key, entry] of this.entries) {
+      if (entry.expiresAtMs <= nowMs) this.entries.delete(key);
+    }
+    const oldest = this.entries.keys().next();
+    if (this.entries.size >= this.maxKeys && !oldest.done) this.entries.delete(oldest.value);
   }
 }
 

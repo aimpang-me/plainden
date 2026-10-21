@@ -152,7 +152,7 @@ export async function seedAllToolsPlan(page: Page): Promise<{ userId: string; su
     },
   };
   const rawBody = JSON.stringify(payload);
-  const signature = signPaddleWebhook(rawBody, webhookSecret, 1_700_000_000);
+  const signature = signPaddleWebhook(rawBody, webhookSecret, Math.floor(Date.now() / 1000));
   const response = await page.request.post("/api/paddle/webhook", {
     headers: { "paddle-signature": signature, "content-type": "application/json" },
     data: rawBody,
