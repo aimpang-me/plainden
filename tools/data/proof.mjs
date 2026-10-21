@@ -108,7 +108,7 @@ const oversize = path.join(tmpdir(), "plainden-data-oversize.csv");
 writeFileSync(oversize, Buffer.alloc(5 * 1024 * 1024 + 1));
 await page.locator("input[type=file]").setInputFiles(oversize);
 await page.getByRole("button", { name: "Convert" }).click();
-const limited = await expectStatus(page, "free fileSize allows 5242880");
+const limited = await expectStatus(page, "The free plan allows files up to 5 MB.");
 if ((await page.getByRole("link", { name: "See pricing" }).count()) < 1) fail("See pricing was missing");
 lines.push("action: add a csv one byte over 5 MB", "action: click Convert", `status: ${limited}`, "visible: See pricing");
 

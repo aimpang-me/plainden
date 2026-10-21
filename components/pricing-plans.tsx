@@ -126,9 +126,9 @@ function PeriodOption({
   onChange: (interval: BillingInterval) => void;
 }) {
   return (
-    <label className="inline-flex h-12 cursor-pointer items-center rounded-full px-4 text-sm font-medium has-[:checked]:bg-ink has-[:checked]:text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent">
+    <label className="relative inline-flex h-12 cursor-pointer items-center rounded-full px-4 text-sm font-medium has-[:checked]:bg-ink has-[:checked]:text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent">
       <input
-        className="sr-only focus-visible:outline-none"
+        className="absolute inset-0 cursor-pointer opacity-0 focus-visible:outline-none"
         type="radio"
         name="billing-period"
         value={value}

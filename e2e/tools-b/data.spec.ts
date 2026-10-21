@@ -74,7 +74,7 @@ for (const viewport of viewports) {
         buffer: Buffer.concat([Buffer.from("name,qty\n"), Buffer.alloc(limit + 1, 97)]),
       });
       await page.getByRole("button", { name: "Convert" }).click();
-      await expect(page.getByRole("status")).toHaveText(`free fileSize allows ${limit}`);
+      await expect(page.getByRole("status")).toHaveText("The free plan allows files up to 5 MB.");
       await expect(page.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/pricing");
     });
 

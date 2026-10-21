@@ -82,7 +82,7 @@ test("a signed-in free account that publishes sees the pricing prompt", async ({
   await openTool(page, "/privacy-policy-generator");
   await fillQuestionnaire(page);
   await page.getByRole("button", { name: "Publish" }).click();
-  await expect(page.getByRole("status")).toContainText("free");
+  await expect(page.getByRole("status")).toHaveText("Hosting a policy is part of the paid plan.");
   await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
 });
 

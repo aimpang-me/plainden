@@ -19,7 +19,7 @@ Preconditions:
 - Doctor reports the verification server at `http://127.0.0.1:3100`.
 
 - **Fill a receipt.** Run `node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive receipt-generator`. The drive fills Your name `Ada`, Client name `Bea`, Receipt number `R-9`, Description `Rent`, Quantity `1`, Unit price `10`, and selects Payment method `card`.
-- **Stamp.** The text `Total $10.00` and `PAID` are visible. `Download PDF` produces a file.
+- **Stamp.** The Total row shows `$10.00`, and `PAID` is visible. `Download PDF` produces a file. A free visit also shows `Saving receipts is part of the paid plan.`
 - **Proof.** The drive writes `evidence/receipt-generator/actions.txt`, `evidence/receipt-generator/aria.txt`, and `evidence/receipt-generator/page.png`.
 
 ## Gotchas

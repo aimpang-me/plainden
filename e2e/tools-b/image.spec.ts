@@ -104,7 +104,7 @@ for (const viewport of viewports) {
         buffer: Buffer.alloc(limit + 1),
       });
       await page.getByRole("button", { name: "Compress images" }).click();
-      await expect(page.getByRole("status")).toHaveText(`free fileSize allows ${limit}`);
+      await expect(page.getByRole("status")).toHaveText("The free plan allows files up to 10 MB.");
       await expect(page.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/pricing");
     });
 
@@ -119,7 +119,7 @@ for (const viewport of viewports) {
         })),
       );
       await page.getByRole("button", { name: "Compress images" }).click();
-      await expect(page.getByRole("status")).toHaveText("free batchCount allows 10");
+      await expect(page.getByRole("status")).toHaveText("The free plan allows 10 images at a time.");
       await expect(page.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/pricing");
     });
 

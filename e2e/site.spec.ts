@@ -12,7 +12,7 @@ test("scaffold check blocks a count of 4 and allows a count of 1", async ({ page
   );
   await page.getByLabel("Count").fill("4");
   await page.getByRole("button", { name: "Check" }).click();
-  await expect(page.getByRole("status")).toHaveText("free perMonth allows 3");
+  await expect(page.getByRole("status")).toHaveText("The free plan allows a count of 3.");
   await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
 });
 
@@ -60,7 +60,7 @@ test("pricing shows three plans and keeps checkout keys off the page", async ({ 
   const toolForm = page.locator("form").filter({ has: page.getByLabel("Tool") });
   await expect(toolForm.locator("input[name=lookupKey]")).toHaveValue("plainden_invoice_month");
   await page.getByLabel("Tool").selectOption("qr");
-  await page.getByText("Annual", { exact: true }).click();
+  await page.getByRole("radio", { name: "Annual" }).check();
   await expect(page.getByRole("radio", { name: "Annual" })).toBeChecked();
   await expect(toolForm.locator("input[name=lookupKey]")).toHaveValue("plainden_qr_year");
   await expect(page.getByText("$50/yr").first()).toBeVisible();

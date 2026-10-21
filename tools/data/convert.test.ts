@@ -208,12 +208,16 @@ test("bad files and the size gate refuse with the page text", () => {
   ).toEqual({ ok: false, reason: "This file is not an Excel workbook." });
   expect(gateBytes("free", 5 * 1024 * 1024 + 1)).toEqual({
     ok: false,
+    plan: "free",
+    kind: "fileSize",
     limit: 5 * 1024 * 1024,
     reason: "free fileSize allows 5242880",
   });
   expect(gateBytes("paid", 5 * 1024 * 1024 + 1)).toEqual({ ok: true });
   expect(gateBytes("paid", 100 * 1024 * 1024 + 1)).toEqual({
     ok: false,
+    plan: "paid",
+    kind: "fileSize",
     limit: 100 * 1024 * 1024,
     reason: "paid fileSize allows 104857600",
   });

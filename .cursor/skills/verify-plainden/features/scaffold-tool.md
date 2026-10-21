@@ -21,7 +21,7 @@ Preconditions:
 - `html[data-hydrated="true"]` is set before the form is submitted.
 
 - **Allow a count of 1.** Run `node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive scaffold-tool`. The drive fills Note `Hello` and Count `1`, then clicks `Check`. The status reads `Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.`
-- **Block a count of 4.** The same drive then fills Count `4` and clicks `Check`. The status reads `free perMonth allows 3`. The link `See pricing` is visible.
+- **Block a count of 4.** The same drive then fills Count `4` and clicks `Check`. The status reads `The free plan allows a count of 3.` The link `See pricing` is visible.
 - **Proof.** The drive writes `evidence/scaffold-tool/actions.txt`, `evidence/scaffold-tool/aria.txt`, `evidence/scaffold-tool/allowed.png`, and `evidence/scaffold-tool/page.png`. `page.png` is the blocked state.
 
 ## Gotchas

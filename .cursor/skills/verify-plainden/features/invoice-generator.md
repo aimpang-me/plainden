@@ -19,8 +19,8 @@ Preconditions:
 - Doctor reports the verification server at `http://127.0.0.1:3100`.
 
 - **Fill a line.** Run `node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive invoice-generator`. The drive clears this origin's local storage, reloads, and fills Your name `Ada`, Client name `Bea`, Invoice number `100`, Description `Consulting`, Quantity `2`, and Unit price `10`.
-- **Preview.** The text `Total $20.00` and `made with plainden` are visible.
-- **Cap.** Three clicks on `Download PDF` each produce a download. The fourth click sets the status to `free perMonth allows 3` and shows `See pricing`.
+- **Preview.** The Total row shows `$20.00`, and `made with plainden` is visible.
+- **Cap.** Three clicks on `Download PDF` each produce a download. The fourth click sets the status to `The free plan includes 3 invoices a month.` and shows `See pricing`. A free visit also shows `Saving invoices is part of the paid plan.`
 - **Proof.** The drive writes `evidence/invoice-generator/actions.txt`, `evidence/invoice-generator/aria.txt`, and `evidence/invoice-generator/page.png`.
 
 ## Gotchas

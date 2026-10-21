@@ -59,7 +59,7 @@ for (const viewport of viewports) {
         { name: "two.srt", mimeType: "application/x-subrip", buffer: bytes },
       ]);
       await page.getByRole("button", { name: "Convert" }).click();
-      await expect(page.getByRole("status")).toHaveText("free batchCount allows 1");
+      await expect(page.getByRole("status")).toHaveText("The free plan converts one subtitle file at a time.");
       await expect(page.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/pricing");
     });
 

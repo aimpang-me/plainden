@@ -88,13 +88,13 @@ decideLimit(input: { plan: "free" | "paid"; limits: { free: LimitTable; paid: Li
 
 `Entitlement` is `{ entitlementKey: string; plan: "free" | "paid" }`.
 
-`LimitDecision` is `{ ok: true }` or `{ ok: false; limit: number; reason: string }`.
+`LimitDecision` is `{ ok: true }` or `{ ok: false; plan; kind; limit; reason }`. `kind` is a `LimitKind`, or `"unknown"` when the entitlement key is not registered. `reason` stays the internal string `<plan> <kind> allows <limit>`. Pages and API messages that a visitor reads use `visitorLimitCopy` instead of `reason`.
 
 Import `checkLimit`, `getEntitlement`, and `decideLimit` from `lib/entitlements`. Import `useEntitlement` from `lib/entitlements/use-entitlement`. That module is a client module.
 
 `getEntitlement` treats every device subject as free and does not open the database. A user subject is paid when `subscriptions` has `status` `active` or `trialing` for that `entitlementKey` or for `all`. `canceled` stays free.
 
-`checkLimit` reads limits from the registry, then from `lib/catalog/planned.ts`. An unknown entitlement returns `{ ok: false, limit: 0, reason: "unknown entitlement <key>" }`. Over the cap, `reason` is `<plan> <kind> allows <limit>`. `savedItems` checks the cap and does not write `usage`. Other kinds increment `usage` when the decision is allowed. This signature stays.
+`checkLimit` reads limits from the registry, then from `lib/catalog/planned.ts`. An unknown entitlement returns `{ ok: false, plan: "free", kind: "unknown", limit: 0, reason: "unknown entitlement <key>" }`. Over the cap, `reason` is `<plan> <kind> allows <limit>` and `kind` is the limit kind. `savedItems` checks the cap and does not write `usage`. Other kinds increment `usage` when the decision is allowed. This signature stays. Visitor text comes from `lib/entitlements/visitor-copy.ts`.
 
 `useEntitlement` returns `status: "loading"` until `/api/entitlement` responds, then `status: "ready"` with that plan. A signed-out response is the free plan. Callers must not apply a free cap while `status` is `loading`.
 

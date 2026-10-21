@@ -24,6 +24,8 @@ test("a free monthly counter blocks at 3 and a later period starts at zero", asy
   expect(await checkLimit(subject, "invoice", LimitKind.perMonth, 1)).toEqual({ ok: true });
   expect(await checkLimit(subject, "invoice", LimitKind.perMonth, 1)).toEqual({
     ok: false,
+    plan: "free",
+    kind: "perMonth",
     limit: 3,
     reason: "free perMonth allows 3",
   });
@@ -93,6 +95,8 @@ test("a paid counter passes where the free counter is already full", async () =>
   expect(await checkLimit({ userId: "user_paid" }, "scaffold", LimitKind.perMonth, 1)).toEqual({ ok: true });
   expect(await checkLimit({ deviceId: "dev_scaffold" }, "scaffold", LimitKind.perMonth, 1)).toEqual({
     ok: false,
+    plan: "free",
+    kind: "perMonth",
     limit: 3,
     reason: "free perMonth allows 3",
   });

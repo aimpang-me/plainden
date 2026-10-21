@@ -2,15 +2,18 @@
   "name": "plainden",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
-    "predev": "node --experimental-strip-types scripts/gen-registry.ts",
-    "prebuild": "node --experimental-strip-types scripts/gen-registry.ts",
+    "predev": "node scripts/check-node.cjs && node --experimental-strip-types scripts/gen-registry.ts",
+    "prebuild": "node scripts/check-node.cjs && node --experimental-strip-types scripts/gen-registry.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "postinstall": "node --experimental-strip-types scripts/gen-registry.ts",
-    "test": "node --experimental-strip-types scripts/gen-registry.ts && vitest run",
+    "postinstall": "node scripts/check-node.cjs && node --experimental-strip-types scripts/gen-registry.ts",
+    "test": "node scripts/check-node.cjs && node --experimental-strip-types scripts/gen-registry.ts && vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {

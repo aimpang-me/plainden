@@ -3,8 +3,8 @@ import { qrCode, user } from "@/db/schema";
 import { LimitKind } from "@/lib/contract/limits";
 import { getDb } from "@/lib/db/client";
 import { checkLimit } from "@/lib/entitlements";
-import { decideLimit } from "@/lib/entitlements/decide-limit";
 import { getEntitlement } from "@/lib/entitlements/get-entitlement";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { limitsFor } from "@/lib/entitlements/limits-for";
 import { config } from "./config";
 import {
@@ -80,14 +80,19 @@ async function list(userId: string): Promise<HandleResult> {
   return { ok: true, type: "list", codes: rows.map(toCode) };
 }
 
+const missingAccount = "That account could not be found.";
+
+function capReason(plan: "free" | "paid", limit: number): string {
+  return visitorLimitCopy("qr", { ok: false, plan, kind: LimitKind.savedItems, limit, reason: "" });
+}
+
 async function publish(userId: string, targetUrl: HttpUrl, logo: LogoDataUrl | null): Promise<HandleResult> {
   const limits = limitsFor(config.entitlementKey);
-  if (!limits) return { ok: false, code: "invalid", reason: `unknown entitlement ${config.entitlementKey}` };
+  if (!limits) return { ok: false, code: "invalid", reason: "This action is not available." };
   const entitlement = await getEntitlement({ userId }, config.entitlementKey);
   const cap = (entitlement.plan === "paid" ? limits.paid : limits.free)[LimitKind.savedItems];
   if (cap === 0) {
-    const decision = decideLimit({ plan: entitlement.plan, limits, kind: LimitKind.savedItems, amount: 1 });
-    return { ok: false, code: "over-cap", reason: decision.ok ? "free savedItems allows 0" : decision.reason };
+    return { ok: false, code: "over-cap", reason: capReason(entitlement.plan, 0) };
   }
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -96,11 +101,11 @@ async function publish(userId: string, targetUrl: HttpUrl, logo: LogoDataUrl | n
     try {
       await db.insert(qrCode).values({ id, userId, targetUrl, logoDataUrl: logo, createdAt });
     } catch (error) {
-      if (isForeignKeyError(error)) return { ok: false, code: "invalid", reason: "unknown user" };
+      if (isForeignKeyError(error)) return { ok: false, code: "invalid", reason: missingAccount };
       throw error;
     }
     const [row] = await db.select().from(qrCode).where(eq(qrCode.id, id));
-    if (!row) return { ok: false, code: "invalid", reason: "unknown user" };
+    if (!row) return { ok: false, code: "invalid", reason: missingAccount };
     return { ok: true, type: "publish", code: toCode(row) };
   }
   const inserted = await db.execute(sql`
@@ -118,12 +123,11 @@ async function publish(userId: string, targetUrl: HttpUrl, logo: LogoDataUrl | n
   `);
   if (!insertedId(inserted)) {
     const [person] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId));
-    if (!person) return { ok: false, code: "invalid", reason: "unknown user" };
-    const decision = decideLimit({ plan: entitlement.plan, limits, kind: LimitKind.savedItems, amount: cap + 1 });
-    return { ok: false, code: "over-cap", reason: decision.ok ? `paid savedItems allows ${cap}` : decision.reason };
+    if (!person) return { ok: false, code: "invalid", reason: missingAccount };
+    return { ok: false, code: "over-cap", reason: capReason(entitlement.plan, cap) };
   }
   const [row] = await db.select().from(qrCode).where(eq(qrCode.id, id));
-  if (!row) return { ok: false, code: "invalid", reason: "unknown user" };
+  if (!row) return { ok: false, code: "invalid", reason: missingAccount };
   return { ok: true, type: "publish", code: toCode(row) };
 }
 
@@ -146,7 +150,7 @@ async function replace(
 ): Promise<HandleResult> {
   const observed = await observedCount(userId);
   const decision = await checkLimit({ userId }, config.entitlementKey, LimitKind.savedItems, observed);
-  if (!decision.ok) return { ok: false, code: "over-cap", reason: decision.reason };
+  if (!decision.ok) return { ok: false, code: "over-cap", reason: visitorLimitCopy("qr", decision) };
   const db = await getDb();
   const updated = await db
     .update(qrCode)

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   expectPdf,
+  expectPreviewTotal,
   openTool,
   pageCount,
   pdfText,
@@ -65,7 +66,8 @@ withViewports(() => {
     await page.getByLabel("Description").fill("Consulting");
     await page.getByLabel("Quantity").fill("2");
     await page.getByLabel("Unit price").fill("10");
-    await expect(page.getByRole("heading", { name: "Preview" }).locator("xpath=..")).toContainText("Total $20.00");
+    await expectPreviewTotal(page, "$20.00");
+    await expect(page.getByText("Saving invoices is part of the paid plan.")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Preview" }).locator("xpath=..")).toContainText("made with plainden");
     const pending = page.waitForEvent("download");
     await page.getByRole("button", { name: "Download PDF" }).click();
@@ -99,7 +101,7 @@ withViewports(() => {
       expectPdf(await readDownload(download));
     }
     await page.getByRole("button", { name: "Download PDF" }).click();
-    await expect(page.getByRole("status")).toHaveText("free perMonth allows 3");
+    await expect(page.getByRole("status")).toHaveText("The free plan includes 3 invoices a month.");
     await expect(page.getByRole("link", { name: "See pricing" })).toHaveCount(2);
   });
 
@@ -116,7 +118,7 @@ withViewports(() => {
           "Tax is the percent on the subtotal. Split GST and PST in the notes if you need both.",
         );
       }
-      await expect(page.getByRole("heading", { name: "Preview" }).locator("xpath=..")).toContainText(`Total ${tail.total}`);
+      await expectPreviewTotal(page, tail.total);
     }
   });
 });

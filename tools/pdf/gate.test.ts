@@ -7,14 +7,24 @@ test("free and paid pdf limits", () => {
   expect(gatePdf("free", 25 * mb, 1)).toEqual({ ok: true });
   expect(gatePdf("free", 25 * mb + 1, 1)).toEqual({
     ok: false,
+    plan: "free",
+    kind: "fileSize",
     limit: 25 * mb,
     reason: "free fileSize allows 26214400",
   });
   expect(gatePdf("free", 1024, 5)).toEqual({ ok: true });
-  expect(gatePdf("free", 1024, 6)).toEqual({ ok: false, limit: 5, reason: "free perDay allows 5" });
+  expect(gatePdf("free", 1024, 6)).toEqual({
+    ok: false,
+    plan: "free",
+    kind: "perDay",
+    limit: 5,
+    reason: "free perDay allows 5",
+  });
   expect(gatePdf("paid", 200 * mb, 40)).toEqual({ ok: true });
   expect(gatePdf("paid", 200 * mb + 1, 1)).toEqual({
     ok: false,
+    plan: "paid",
+    kind: "fileSize",
     limit: 200 * mb,
     reason: "paid fileSize allows 209715200",
   });

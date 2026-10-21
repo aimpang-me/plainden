@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LimitKind } from "@/lib/contract/limits";
 import { decideLimit } from "@/lib/entitlements/decide-limit";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { useEntitlement } from "@/lib/entitlements/use-entitlement";
 import { config } from "./config";
 import {
@@ -245,8 +246,9 @@ export function useQrForm(preset: string | undefined): QrForm {
       amount,
     });
     if (!decision.ok) {
-      setUpgradeReason(decision.reason);
-      setStatus(decision.reason);
+      const copy = visitorLimitCopy("qr", decision);
+      setUpgradeReason(copy);
+      setStatus(copy);
       return;
     }
     const targetUrl = values.href ?? "";

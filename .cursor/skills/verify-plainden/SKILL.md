@@ -74,7 +74,7 @@ The helper opens Chromium against `http://127.0.0.1:3100`, waits until `html[dat
 | Send link | button `Email me a sign-in link` |
 | Sign out | button `Sign out` |
 
-`scaffold-tool` fills Note `Hello` and Count `1`, clicks Check, and expects status `Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.` It then sets Count to `4`, clicks Check, and expects status `free perMonth allows 3` plus link `See pricing`.
+`scaffold-tool` fills Note `Hello` and Count `1`, clicks Check, and expects status `Allowed on the free plan. Format text. Note Hello. Slug scaffold-check.` It then sets Count to `4`, clicks Check, and expects status `The free plan allows a count of 3.` plus link `See pricing`.
 
 Recipes for the other ids are in `features/`. Drive one id per command.
 

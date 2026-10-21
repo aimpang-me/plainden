@@ -4,6 +4,7 @@ import { policyDoc } from "@/db/schema";
 import { LimitKind } from "@/lib/contract/limits";
 import { getDb } from "@/lib/db/client";
 import { checkLimit } from "@/lib/entitlements";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { hostedDocument } from "./catalog";
 import { isPolicyPublicId } from "./public-id";
 
@@ -36,7 +37,7 @@ export async function publish(userId: string, raw: unknown): Promise<PublishResu
   const existing = owned.find((row) => row.id === publicId);
   const amount = existing ? owned.length : owned.length + 1;
   const decision = await checkLimit({ userId }, "legal", LimitKind.savedItems, amount);
-  if (!decision.ok) return { ok: false, error: "limit", message: decision.reason };
+  if (!decision.ok) return { ok: false, error: "limit", message: visitorLimitCopy("policy", decision) };
   const path = policyPath(publicId);
   if (existing && existing.body === hosted.text) return { ok: true, publicId, path };
   const now = new Date();

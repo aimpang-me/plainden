@@ -1,4 +1,5 @@
 import { decideLimit } from "@/lib/entitlements/decide-limit";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { beginImage, imageLimits, type ImageRun, type RunImageInput } from "./engine.ts";
 
 export async function runImage(input: RunImageInput): Promise<ImageRun> {
@@ -11,7 +12,7 @@ export async function runImage(input: RunImageInput): Promise<ImageRun> {
   if (!begun.ok) return begun;
   for (const file of input.files) {
     const decision = decideLimit({ plan: input.plan, limits: imageLimits, kind: "fileSize", amount: file.size });
-    if (!decision.ok) return { ok: false, reason: decision.reason, limit: true };
+    if (!decision.ok) return { ok: false, reason: visitorLimitCopy("image", decision), limit: true };
   }
   const batch = decideLimit({
     plan: input.plan,
@@ -19,7 +20,7 @@ export async function runImage(input: RunImageInput): Promise<ImageRun> {
     kind: "batchCount",
     amount: input.files.length,
   });
-  if (!batch.ok) return { ok: false, reason: batch.reason, limit: true };
+  if (!batch.ok) return { ok: false, reason: visitorLimitCopy("image", batch), limit: true };
   const loaded: { name: string; bytes: Uint8Array }[] = [];
   for (const file of input.files) {
     try {

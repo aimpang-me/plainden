@@ -71,7 +71,7 @@ test("an oversized file fails before read", async () => {
   const over = await runSlug("compress-image", undefined, [
     source("big.png", 10 * 1024 * 1024 + 1, pngBytes, reads),
   ]);
-  expect(over).toEqual({ ok: false, limit: true, reason: "free fileSize allows 10485760" });
+  expect(over).toEqual({ ok: false, limit: true, reason: "The free plan allows files up to 10 MB." });
   expect(reads.count).toBe(0);
 });
 
@@ -79,7 +79,7 @@ test("eleven files fail the free batch before read", async () => {
   const reads = { count: 0 };
   const files = Array.from({ length: 11 }, (_, index) => source(`tiny-${index}.png`, 10, pngBytes, reads));
   const over = await runSlug("compress-image", undefined, files);
-  expect(over).toEqual({ ok: false, limit: true, reason: "free batchCount allows 10" });
+  expect(over).toEqual({ ok: false, limit: true, reason: "The free plan allows 10 images at a time." });
   expect(reads.count).toBe(0);
 });
 
