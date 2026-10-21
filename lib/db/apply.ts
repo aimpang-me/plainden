@@ -58,14 +58,6 @@ export async function applySchema(db: { execute: (query: SQL) => Promise<unknown
   await db.execute(sql.raw(`ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "cancelAt" timestamp with time zone`));
   await db.execute(sql.raw(`ALTER TABLE "checkout_intents" DROP CONSTRAINT IF EXISTS "checkout_intents_user_price"`));
   await db.execute(sql.raw(`
-    DELETE FROM "checkout_intents" a
-    USING "checkout_intents" b
-    WHERE a."userId" = b."userId"
-      AND a."id" <> b."id"
-      AND (b."transactionId" IS NOT NULL, b."expiresAt", b."id")
-        > (a."transactionId" IS NOT NULL, a."expiresAt", a."id")
-  `));
-  await db.execute(sql.raw(`
     DO $$
     BEGIN
       IF NOT EXISTS (
@@ -73,6 +65,12 @@ export async function applySchema(db: { execute: (query: SQL) => Promise<unknown
         WHERE conname = 'checkout_intents_userId_unique'
           AND conrelid = '"checkout_intents"'::regclass
       ) THEN
+        DELETE FROM "checkout_intents" a
+        USING "checkout_intents" b
+        WHERE a."userId" = b."userId"
+          AND a."id" <> b."id"
+          AND (b."transactionId" IS NOT NULL, b."expiresAt", b."id")
+            > (a."transactionId" IS NOT NULL, a."expiresAt", a."id");
         ALTER TABLE "checkout_intents" ADD CONSTRAINT "checkout_intents_userId_unique" UNIQUE ("userId");
       END IF;
     EXCEPTION WHEN duplicate_object OR duplicate_table THEN
