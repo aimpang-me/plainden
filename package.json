@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
     "postinstall": "node scripts/check-node.cjs && node --experimental-strip-types scripts/gen-registry.ts",
     "test": "node scripts/check-node.cjs && node --experimental-strip-types scripts/gen-registry.ts && vitest run",
     "test:e2e": "playwright test"
