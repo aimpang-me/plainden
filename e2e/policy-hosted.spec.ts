@@ -1,8 +1,6 @@
 import { expect, test } from "@playwright/test";
-import Stripe from "stripe";
+import { signPaddleWebhook } from "../lib/payments/signature";
 import { openTool, seedAllToolsPlan, signIn, webhookSecret } from "./tools-a/support";
-
-const stripe = new Stripe("sk_test_plainden_webhook_fixture");
 
 test("an unknown policy 404s, a republish keeps the link, and a canceled plan stays readable", async ({ page }) => {
   test.setTimeout(90_000);
@@ -34,41 +32,20 @@ test("an unknown policy 404s, a republish keeps the link, and a canceled plan st
   await page.goto(first ?? "/");
   await expect(page.getByText("The data is kept for 90 days.")).toBeVisible();
 
-  const eventId = `evt_${crypto.randomUUID()}`;
   const payload = {
-    id: eventId,
-    created: 30,
-    object: "event",
-    type: "customer.subscription.deleted",
+    event_id: `evt_${crypto.randomUUID()}`,
+    event_type: "subscription.canceled",
+    occurred_at: new Date(Date.now() + 60_000).toISOString(),
     data: {
-      object: {
-        id: seeded.subscriptionId,
-        object: "subscription",
-        customer: "cus_e2e",
-        status: "canceled",
-        metadata: {
-          userId: seeded.userId,
-          entitlementKey: "all",
-          priceLookupKey: "plainden_all_month",
-        },
-        items: {
-          object: "list",
-          data: [
-            {
-              id: "si_e2e",
-              object: "subscription_item",
-              current_period_end: 1_790_000_000,
-              price: { id: "price_e2e", object: "price", lookup_key: "plainden_all_month" },
-            },
-          ],
-        },
-      },
+      id: seeded.subscriptionId,
+      status: "canceled",
+      customer_id: "ctm_e2e",
     },
   };
   const rawBody = JSON.stringify(payload);
-  const signature = stripe.webhooks.generateTestHeaderString({ payload: rawBody, secret: webhookSecret });
-  const canceled = await page.request.post("/api/stripe/webhook", {
-    headers: { "stripe-signature": signature, "content-type": "application/json" },
+  const signature = signPaddleWebhook(rawBody, webhookSecret, 1_700_000_000);
+  const canceled = await page.request.post("/api/paddle/webhook", {
+    headers: { "paddle-signature": signature, "content-type": "application/json" },
     data: rawBody,
   });
   expect(canceled.status(), await canceled.text()).toBe(200);

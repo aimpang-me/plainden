@@ -8,7 +8,7 @@ export type CheckoutInput = {
 };
 
 export type CheckoutResult = {
-  url: string;
+  transactionId: string;
 };
 
 export type PortalInput = {

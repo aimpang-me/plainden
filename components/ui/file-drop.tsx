@@ -7,13 +7,13 @@ type FileDropProps = {
 
 export function FileDrop({ label, onFiles, multiple = false, accept }: FileDropProps) {
   return (
-    <label className="grid min-w-0 gap-1.5 rounded-xl border border-dashed border-line p-4 text-[13px] text-muted">
+    <label className="grid min-w-0 gap-1.5 rounded-[10px] border border-dashed border-line bg-field p-4 text-[13px] text-muted">
       {label}
       <input
         type="file"
         multiple={multiple}
         accept={accept}
-        className="h-12 w-full min-w-0 text-[15px] text-ink"
+        className="w-full min-w-0 text-[13px] text-ink"
         onChange={(event) => {
           const list = event.target.files;
           onFiles(list ? Array.from(list) : []);

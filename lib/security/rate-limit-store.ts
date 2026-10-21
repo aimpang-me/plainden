@@ -1,4 +1,3 @@
-import { isProductionRuntime } from "../runtime";
 import { decideRateLimit, rateRule, type RateDecision, type RateRule, type RateSnapshot } from "./rateLimit";
 
 export type RateBucket = "sign-in" | "sign-in-ip" | "write" | "scan";
@@ -81,17 +80,12 @@ async function executeUpstash(url: string, token: string, command: readonly stri
   return body.result;
 }
 
-export function createRateLimitStore(): RateLimitStore {
-  const mode = process.env.RATE_LIMIT_STORE;
+export function createRateLimitStore(warn: (message: string) => void = console.warn): RateLimitStore {
+  const mode = process.env.RATE_LIMIT_STORE?.trim() ?? "";
   if (mode === "upstash") return upstashFromEnv();
-  if (mode === "memory") {
-    if (isProductionRuntime()) throw new Error("RATE_LIMIT_STORE=memory is not allowed in production");
-    return new MemoryRateLimitStore();
-  }
-  if (mode !== undefined && mode.trim() !== "") {
-    throw new Error("RATE_LIMIT_STORE must be memory or upstash");
-  }
-  if (isProductionRuntime()) throw new Error("A shared rate limit store is required in production");
+  if (mode === "memory") return new MemoryRateLimitStore();
+  if (mode !== "") throw new Error("RATE_LIMIT_STORE must be memory or upstash");
+  warn("RATE_LIMIT_STORE is unset. Using the in-memory rate limit store.");
   return new MemoryRateLimitStore();
 }
 

@@ -2,7 +2,7 @@ import { handleWebhook, PaymentsNotConfigured, WebhookSignatureError } from "@/l
 
 export async function POST(request: Request): Promise<Response> {
   const rawBody = await request.text();
-  const signature = request.headers.get("stripe-signature") ?? "";
+  const signature = request.headers.get("paddle-signature") ?? "";
   try {
     const result = await handleWebhook({ rawBody, signature });
     return Response.json(result);

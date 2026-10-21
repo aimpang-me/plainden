@@ -6,23 +6,29 @@ test("the landing page hides later waves and a direct legal url opens the genera
     "href",
     "mailto:support@plainden.com",
   );
+  await expect(page.getByRole("heading", { level: 1, name: "Small tools that run in the browser" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
   await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
   await expect(page.getByRole("link", { name: "Refunds" })).toHaveAttribute("href", "/refund");
   await expect(page.getByRole("button", { name: "Decline" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Invoice generator" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "PDF tools" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "QR code generator" })).toBeVisible();
+  for (const name of ["Invoice generator", "PDF tools", "QR code generator"]) {
+    await expect(page.getByRole("link", { name, exact: true }).first()).toBeVisible();
+  }
+  await expect(page.getByRole("link", { name: "QR code", exact: true })).toBeVisible();
   for (const name of [
+    "Receipt maker",
+    "Receipt generator",
+    "Privacy and terms",
     "Privacy and terms generator",
     "Image tools",
     "Video compressor",
     "Data converter",
+    "Subtitles",
     "Subtitle converter",
+    "Cookie and refund",
     "Cookie and refund policy generator",
-    "Receipt generator",
   ]) {
-    await expect(page.getByRole("link", { name })).toHaveCount(0);
+    await expect(page.getByRole("link", { name, exact: true })).toHaveCount(0);
   }
   await page.goto("/privacy-policy-generator");
   await expect(page.getByRole("heading", { level: 1, name: "Privacy policy generator" })).toBeVisible();
@@ -58,7 +64,8 @@ test("pricing shows three plans and keeps checkout keys off the page", async ({ 
     .locator("input[name=lookupKey]");
   await expect(bundleKey).toHaveValue("plainden_all_year");
   await expect(page.getByRole("button", { name: "Checkout" })).toHaveCount(2);
-  await expect(page.getByRole("button", { name: "Open billing portal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open billing portal" })).toHaveCount(0);
+  await expect(page.getByText("Free plan").first()).toBeVisible();
 });
 
 test("the theme toggle switches to dark and back", async ({ page }) => {

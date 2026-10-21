@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeading } from "@/components/page-heading";
 import { relatedTools, type ResolvedPage } from "@/lib/pages/resolve";
 import { titleForSlug } from "@/lib/pages/slug-title";
 
@@ -6,12 +7,10 @@ export function ToolScreen({ page }: { page: ResolvedPage }) {
   switch (page.kind) {
     case "planned":
       return (
-        <article className="grid grid-cols-1 gap-16">
-          <header className="mx-auto max-w-3xl text-center">
-            <h1 className="text-balance text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
-              {titleForSlug(page.slug) ?? page.tool.name}
-            </h1>
-            <p className="mt-5 text-pretty text-lg text-muted max-[800px]:text-base">{page.tool.description}</p>
+        <article className="grid grid-cols-1 gap-8">
+          <header className="max-w-3xl">
+            <PageHeading>{titleForSlug(page.slug) ?? page.tool.name}</PageHeading>
+            <p className="mt-2 text-pretty text-[13px] text-muted">{page.tool.description}</p>
           </header>
           <p className="text-center text-muted">This tool is not built yet.</p>
           <Related currentId={page.tool.id} />
@@ -29,14 +28,10 @@ export function ToolScreen({ page }: { page: ResolvedPage }) {
 function RegisteredToolScreen({ page }: { page: Extract<ResolvedPage, { kind: "tool" }> }) {
   const Tool = page.Tool;
   return (
-    <article className="grid grid-cols-1 gap-16">
-      <header className="mx-auto min-w-0 max-w-3xl text-center">
-        <h1 className="text-balance text-[56px] font-medium leading-[1.05] tracking-[-0.035em] max-[800px]:text-[38px]">
-          {page.headline}
-        </h1>
-        <p className="mt-5 text-pretty text-lg text-muted max-[800px]:text-base">
-          {page.intro ? page.intro : page.config.description}
-        </p>
+    <article className="grid grid-cols-1 gap-8">
+      <header className="min-w-0 max-w-3xl">
+        <PageHeading>{page.headline}</PageHeading>
+        <p className="mt-2 text-pretty text-[13px] text-muted">{page.intro ? page.intro : page.config.description}</p>
       </header>
       <Tool slug={page.slug} preset={page.preset} />
       <section aria-labelledby="steps-heading">

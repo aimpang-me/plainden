@@ -85,7 +85,7 @@ export async function publish(userId: string, raw: unknown): Promise<PublishResu
         RETURNING "id"
       `);
       if (!insertedId(inserted)) {
-        return { ok: false, error: "limit", message: visitorLimitCopy("policy", { ok: false, plan: entitlement.plan, kind: LimitKind.savedItems, limit: cap, reason: "" }) };
+        return { ok: false, error: "limit", message: visitorLimitCopy("policy", { plan: entitlement.plan, kind: LimitKind.savedItems, limit: cap }) };
       }
     } else {
       await db.insert(policyDoc).values({

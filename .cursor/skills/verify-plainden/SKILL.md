@@ -83,7 +83,7 @@ Each drive writes `.cursor/skills/verify-plainden/evidence/<feature-id>/`:
 - `aria.txt` is the ARIA snapshot of `main` after the last action. `theme` also writes `aria-dark.txt` while `data-theme` is `dark`.
 - `page.png` is a full page screenshot after the last action. `theme` also writes `dark.png`.
 
-The screenshot includes the header link `plainden`. Proof uses the real pages. It does not call test-only endpoints. `sign-in` writes `evidence/sign-in/` after the account page shows the address from a `.dev-mail` link. That drive uses the file mail transport and the Turnstile test key. It does not call Stripe, Resend, or Neon.
+The screenshot includes the header link `plainden`. Proof uses the real pages. It does not call test-only endpoints. `sign-in` writes `evidence/sign-in/` after the account page shows the address from a `.dev-mail` link. That drive uses the file mail transport and the Turnstile test key. It does not call Paddle, Resend, or Neon.
 
 ## Cleanup
 

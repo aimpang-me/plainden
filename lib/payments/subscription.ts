@@ -1,137 +1,168 @@
-import type Stripe from "stripe";
 import { priceByLookupKey } from "../pricing/catalog";
+import type { BillingInterval } from "../pricing/catalog";
 
-export const subscriptionStatuses = ["incomplete", "trialing", "active", "past_due", "canceled", "unpaid"] as const;
+export const subscriptionStatuses = ["incomplete", "trialing", "active", "past_due", "canceled", "unpaid", "paused"] as const;
 
 export type SubscriptionStatus = (typeof subscriptionStatuses)[number];
 
-export type SubscriptionFields = {
-  userId: string;
-  entitlementKey: string;
-  priceLookupKey: string;
-  stripeCustomerId: string | null;
-  stripeSubscriptionId: string;
-};
-
 export type SubscriptionApply =
   | { kind: "ignore" }
-  | (SubscriptionFields & {
+  | {
       kind: "insert-only" | "replace";
+      eventId: string;
+      eventAt: Date;
       status: SubscriptionStatus;
       currentPeriodEnd: Date | null;
-      eventCreated: number;
-    });
+      providerSubscriptionId: string;
+      providerCustomerId: string | null;
+      userId: string | null;
+      entitlementKey: string | null;
+      priceLookupKey: string | null;
+    };
 
-type ApplyBody =
-  | { kind: "ignore" }
-  | (SubscriptionFields & {
-      kind: "insert-only" | "replace";
-      status: SubscriptionStatus;
-      currentPeriodEnd: Date | null;
-    });
+export type PaddleNotification = {
+  event_id?: string;
+  event_type?: string;
+  occurred_at?: string;
+  data?: unknown;
+};
 
-export function applyForEvent(event: Stripe.Event): SubscriptionApply {
-  const body = applyBody(event);
+const subscriptionEvents = new Set([
+  "subscription.created",
+  "subscription.activated",
+  "subscription.updated",
+  "subscription.canceled",
+  "subscription.past_due",
+  "subscription.paused",
+  "subscription.resumed",
+]);
+
+const revokeActions = new Set(["refund", "chargeback"]);
+
+export function applyForNotification(event: PaddleNotification): SubscriptionApply {
+  const data = record(event.data);
+  if (!data) return { kind: "ignore" };
+  const body = applyBody(event.event_type ?? "", data);
   if (body.kind === "ignore") return body;
-  return { ...body, eventCreated: typeof event.created === "number" ? event.created : 0 };
+  if (!event.event_id) return { kind: "ignore" };
+  return { ...body, eventId: event.event_id, eventAt: eventAt(event.occurred_at) };
 }
 
-function applyBody(event: Stripe.Event): ApplyBody {
-  switch (event.type) {
-    case "checkout.session.completed":
-      return applyCheckout(event.data.object);
-    case "customer.subscription.updated":
-      return applySubscription(event.data.object, "replace");
-    case "customer.subscription.deleted":
-      return applyDeleted(event.data.object);
-    case "invoice.payment_failed":
-      return applyInvoiceFailed(event.data.object);
-    default:
-      return { kind: "ignore" };
+export function paddlePriceEnv(interval: BillingInterval): "PADDLE_PRICE_MONTHLY" | "PADDLE_PRICE_YEARLY" {
+  switch (interval) {
+    case "month":
+      return "PADDLE_PRICE_MONTHLY";
+    case "year":
+      return "PADDLE_PRICE_YEARLY";
+    default: {
+      const unreachable: never = interval;
+      return unreachable;
+    }
   }
 }
 
-function applyCheckout(session: Stripe.Checkout.Session): ApplyBody {
-  const stripeSubscriptionId = idOf(session.subscription);
-  const fields = fieldsFrom(session.metadata, stripeSubscriptionId, idOf(session.customer));
+type ApplyBody = Omit<Exclude<SubscriptionApply, { kind: "ignore" }>, "eventId" | "eventAt">;
+
+function applyBody(eventType: string, data: Record<string, unknown>): ApplyBody | { kind: "ignore" } {
+  if (eventType === "transaction.completed") return applyTransaction(data);
+  if (eventType === "adjustment.created" || eventType === "adjustment.updated") return applyAdjustment(data);
+  if (!subscriptionEvents.has(eventType)) return { kind: "ignore" };
+  return applySubscription(eventType, data);
+}
+
+function applyTransaction(data: Record<string, unknown>): ApplyBody | { kind: "ignore" } {
+  const fields = fieldsFrom(data, text(data, "subscription_id"));
   if (!fields) return { kind: "ignore" };
   return {
     kind: "insert-only",
     ...fields,
     status: "active",
-    currentPeriodEnd: null,
+    currentPeriodEnd: periodEnd(data.billing_period),
   };
 }
 
-function applySubscription(subscription: Stripe.Subscription, kind: "replace"): ApplyBody {
-  const lookup = subscription.items.data[0]?.price.lookup_key ?? null;
-  const fields = fieldsFrom(subscription.metadata, subscription.id, idOf(subscription.customer), lookup);
-  if (!fields) return { kind: "ignore" };
-  const periodEnd = subscription.items.data[0]?.current_period_end;
-  return {
-    kind,
-    ...fields,
-    status: mapStatus(subscription.status),
-    currentPeriodEnd: typeof periodEnd === "number" ? new Date(periodEnd * 1000) : null,
-  };
-}
-
-function applyDeleted(subscription: Stripe.Subscription): ApplyBody {
-  const next = applySubscription(subscription, "replace");
-  if (next.kind === "ignore") return next;
-  return { ...next, kind: "replace", status: "canceled" };
-}
-
-function applyInvoiceFailed(invoice: Stripe.Invoice): ApplyBody {
-  const details = invoice.parent?.subscription_details;
-  const stripeSubscriptionId = details ? idOf(details.subscription) : null;
-  const fields = fieldsFrom(details?.metadata ?? null, stripeSubscriptionId, idOf(invoice.customer));
-  if (!fields) return { kind: "ignore" };
+function applySubscription(eventType: string, data: Record<string, unknown>): ApplyBody | { kind: "ignore" } {
+  const providerSubscriptionId = text(data, "id");
+  const status = statusFor(eventType, text(data, "status"));
+  if (!providerSubscriptionId || !status) return { kind: "ignore" };
+  const fields = fieldsFrom(data, providerSubscriptionId);
   return {
     kind: "replace",
-    ...fields,
-    status: "past_due",
+    status,
+    currentPeriodEnd: periodEnd(data.current_billing_period),
+    providerSubscriptionId,
+    providerCustomerId: fields?.providerCustomerId ?? text(data, "customer_id"),
+    userId: fields?.userId ?? null,
+    entitlementKey: fields?.entitlementKey ?? null,
+    priceLookupKey: fields?.priceLookupKey ?? null,
+  };
+}
+
+function applyAdjustment(data: Record<string, unknown>): ApplyBody | { kind: "ignore" } {
+  const action = text(data, "action");
+  const providerSubscriptionId = text(data, "subscription_id");
+  if (!providerSubscriptionId || !action || !revokeActions.has(action) || text(data, "status") !== "approved") {
+    return { kind: "ignore" };
+  }
+  return {
+    kind: "replace",
+    status: "canceled",
     currentPeriodEnd: null,
+    providerSubscriptionId,
+    providerCustomerId: text(data, "customer_id"),
+    userId: null,
+    entitlementKey: null,
+    priceLookupKey: null,
   };
 }
 
 function fieldsFrom(
-  metadata: Stripe.Metadata | null | undefined,
-  stripeSubscriptionId: string | null,
-  stripeCustomerId: string | null,
-  lookupKey?: string | null,
-): SubscriptionFields | null {
-  const userId = text(metadata, "userId");
-  if (!userId || !stripeSubscriptionId) return null;
-  if (lookupKey) {
-    const price = priceByLookupKey(lookupKey);
-    if (!price || price.amountCents <= 0) return null;
-    return {
-      userId,
-      entitlementKey: price.entitlementKey,
-      priceLookupKey: price.lookupKey,
-      stripeCustomerId,
-      stripeSubscriptionId,
-    };
+  data: Record<string, unknown>,
+  providerSubscriptionId: string | null,
+): {
+  userId: string;
+  entitlementKey: string;
+  priceLookupKey: string;
+  providerCustomerId: string | null;
+  providerSubscriptionId: string;
+} | null {
+  const custom = record(data.custom_data);
+  const userId = custom ? text(custom, "userId") : null;
+  const entitlementKey = custom ? text(custom, "entitlementKey") : null;
+  const priceLookupKey = custom ? text(custom, "priceLookupKey") : null;
+  if (!userId || !providerSubscriptionId || !entitlementKey || !priceLookupKey) return null;
+  const price = priceByLookupKey(priceLookupKey);
+  if (!price || price.amountCents <= 0 || price.entitlementKey !== entitlementKey) return null;
+  return {
+    userId,
+    entitlementKey,
+    priceLookupKey,
+    providerCustomerId: text(data, "customer_id"),
+    providerSubscriptionId,
+  };
+}
+
+function statusFor(eventType: string, raw: string | null): SubscriptionStatus | null {
+  switch (eventType) {
+    case "subscription.canceled":
+      return "canceled";
+    case "subscription.past_due":
+      return "past_due";
+    case "subscription.activated":
+    case "subscription.resumed":
+      return "active";
+    case "subscription.paused":
+      return "paused";
+    case "subscription.created":
+      return mapStatus(raw) === "trialing" ? "trialing" : null;
+    case "subscription.updated":
+      return mapStatus(raw);
+    default:
+      return null;
   }
-  const entitlementKey = text(metadata, "entitlementKey");
-  const priceLookupKey = text(metadata, "priceLookupKey");
-  if (!entitlementKey || !priceLookupKey) return null;
-  return { userId, entitlementKey, priceLookupKey, stripeCustomerId, stripeSubscriptionId };
 }
 
-function text(metadata: Stripe.Metadata | null | undefined, key: string): string | null {
-  const value = metadata?.[key];
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function idOf(value: string | { id: string } | null | undefined): string | null {
-  if (typeof value === "string" && value.length > 0) return value;
-  if (value && typeof value === "object" && typeof value.id === "string" && value.id.length > 0) return value.id;
-  return null;
-}
-
-function mapStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
+function mapStatus(status: string | null): SubscriptionStatus | null {
   switch (status) {
     case "active":
     case "trialing":
@@ -139,13 +170,35 @@ function mapStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
     case "canceled":
     case "unpaid":
     case "incomplete":
+    case "paused":
       return status;
     case "incomplete_expired":
-    case "paused":
-      return "unpaid";
-    default: {
-      const unreachable: never = status;
-      return unreachable;
-    }
+      return "incomplete";
+    default:
+      return null;
   }
+}
+
+function periodEnd(value: unknown): Date | null {
+  const period = record(value);
+  const ends = period ? text(period, "ends_at") : null;
+  if (!ends) return null;
+  const date = new Date(ends);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function eventAt(value: string | undefined): Date {
+  if (!value) return new Date(0);
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? new Date(ms) : new Date(0);
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function text(data: Record<string, unknown>, key: string): string | null {
+  const value = data[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
 }

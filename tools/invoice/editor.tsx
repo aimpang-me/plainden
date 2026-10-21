@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { PageActions } from "@/components/app-shell";
 import { UpgradePrompt } from "@/components/upgrade-prompt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -156,10 +158,11 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-12 min-[801px]:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-4 min-[901px]:grid-cols-2">
       <Card title={preview.heading}>
         <form
-          className="grid gap-3"
+          id="invoice-form"
+          className="grid gap-3 min-[701px]:grid-cols-2"
           onSubmit={(event) => {
             event.preventDefault();
             void onDownload();
@@ -191,17 +194,19 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           <Input label="Notes" name="notes" value={draft.notes} onChange={(event) => change({ type: "notes", value: event.target.value })} />
           <Select label="Template" name="template" value={draft.template} options={templateOptions} onChange={(event) => change({ type: "template", value: event.target.value })} />
           {draft.lines.map((line, index) => (
-            <div className="grid gap-3" key={line.key}>
+            <div className="col-span-full grid gap-3 min-[701px]:grid-cols-3" key={line.key}>
               <Input label={index === 0 ? "Description" : `Description ${index + 1}`} name={`description-${line.key}`} value={line.description} onChange={(event) => change({ type: "line.edit", key: line.key, field: "description", value: event.target.value })} />
               <Input label={index === 0 ? "Quantity" : `Quantity ${index + 1}`} name={`quantity-${line.key}`} value={line.quantity} onChange={(event) => change({ type: "line.edit", key: line.key, field: "quantity", value: event.target.value })} />
               <Input label={index === 0 ? "Unit price" : `Unit price ${index + 1}`} name={`price-${line.key}`} value={line.unitPrice} onChange={(event) => change({ type: "line.edit", key: line.key, field: "unitPrice", value: event.target.value })} />
             </div>
           ))}
-          <Button type="button" variant="plain" onClick={() => change({ type: "line.add" })}>
-            Add line
-          </Button>
+          <div className="col-span-full">
+            <Button type="button" variant="plain" onClick={() => change({ type: "line.add" })}>
+              Add line
+            </Button>
+          </div>
           {plan === "paid" && draft.kind === "invoice" ? (
-            <div className="grid gap-1">
+            <div className="col-span-full grid gap-1">
               <p>Saved clients</p>
               {clientsReady && clients.length === 0 ? <p>No saved clients yet.</p> : null}
               {clients.length > 0 ? (
@@ -213,29 +218,43 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
               ) : null}
             </div>
           ) : null}
-          {plan === "paid" ? <FileDrop label="Logo PNG or JPEG, 200 KB max" onFiles={(files) => void onLogo(files)} /> : null}
-          {plan === "free" ? <p>A logo is part of the paid plan.</p> : null}
-          <Button type="submit" disabled={!ready}>
-            Download PDF
-          </Button>
-          {ready && saveDecision.ok ? (
-            <Button type="button" variant="plain" onClick={() => void onSave()}>
-              Save
-            </Button>
+          {plan === "paid" ? (
+            <div className="col-span-full">
+              <FileDrop label="Logo PNG or JPEG, 200 KB max" onFiles={(files) => void onLogo(files)} />
+            </div>
           ) : null}
-          <Button type="button" variant="plain" onClick={() => void onLoad()}>
-            Load saved
-          </Button>
-          <p role="status">{message}</p>
-          {ready && blocked ? <UpgradePrompt reason={message} /> : null}
-          {ready && !saveDecision.ok ? <UpgradePrompt reason={visitorLimitCopy(draft.kind, saveDecision)} /> : null}
+          {plan === "free" ? <p className="col-span-full">A logo is part of the paid plan.</p> : null}
+          <PageActions>
+            <Button type="submit" form="invoice-form" disabled={!ready}>
+              Download PDF
+            </Button>
+            {ready && saveDecision.ok ? (
+              <Button type="button" variant="plain" onClick={() => void onSave()}>
+                Save
+              </Button>
+            ) : null}
+          </PageActions>
+          <div className="col-span-full">
+            <Button type="button" variant="plain" onClick={() => void onLoad()}>
+              Load saved
+            </Button>
+          </div>
+          <p className="col-span-full" role="status">{message}</p>
+          {ready && blocked ? (
+            <div className="col-span-full">
+              <UpgradePrompt reason={message} />
+            </div>
+          ) : null}
+          {ready && !saveDecision.ok ? (
+            <div className="col-span-full">
+              <UpgradePrompt reason={visitorLimitCopy(draft.kind, saveDecision)} />
+            </div>
+          ) : null}
         </form>
       </Card>
-      <div className="min-[801px]:sticky min-[801px]:top-6">
+      <div className="min-[901px]:sticky min-[901px]:top-[68px]">
       <Card title="Preview">
-        <p>
-          <span className="inline-block rounded-full bg-accent-soft px-2.5 py-0.5 text-xs text-accent">Live preview</span>
-        </p>
+        <p className="font-serif text-[22px]">{preview.heading}</p>
         <p>{preview.from.name}</p>
         {preview.from.address ? <p>{preview.from.address}</p> : null}
         <p>{preview.to.name}</p>
@@ -259,10 +278,25 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
         </p>
         <p className="flex items-baseline justify-between gap-4">
           <span>Total</span>
-          <span className="tabular-nums">{preview.total}</span>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={preview.total}
+              className="tabular-nums"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
+            >
+              {preview.total}
+            </motion.span>
+          </AnimatePresence>
         </p>
         {preview.notes ? <p>{preview.notes}</p> : null}
-        {preview.stamp ? <p>{preview.stamp}</p> : null}
+        {preview.stamp ? (
+          <p>
+            <span className="inline-flex rounded-full bg-paid px-2 py-0.5 text-[11px] text-paid-ink">{preview.stamp}</span>
+          </p>
+        ) : null}
         {preview.footer ? <p>{preview.footer}</p> : null}
         {preview.template !== draft.template ? <p>The free plan downloads the plain template.</p> : null}
       </Card>

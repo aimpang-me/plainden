@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { checkoutAction, portalAction } from "@/app/pricing/actions";
+import { checkoutAction } from "@/app/pricing/actions";
+import { openPaddleCheckout } from "@/components/paddle-checkout";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import {
@@ -26,25 +27,40 @@ const freeLimits = [
 ] as const;
 
 const cardClass =
-  "flex h-full flex-col gap-6 rounded-3xl border p-8 max-[800px]:p-6";
+  "flex h-full flex-col gap-5 rounded-[10px] border border-line bg-paper p-5 shadow-[0_1px_2px_rgba(40,30,10,0.05),0_4px_14px_rgba(40,30,10,0.05)]";
 
-export function PricingPlans() {
+export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) {
   const tools = singleToolPlans();
   const bundle = bundlePlan();
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [toolKey, setToolKey] = useState(tools[0]?.entitlementKey ?? "");
+  const [error, setError] = useState("");
   const selected = tools.find((tool) => tool.entitlementKey === toolKey) ?? tools[0];
 
+  async function startCheckout(formData: FormData) {
+    setError("");
+    const result = await checkoutAction(formData);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    try {
+      await openPaddleCheckout(result.transactionId);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Payments are not configured.");
+    }
+  }
+
   return (
-    <div className="grid grid-cols-1 gap-16">
+    <div className="grid grid-cols-1 gap-6">
       <BillingToggle interval={interval} onChange={setInterval} />
       <ul className="grid grid-cols-1 items-stretch gap-4 min-[801px]:grid-cols-3">
-        <li className={`${cardClass} border-line-soft bg-paper`}>
+        <li className={cardClass}>
           <PlanHeading name="Free" price="$0" />
           <FeatureList items={freeLimits} />
         </li>
         {selected ? (
-          <li className={`${cardClass} border-line-soft bg-paper`}>
+          <li className={cardClass}>
             <PlanHeading name="One tool" price={priceLabel(selected, interval)} />
             <FeatureList
               items={[
@@ -53,7 +69,7 @@ export function PricingPlans() {
                 "Cookie and refund policies are included with Privacy and terms.",
               ]}
             />
-            <form action={checkoutAction} className="mt-auto grid gap-4">
+            <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto grid gap-4">
               <input type="hidden" name="lookupKey" value={lookupKeyFor(selected, interval)} />
               <Select
                 label="Tool"
@@ -62,28 +78,29 @@ export function PricingPlans() {
                 options={tools.map((tool) => ({ value: tool.entitlementKey, label: tool.name }))}
                 onChange={(event) => setToolKey(event.target.value)}
               />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={!checkoutEnabled}>
                 Checkout
               </Button>
             </form>
           </li>
         ) : null}
-        <li className={`${cardClass} border-accent bg-accent-soft`}>
+        <li className={cardClass}>
           <PlanHeading name="All tools" price={priceLabel(bundle, interval)} recommended />
           <FeatureList items={["Limits removed on every tool."]} />
-          <form action={checkoutAction} className="mt-auto">
+          <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto">
             <input type="hidden" name="lookupKey" value={lookupKeyFor(bundle, interval)} />
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={!checkoutEnabled}>
               Checkout
             </Button>
           </form>
         </li>
       </ul>
-      <form action={portalAction}>
-        <Button type="submit" variant="plain">
-          Open billing portal
-        </Button>
-      </form>
+      {checkoutEnabled ? null : <p>Checkout is turned off.</p>}
+      {error ? (
+        <p role="alert" className="text-sm text-muted">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -96,7 +113,7 @@ function BillingToggle({
   onChange: (interval: BillingInterval) => void;
 }) {
   return (
-    <div className="grid justify-items-center gap-3">
+    <div className="grid justify-items-start gap-3">
       <fieldset className="w-fit">
         <legend className="sr-only">Billing period</legend>
         <div className="flex rounded-full bg-fill p-1">
@@ -126,7 +143,7 @@ function PeriodOption({
   onChange: (interval: BillingInterval) => void;
 }) {
   return (
-    <label className="relative inline-flex h-12 cursor-pointer items-center rounded-full px-4 text-sm font-medium has-[:checked]:bg-ink has-[:checked]:text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent">
+    <label className="relative inline-flex h-9 cursor-pointer items-center rounded-full px-3 text-[13px] font-medium has-[:checked]:bg-ink has-[:checked]:text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink">
       <input
         className="absolute inset-0 cursor-pointer opacity-0 focus-visible:outline-none"
         type="radio"
@@ -144,12 +161,12 @@ function PlanHeading({ name, price, recommended = false }: { name: string; price
   return (
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[28px] font-medium tracking-[-0.02em]">{name}</h2>
+        <h2 className="font-serif text-[22px] font-normal tracking-[-0.01em]">{name}</h2>
         {recommended ? (
-          <span className="inline-flex rounded-full bg-paper px-2.5 py-0.5 text-xs text-accent">Recommended</span>
+          <span className="inline-flex rounded-full bg-fill px-2.5 py-0.5 text-[11px] text-ink">Recommended</span>
         ) : null}
       </div>
-      <p className="text-[32px] font-medium tabular-nums tracking-[-0.02em]">{price}</p>
+      <p className="text-[28px] font-medium tabular-nums tracking-[-0.02em]">{price}</p>
     </div>
   );
 }
