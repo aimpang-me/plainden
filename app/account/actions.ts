@@ -4,17 +4,17 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isEmailAddress } from "@/lib/auth/email";
 import { getAuth } from "@/lib/auth/server";
-import { takeSignInLimit } from "@/lib/security/enforce-rate-limit";
+import { consumeSignInLimit } from "@/lib/security/enforce-rate-limit";
 
 export type MagicLinkResult = { ok: true } | { ok: false; error: string };
 
 export async function requestMagicLink(email: string, turnstileToken: string): Promise<MagicLinkResult> {
-  const headerList = new Headers(await headers());
-  const limited = await takeSignInLimit(headerList, email);
-  if (limited) return { ok: false, error: "Too many sign-in attempts. Try again later." };
   if (!isEmailAddress(email) || turnstileToken.length === 0) {
     return { ok: false, error: "Enter an email and complete the check." };
   }
+  const headerList = new Headers(await headers());
+  const limit = await consumeSignInLimit(headerList, email);
+  if (!limit.allowed) return { ok: false, error: "Too many sign-in attempts. Try again later." };
   try {
     headerList.set("x-captcha-response", turnstileToken);
     const auth = await getAuth();

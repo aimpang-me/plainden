@@ -1,3 +1,4 @@
+import type { RateDecision } from "./rateLimit";
 import { rateBuckets, rateLimitStore, type RateBucket } from "./rate-limit-store";
 
 export function clientAddress(headers: Headers): string {
@@ -9,19 +10,30 @@ export function clientAddress(headers: Headers): string {
   return "local";
 }
 
+export function consumeRateLimit(bucket: RateBucket, identity: string, nowMs = Date.now()): Promise<RateDecision> {
+  return rateLimitStore().consume(`${bucket}:${identity}`, rateBuckets[bucket], nowMs);
+}
+
+export async function consumeSignInLimit(headers: Headers, email: string): Promise<RateDecision> {
+  const address = clientAddress(headers);
+  const byAddress = await consumeRateLimit("sign-in-ip", address);
+  if (!byAddress.allowed) return byAddress;
+  return consumeRateLimit("sign-in", `${address}:${email.trim().toLowerCase()}`);
+}
+
 export async function takeRateLimit(bucket: RateBucket, identity: string, nowMs = Date.now()): Promise<Response | null> {
-  const decision = await rateLimitStore().consume(`${bucket}:${identity}`, rateBuckets[bucket], nowMs);
+  return tooManyRequests(await consumeRateLimit(bucket, identity, nowMs));
+}
+
+export async function takeSignInLimit(headers: Headers, email: string): Promise<Response | null> {
+  return tooManyRequests(await consumeSignInLimit(headers, email));
+}
+
+function tooManyRequests(decision: RateDecision): Response | null {
   if (decision.allowed) return null;
   const retryAfter = Math.max(1, Math.ceil(decision.retryAfterMs / 1000));
   return Response.json(
     { error: "rate-limited", message: "Too many requests. Try again later." },
     { status: 429, headers: { "retry-after": String(retryAfter) } },
   );
-}
-
-export async function takeSignInLimit(headers: Headers, email: string): Promise<Response | null> {
-  const address = clientAddress(headers);
-  const byAddress = await takeRateLimit("sign-in-ip", address);
-  if (byAddress) return byAddress;
-  return takeRateLimit("sign-in", `${address}:${email.trim().toLowerCase()}`);
 }

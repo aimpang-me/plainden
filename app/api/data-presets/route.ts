@@ -1,5 +1,6 @@
 import { clientAddress, takeRateLimit } from "@/lib/security/enforce-rate-limit";
-import { originAllowed, parseJsonBody, readLimitedBody } from "@/lib/security/origin";
+import { originAllowed } from "@/lib/security/origin";
+import { parseJsonBody, readLimitedBody } from "@/lib/security/body";
 import { deleteSavedPreset, listSavedPresets, saveSavedPreset, toPresetResponse } from "@/tools/data/saved-presets";
 import { requireUser } from "../invoices/require-user";
 

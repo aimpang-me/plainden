@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { clientAddress, takeRateLimit } from "@/lib/security/enforce-rate-limit";
-import { originAllowed, parseJsonBody, qrWriteLimit, readLimitedBody } from "@/lib/security/origin";
+import { originAllowed } from "@/lib/security/origin";
+import { parseJsonBody, qrWriteLimit, readLimitedBody } from "@/lib/security/body";
 import { parseCommand } from "@/tools/qr/contract";
 import { handle } from "@/tools/qr/saved";
 

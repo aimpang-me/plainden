@@ -27,13 +27,6 @@ export type RateDecision =
       count: number;
     };
 
-export type UnenforcedDecision = {
-  allowed: true;
-  enforced: false;
-  limit: number;
-  remaining: null;
-};
-
 export function rateRule(limit: number, windowMs: number): RateRule {
   if (!Number.isInteger(limit) || limit < 0) {
     throw new Error("limit must be a non-negative integer");
@@ -81,8 +74,4 @@ export function decideRateLimit(
     },
     next: { count: nextCount, windowStartedAtMs },
   };
-}
-
-export function unenforcedRateLimit(rule: RateRule): UnenforcedDecision {
-  return { allowed: true, enforced: false, limit: rule.limit, remaining: null };
 }

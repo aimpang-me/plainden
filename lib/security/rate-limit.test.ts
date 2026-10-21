@@ -87,3 +87,19 @@ test("takeRateLimit returns 429 once the bucket is full", async () => {
     message: "Too many requests. Try again later.",
   });
 });
+
+test("the memory store drops expired windows and caps how many keys it holds", async () => {
+  const rule = { limit: 1, windowMs: 1_000 };
+  const store = new MemoryRateLimitStore(3);
+  await store.consume("a", rule, 0);
+  await store.consume("b", rule, 0);
+  await store.consume("c", rule, 0);
+  expect((await store.consume("a", rule, 10)).allowed).toBe(false);
+  await store.consume("d", rule, 2_000);
+  expect(store.size).toBe(1);
+  await store.consume("e", rule, 2_000);
+  await store.consume("f", rule, 2_000);
+  await store.consume("g", rule, 2_000);
+  expect(store.size).toBe(3);
+  expect((await store.consume("d", rule, 2_001)).allowed).toBe(true);
+});
