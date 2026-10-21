@@ -1,12 +1,21 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { user, subscription } from "../../db/schema";
-import { getDb } from "../db/client";
+import { getDb, type AppDatabase } from "../db/client";
 import { priceByLookupKey } from "../pricing/catalog";
 import { isOpenSubscription } from "./access";
+import {
+  bindCheckoutIntent,
+  claimCheckoutIntent,
+  releaseCheckoutIntent,
+  waitForCheckoutTransaction,
+  type CheckoutClaim,
+} from "./checkout-intent";
 import { CheckoutError, PaymentsNotConfigured } from "./errors";
 import { record, text } from "./json";
 import { paddlePriceEnv } from "./subscription";
 import type { CheckoutInput, CheckoutResult, PortalInput, PortalResult } from "./types";
+
+type CheckoutAccount = { email: string; providerCustomerId: string | null };
 
 export async function createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const userId = userIdFrom(input.subject);
@@ -27,22 +36,8 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     const open = await openCheckoutFor(account.providerCustomerId, priceId);
     if (open) return { transactionId: open };
   }
-  const items = [{ price_id: priceId, quantity: 1 }];
-  const customData = { userId, priceLookupKey: price.lookupKey };
-  const payload = await paddle(
-    "POST",
-    "/transactions",
-    account.providerCustomerId
-      ? { items, custom_data: customData, customer_id: account.providerCustomerId }
-      : { items, custom_data: customData, customer: { email: account.email } },
-  );
-  const data = record(record(payload)?.data);
-  const transactionId = text(data, "id");
-  if (!transactionId) throw new CheckoutError("upstream", "Paddle did not return a transaction");
-  const customerId = text(data, "customer_id");
-  if (customerId && !account.providerCustomerId) {
-    await db.update(user).set({ providerCustomerId: customerId }).where(and(eq(user.id, userId), isNull(user.providerCustomerId)));
-  }
+  const claim = await claimCheckoutIntent(db, userId, price.lookupKey);
+  const transactionId = await transactionForClaim(db, claim, userId, price.lookupKey, priceId, account);
   return { transactionId };
 }
 
@@ -114,7 +109,99 @@ function assertCheckoutReady(): void {
   }
 }
 
-async function paddle(method: "GET" | "POST", path: string, body?: unknown): Promise<unknown> {
+async function transactionForClaim(
+  db: AppDatabase,
+  claim: CheckoutClaim,
+  userId: string,
+  priceLookupKey: string,
+  priceId: string,
+  account: CheckoutAccount,
+): Promise<string> {
+  switch (claim.kind) {
+    case "reuse":
+      return claim.transactionId;
+    case "owner":
+      return createOwnedTransaction(db, claim.id, userId, priceLookupKey, priceId, account);
+    case "wait":
+      return transactionAfterWait(db, userId, priceLookupKey, priceId, account);
+    default: {
+      const unreachable: never = claim;
+      throw new Error(`unknown checkout claim ${unreachable}`);
+    }
+  }
+}
+
+async function transactionAfterWait(
+  db: AppDatabase,
+  userId: string,
+  priceLookupKey: string,
+  priceId: string,
+  account: CheckoutAccount,
+): Promise<string> {
+  const waited = await waitForCheckoutTransaction(db, userId, priceLookupKey);
+  switch (waited.kind) {
+    case "reuse":
+      return waited.transactionId;
+    case "released": {
+      const retried = await claimCheckoutIntent(db, userId, priceLookupKey);
+      switch (retried.kind) {
+        case "owner":
+          return createOwnedTransaction(db, retried.id, userId, priceLookupKey, priceId, account);
+        case "reuse":
+          return retried.transactionId;
+        case "wait":
+          throw new CheckoutError("upstream", "Checkout is already in progress");
+        default: {
+          const unreachable: never = retried;
+          throw new Error(`unknown checkout claim ${unreachable}`);
+        }
+      }
+    }
+    default: {
+      const unreachable: never = waited;
+      throw new Error(`unknown checkout wait ${unreachable}`);
+    }
+  }
+}
+
+async function createOwnedTransaction(
+  db: AppDatabase,
+  intentId: string,
+  userId: string,
+  priceLookupKey: string,
+  priceId: string,
+  account: CheckoutAccount,
+): Promise<string> {
+  try {
+    const items = [{ price_id: priceId, quantity: 1 }];
+    const customData = { userId, priceLookupKey };
+    const payload = await paddle(
+      "POST",
+      "/transactions",
+      account.providerCustomerId
+        ? { items, custom_data: customData, customer_id: account.providerCustomerId }
+        : { items, custom_data: customData, customer: { email: account.email } },
+      intentId,
+    );
+    const data = record(record(payload)?.data);
+    const transactionId = text(data, "id");
+    if (!transactionId) throw new CheckoutError("upstream", "Paddle did not return a transaction");
+    const customerId = text(data, "customer_id");
+    if (customerId && !account.providerCustomerId) {
+      await db
+        .update(user)
+        .set({ providerCustomerId: customerId })
+        .where(and(eq(user.id, userId), isNull(user.providerCustomerId)));
+    }
+    await bindCheckoutIntent(db, intentId, transactionId);
+    return transactionId;
+  } catch (error) {
+    await releaseCheckoutIntent(db, intentId);
+    throw error;
+  }
+}
+
+async function paddle(method: "GET" | "POST", path: string, body?: unknown, idempotencyKey?: string): Promise<unknown> {
   const key = process.env.PADDLE_API_KEY;
   if (!key) throw new PaymentsNotConfigured();
   const base = process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "https://api.paddle.com" : "https://sandbox-api.paddle.com";
@@ -124,6 +211,7 @@ async function paddle(method: "GET" | "POST", path: string, body?: unknown): Pro
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
       "Paddle-Version": "1",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });

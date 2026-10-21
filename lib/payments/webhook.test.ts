@@ -209,19 +209,17 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
     calls.push(JSON.parse(String(init.body)));
     return new Response(JSON.stringify({ data: { id: "txn_1", customer_id: "ctm_saved" } }), { status: 200 });
   });
-  await createCheckout({
+  const month = {
     priceLookupKey: "plainden_pdf_month",
     subject: { userId: "user_1" },
     successPath: "/account",
     cancelPath: "/pricing",
-  });
-  await createCheckout({
-    priceLookupKey: "plainden_pdf_month",
-    subject: { userId: "user_1" },
-    successPath: "/account",
-    cancelPath: "/pricing",
-  });
-  expect(calls[0]).toEqual(expect.objectContaining({ customer: { email: "ada@example.com" } }));
+  };
+  await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_1" });
+  await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_1" });
+  expect(calls).toEqual([expect.objectContaining({ customer: { email: "ada@example.com" } })]);
+  process.env.PADDLE_PRICE_YEARLY = "pri_year";
+  await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" });
   expect(calls[1]).toEqual(expect.objectContaining({ customer_id: "ctm_saved" }));
   await db.insert(subscription).values({
     id: "sub_open",
@@ -464,6 +462,43 @@ test("an event that changes nothing yet is not marked processed and answers 409 
   expect(await processed(db)).toEqual(["evt_early", "evt_paid"]);
 });
 
+test("two concurrent checkouts for a new user create one Paddle transaction", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  let releaseFirst: () => void = () => {};
+  const holdFirst = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (init.method !== "POST") return Response.json({ data: [] });
+    posts.push(url);
+    if (posts.length === 1) await holdFirst;
+    return Response.json({ data: { id: "txn_race", customer_id: "ctm_race" } });
+  });
+  const input = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  const pending = Promise.all([createCheckout(input), createCheckout(input)]);
+  const started = Date.now();
+  while (posts.length === 0 && Date.now() - started < 2000) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  releaseFirst();
+  await expect(pending).resolves.toEqual([
+    { transactionId: "txn_race" },
+    { transactionId: "txn_race" },
+  ]);
+  expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
+});
+
 test("checkout failures carry a code and the browser sees safe copy", async () => {
   const db = await freshDb();
   await insertUser(db);
@@ -481,6 +516,15 @@ test("checkout failures carry a code and the browser sees safe copy", async () =
   expect(checkoutErrorCopy(failure)).toBe("Checkout could not start. Try again.");
   expect(checkoutErrorCopy(new CheckoutError("off", "Checkout is turned off."))).toBe("Checkout is turned off.");
   expect(checkoutErrorCopy(new Error("relation subscriptions does not exist"))).toBe("Checkout could not start.");
+  vi.stubGlobal("fetch", async () => Response.json({ data: { id: "txn_retry", customer_id: "ctm_retry" } }));
+  await expect(
+    createCheckout({
+      priceLookupKey: "plainden_pdf_month",
+      subject: { userId: "user_1" },
+      successPath: "/account",
+      cancelPath: "/pricing",
+    }),
+  ).resolves.toEqual({ transactionId: "txn_retry" });
 });
 
 async function processed(db: Awaited<ReturnType<typeof getDb>>): Promise<string[]> {

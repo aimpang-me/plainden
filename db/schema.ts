@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, check, integer, jsonb, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -129,6 +129,21 @@ export const processedEvent = pgTable("processed_events", {
   occurredAt: timestamp("occurredAt", { withTimezone: true, mode: "date" }).notNull(),
 });
 
+export const checkoutIntent = pgTable(
+  "checkout_intents",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    priceLookupKey: text("priceLookupKey").notNull(),
+    transactionId: text("transactionId"),
+    createdAt: timestamp("createdAt", { withTimezone: true, mode: "date" }).notNull(),
+    expiresAt: timestamp("expiresAt", { withTimezone: true, mode: "date" }).notNull(),
+  },
+  (table) => [unique("checkout_intents_user_price").on(table.userId, table.priceLookupKey)],
+);
+
 export const schema = {
   user,
   session,
@@ -136,6 +151,7 @@ export const schema = {
   verification,
   subscription,
   processedEvent,
+  checkoutIntent,
   usage,
   savedInvoice,
   qrCode,
@@ -149,6 +165,7 @@ export const tables = [
   verification,
   subscription,
   processedEvent,
+  checkoutIntent,
   usage,
   savedInvoice,
   qrCode,
