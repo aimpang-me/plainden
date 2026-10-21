@@ -45,7 +45,7 @@ export function SignInForm() {
   }
 
   return (
-    <form className="mx-auto grid w-full max-w-sm gap-4" onSubmit={onSubmit}>
+    <form className="grid w-full max-w-sm gap-4" onSubmit={onSubmit}>
       <Input label="Email" name="email" type="email" autoComplete="email" required />
       <div ref={widget} />
       <Button type="submit" className="w-full" disabled={pending || token.length === 0}>

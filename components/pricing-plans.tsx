@@ -26,7 +26,7 @@ const freeLimits = [
 ] as const;
 
 const cardClass =
-  "flex h-full flex-col gap-6 rounded-3xl border p-8 max-[800px]:p-6";
+  "flex h-full flex-col gap-5 rounded-[10px] border border-line bg-paper p-5 shadow-[0_1px_2px_rgba(40,30,10,0.05),0_4px_14px_rgba(40,30,10,0.05)]";
 
 export function PricingPlans() {
   const tools = singleToolPlans();
@@ -36,15 +36,15 @@ export function PricingPlans() {
   const selected = tools.find((tool) => tool.entitlementKey === toolKey) ?? tools[0];
 
   return (
-    <div className="grid grid-cols-1 gap-16">
+    <div className="grid grid-cols-1 gap-6">
       <BillingToggle interval={interval} onChange={setInterval} />
       <ul className="grid grid-cols-1 items-stretch gap-4 min-[801px]:grid-cols-3">
-        <li className={`${cardClass} border-line-soft bg-paper`}>
+        <li className={cardClass}>
           <PlanHeading name="Free" price="$0" />
           <FeatureList items={freeLimits} />
         </li>
         {selected ? (
-          <li className={`${cardClass} border-line-soft bg-paper`}>
+          <li className={cardClass}>
             <PlanHeading name="One tool" price={priceLabel(selected, interval)} />
             <FeatureList
               items={[
@@ -68,7 +68,7 @@ export function PricingPlans() {
             </form>
           </li>
         ) : null}
-        <li className={`${cardClass} border-accent bg-accent-soft`}>
+        <li className={cardClass}>
           <PlanHeading name="All tools" price={priceLabel(bundle, interval)} recommended />
           <FeatureList items={["Limits removed on every tool."]} />
           <form action={checkoutAction} className="mt-auto">
@@ -96,7 +96,7 @@ function BillingToggle({
   onChange: (interval: BillingInterval) => void;
 }) {
   return (
-    <div className="grid justify-items-center gap-3">
+    <div className="grid justify-items-start gap-3">
       <fieldset className="w-fit">
         <legend className="sr-only">Billing period</legend>
         <div className="flex rounded-full bg-fill p-1">
@@ -126,7 +126,7 @@ function PeriodOption({
   onChange: (interval: BillingInterval) => void;
 }) {
   return (
-    <label className="relative inline-flex h-12 cursor-pointer items-center rounded-full px-4 text-sm font-medium has-[:checked]:bg-ink has-[:checked]:text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent">
+    <label className="relative inline-flex h-9 cursor-pointer items-center rounded-full px-3 text-[13px] font-medium has-[:checked]:bg-ink has-[:checked]:text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink">
       <input
         className="absolute inset-0 cursor-pointer opacity-0 focus-visible:outline-none"
         type="radio"
@@ -144,12 +144,12 @@ function PlanHeading({ name, price, recommended = false }: { name: string; price
   return (
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[28px] font-medium tracking-[-0.02em]">{name}</h2>
+        <h2 className="font-serif text-[22px] font-normal tracking-[-0.01em]">{name}</h2>
         {recommended ? (
-          <span className="inline-flex rounded-full bg-paper px-2.5 py-0.5 text-xs text-accent">Recommended</span>
+          <span className="inline-flex rounded-full bg-fill px-2.5 py-0.5 text-[11px] text-ink">Recommended</span>
         ) : null}
       </div>
-      <p className="text-[32px] font-medium tabular-nums tracking-[-0.02em]">{price}</p>
+      <p className="text-[28px] font-medium tabular-nums tracking-[-0.02em]">{price}</p>
     </div>
   );
 }

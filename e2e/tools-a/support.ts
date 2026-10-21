@@ -132,7 +132,7 @@ export async function signIn(page: Page, info: TestInfo): Promise<void> {
   await expect(page.getByRole("status")).toHaveText("Check your email for a sign-in link.");
   const link = await readMagicLink(email);
   await page.goto(link);
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page.getByText(email)).toHaveCount(1);
 }
 
 export async function seedAllToolsPlan(page: Page): Promise<void> {
