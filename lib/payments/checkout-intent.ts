@@ -3,78 +3,30 @@ import { eq, sql } from "drizzle-orm";
 import { checkoutIntent } from "../../db/schema";
 import type { AppDatabase } from "../db/client";
 import { CheckoutError } from "./errors";
+import { record, text } from "./json";
 
-const openForMs = 30 * 60 * 1000;
 const waitForMs = 10_000;
-const pollMs = 20;
+const pollMs = 250;
 
-export type CheckoutClaim =
-  | { kind: "owner"; id: string }
-  | { kind: "reuse"; transactionId: string }
-  | { kind: "wait" };
+export type AcquiredCheckout = { ownerId: string } | { transactionId: string };
 
-type IntentRow = {
-  id: string;
-  transactionId: string | null;
-  expiresAt: Date;
-};
-
-export async function claimCheckoutIntent(
-  db: AppDatabase,
-  userId: string,
-  priceLookupKey: string,
-  now = new Date(),
-): Promise<CheckoutClaim> {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const claim = await insertIntent(db, userId, priceLookupKey, attempt === 0 ? now : new Date());
-    if (claim.kind !== "retry") return claim;
+export async function acquireCheckout(db: AppDatabase, userId: string, priceLookupKey: string): Promise<AcquiredCheckout> {
+  const deadline = Date.now() + waitForMs;
+  for (;;) {
+    const claimed = await claimOnce(db, userId, priceLookupKey);
+    if (claimed.kind === "owner") return { ownerId: claimed.id };
+    if (claimed.kind === "reuse") return { transactionId: claimed.transactionId };
+    if (Date.now() >= deadline) throw new CheckoutError("upstream", "Checkout is already in progress");
+    await delay(pollMs);
   }
-  throw new CheckoutError("upstream", "Checkout is already in progress");
 }
 
-export async function bindCheckoutIntent(
-  db: AppDatabase,
-  id: string,
-  transactionId: string,
-  now = new Date(),
-): Promise<void> {
-  const expiresAt = new Date(now.getTime() + openForMs);
-  await db.update(checkoutIntent).set({ transactionId, expiresAt }).where(eq(checkoutIntent.id, id));
-}
-
-async function insertIntent(
-  db: AppDatabase,
-  userId: string,
-  priceLookupKey: string,
-  now: Date,
-): Promise<CheckoutClaim | { kind: "retry" }> {
-  const id = randomUUID();
-  const expiresAt = new Date(now.getTime() + openForMs);
-  const claimed = await db.execute(sql`
-    INSERT INTO "checkout_intents" ("id", "userId", "priceLookupKey", "transactionId", "createdAt", "expiresAt")
-    VALUES (${id}, ${userId}, ${priceLookupKey}, NULL, ${now}, ${expiresAt})
-    ON CONFLICT ("userId", "priceLookupKey") DO UPDATE
-    SET
-      "id" = excluded."id",
-      "transactionId" = NULL,
-      "createdAt" = excluded."createdAt",
-      "expiresAt" = excluded."expiresAt"
-    WHERE "checkout_intents"."expiresAt" <= ${now}
-    RETURNING "id", "transactionId"
+export async function bindCheckoutIntent(db: AppDatabase, id: string, transactionId: string): Promise<void> {
+  await db.execute(sql`
+    UPDATE "checkout_intents"
+    SET "transactionId" = ${transactionId}, "expiresAt" = now() + interval '30 minutes'
+    WHERE "id" = ${id}
   `);
-  const row = claimedRow(claimed.rows[0]);
-  if (row?.id === id) return { kind: "owner", id };
-  if (row?.transactionId) return { kind: "reuse", transactionId: row.transactionId };
-  const existing = await readIntent(db, userId, priceLookupKey);
-  if (!existing || existing.expiresAt.getTime() <= now.getTime()) {
-    await db.execute(sql`
-      DELETE FROM "checkout_intents"
-      WHERE "userId" = ${userId} AND "priceLookupKey" = ${priceLookupKey} AND "expiresAt" <= ${now}
-    `);
-    return { kind: "retry" };
-  }
-  if (existing.transactionId) return { kind: "reuse", transactionId: existing.transactionId };
-  return { kind: "wait" };
 }
 
 export async function releaseCheckoutIntent(db: AppDatabase, id: string): Promise<void> {
@@ -84,48 +36,32 @@ export async function releaseCheckoutIntent(db: AppDatabase, id: string): Promis
   `);
 }
 
-export async function waitForCheckoutTransaction(
-  db: AppDatabase,
-  userId: string,
-  priceLookupKey: string,
-): Promise<{ kind: "reuse"; transactionId: string } | { kind: "released" }> {
-  const deadline = Date.now() + waitForMs;
-  while (Date.now() <= deadline) {
-    const existing = await readIntent(db, userId, priceLookupKey);
-    if (existing?.transactionId) return { kind: "reuse", transactionId: existing.transactionId };
-    if (!existing) return { kind: "released" };
-    await delay(pollMs);
-  }
-  throw new CheckoutError("upstream", "Checkout is already in progress");
-}
+type ClaimOnce = { kind: "owner"; id: string } | { kind: "reuse"; transactionId: string } | { kind: "wait" };
 
-async function readIntent(db: AppDatabase, userId: string, priceLookupKey: string): Promise<IntentRow | null> {
-  const result = await db.execute(sql`
-    SELECT "id", "transactionId", "expiresAt"
-    FROM "checkout_intents"
-    WHERE "userId" = ${userId} AND "priceLookupKey" = ${priceLookupKey}
+async function claimOnce(db: AppDatabase, userId: string, priceLookupKey: string): Promise<ClaimOnce> {
+  const id = randomUUID();
+  const claimed = await db.execute(sql`
+    INSERT INTO "checkout_intents" ("id", "userId", "priceLookupKey", "transactionId", "createdAt", "expiresAt")
+    VALUES (${id}, ${userId}, ${priceLookupKey}, NULL, now(), now() + interval '60 seconds')
+    ON CONFLICT ("userId") DO UPDATE
+    SET
+      "id" = excluded."id",
+      "priceLookupKey" = excluded."priceLookupKey",
+      "transactionId" = NULL,
+      "createdAt" = now(),
+      "expiresAt" = now() + interval '60 seconds'
+    WHERE "checkout_intents"."expiresAt" <= now()
+    RETURNING "id", "priceLookupKey", "transactionId"
   `);
-  return intentRow(result.rows[0]);
-}
-
-function claimedRow(value: unknown): { id: string; transactionId: string | null } | null {
-  if (!value || typeof value !== "object") return null;
-  const row = value as { id?: unknown; transactionId?: unknown };
-  if (typeof row.id !== "string") return null;
-  return { id: row.id, transactionId: textOrNull(row.transactionId) };
-}
-
-function intentRow(value: unknown): IntentRow | null {
-  if (!value || typeof value !== "object") return null;
-  const row = value as { id?: unknown; transactionId?: unknown; expiresAt?: unknown };
-  if (typeof row.id !== "string") return null;
-  const expiresAt = row.expiresAt instanceof Date ? row.expiresAt : new Date(String(row.expiresAt));
-  if (Number.isNaN(expiresAt.getTime())) return null;
-  return { id: row.id, transactionId: textOrNull(row.transactionId), expiresAt };
-}
-
-function textOrNull(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
+  const returned = record(claimed.rows[0]);
+  if (text(returned, "id") === id) return { kind: "owner", id };
+  const [existing] = await db.select().from(checkoutIntent).where(eq(checkoutIntent.userId, userId)).limit(1);
+  if (!existing) return { kind: "wait" };
+  if (existing.priceLookupKey !== priceLookupKey) {
+    throw new CheckoutError("open-checkout", "Finish or cancel your open checkout first.");
+  }
+  if (existing.transactionId) return { kind: "reuse", transactionId: existing.transactionId };
+  return { kind: "wait" };
 }
 
 function delay(ms: number): Promise<void> {

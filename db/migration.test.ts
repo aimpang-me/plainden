@@ -1,9 +1,18 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { expect, test } from "vitest";
 
 const migrationDir = path.join(process.cwd(), "db/migrations");
+
+test("every migration journal entry has a drizzle snapshot", () => {
+  const journal = JSON.parse(readFileSync(path.join(migrationDir, "meta/_journal.json"), "utf8")) as {
+    entries: { idx: number; tag: string }[];
+  };
+  expect(journal.entries.map((entry) => existsSync(path.join(migrationDir, "meta", `${String(entry.idx).padStart(4, "0")}_snapshot.json`)))).toEqual(
+    journal.entries.map(() => true),
+  );
+});
 
 test("the generated migration applies on PGlite and stores a data preset", async () => {
   const files = readdirSync(migrationDir)
@@ -14,6 +23,7 @@ test("the generated migration applies on PGlite and stores a data preset", async
     "0001_paddle_provider.sql",
     "0002_cancel_at.sql",
     "0003_checkout_intents.sql",
+    "0004_checkout_intent_user.sql",
   ]);
   const client = new PGlite();
   try {
@@ -63,6 +73,12 @@ test("the generated migration applies on PGlite and stores a data preset", async
       client.query(
         `insert into "checkout_intents" ("id", "userId", "priceLookupKey", "createdAt", "expiresAt") values ($1, $2, $3, $4, $5)`,
         ["intent_2", "user_1", "plainden_pdf_month", now, now],
+      ),
+    ).rejects.toThrow("duplicate key");
+    await expect(
+      client.query(
+        `insert into "checkout_intents" ("id", "userId", "priceLookupKey", "createdAt", "expiresAt") values ($1, $2, $3, $4, $5)`,
+        ["intent_year", "user_1", "plainden_pdf_year", now, now],
       ),
     ).rejects.toThrow("duplicate key");
   } finally {

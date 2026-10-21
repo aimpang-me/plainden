@@ -25,6 +25,7 @@ export type CheckoutErrorCode =
   | "unknown-price"
   | "site-url"
   | "already-subscribed"
+  | "open-checkout"
   | "no-customer"
   | "no-subscription"
   | "upstream";
@@ -45,6 +46,7 @@ const checkoutCopy: Record<CheckoutErrorCode, string> = {
   "unknown-price": "That plan is not available.",
   "site-url": "Checkout could not start.",
   "already-subscribed": "You already have a subscription. Manage billing to change it.",
+  "open-checkout": "Finish or cancel your open checkout first.",
   "no-customer": "No billing account yet.",
   "no-subscription": "No active subscription.",
   upstream: "Checkout could not start. Try again.",

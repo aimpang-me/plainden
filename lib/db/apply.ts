@@ -56,6 +56,15 @@ export async function applySchema(db: { execute: (query: SQL) => Promise<unknown
   }
   await db.execute(sql.raw(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "providerCustomerId" text`));
   await db.execute(sql.raw(`ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "cancelAt" timestamp with time zone`));
+  await db.execute(sql.raw(`ALTER TABLE "checkout_intents" DROP CONSTRAINT IF EXISTS "checkout_intents_user_price"`));
+  await db.execute(sql.raw(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'checkout_intents_userId_unique') THEN
+        ALTER TABLE "checkout_intents" ADD CONSTRAINT "checkout_intents_userId_unique" UNIQUE ("userId");
+      END IF;
+    END $$;
+  `));
   await db.execute(sql.raw(`CREATE UNIQUE INDEX IF NOT EXISTS "user_providerCustomerId_unique" ON "user" ("providerCustomerId")`));
   await db.execute(sql.raw(`
     DO $$

@@ -4,11 +4,9 @@ import { getDb, type AppDatabase } from "../db/client";
 import { priceByLookupKey } from "../pricing/catalog";
 import { isOpenSubscription } from "./access";
 import {
+  acquireCheckout,
   bindCheckoutIntent,
-  claimCheckoutIntent,
   releaseCheckoutIntent,
-  waitForCheckoutTransaction,
-  type CheckoutClaim,
 } from "./checkout-intent";
 import { CheckoutError, PaymentsNotConfigured } from "./errors";
 import { record, text } from "./json";
@@ -36,8 +34,9 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     const open = await openCheckoutFor(account.providerCustomerId, priceId);
     if (open) return { transactionId: open };
   }
-  const claim = await claimCheckoutIntent(db, userId, price.lookupKey);
-  const transactionId = await transactionForClaim(db, claim, userId, price.lookupKey, priceId, account);
+  const acquired = await acquireCheckout(db, userId, price.lookupKey);
+  if ("transactionId" in acquired) return { transactionId: acquired.transactionId };
+  const transactionId = await createOwnedTransaction(db, acquired.ownerId, userId, price.lookupKey, priceId, account);
   return { transactionId };
 }
 
@@ -109,61 +108,6 @@ function assertCheckoutReady(): void {
   }
 }
 
-async function transactionForClaim(
-  db: AppDatabase,
-  claim: CheckoutClaim,
-  userId: string,
-  priceLookupKey: string,
-  priceId: string,
-  account: CheckoutAccount,
-): Promise<string> {
-  switch (claim.kind) {
-    case "reuse":
-      return claim.transactionId;
-    case "owner":
-      return createOwnedTransaction(db, claim.id, userId, priceLookupKey, priceId, account);
-    case "wait":
-      return transactionAfterWait(db, userId, priceLookupKey, priceId, account);
-    default: {
-      const unreachable: never = claim;
-      throw new Error(`unknown checkout claim ${unreachable}`);
-    }
-  }
-}
-
-async function transactionAfterWait(
-  db: AppDatabase,
-  userId: string,
-  priceLookupKey: string,
-  priceId: string,
-  account: CheckoutAccount,
-): Promise<string> {
-  const waited = await waitForCheckoutTransaction(db, userId, priceLookupKey);
-  switch (waited.kind) {
-    case "reuse":
-      return waited.transactionId;
-    case "released": {
-      const retried = await claimCheckoutIntent(db, userId, priceLookupKey);
-      switch (retried.kind) {
-        case "owner":
-          return createOwnedTransaction(db, retried.id, userId, priceLookupKey, priceId, account);
-        case "reuse":
-          return retried.transactionId;
-        case "wait":
-          throw new CheckoutError("upstream", "Checkout is already in progress");
-        default: {
-          const unreachable: never = retried;
-          throw new Error(`unknown checkout claim ${unreachable}`);
-        }
-      }
-    }
-    default: {
-      const unreachable: never = waited;
-      throw new Error(`unknown checkout wait ${unreachable}`);
-    }
-  }
-}
-
 async function createOwnedTransaction(
   db: AppDatabase,
   intentId: string,
@@ -181,7 +125,6 @@ async function createOwnedTransaction(
       account.providerCustomerId
         ? { items, custom_data: customData, customer_id: account.providerCustomerId }
         : { items, custom_data: customData, customer: { email: account.email } },
-      intentId,
     );
     const data = record(record(payload)?.data);
     const transactionId = text(data, "id");
@@ -201,7 +144,7 @@ async function createOwnedTransaction(
   }
 }
 
-async function paddle(method: "GET" | "POST", path: string, body?: unknown, idempotencyKey?: string): Promise<unknown> {
+async function paddle(method: "GET" | "POST", path: string, body?: unknown): Promise<unknown> {
   const key = process.env.PADDLE_API_KEY;
   if (!key) throw new PaymentsNotConfigured();
   const base = process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "https://api.paddle.com" : "https://sandbox-api.paddle.com";
@@ -211,7 +154,6 @@ async function paddle(method: "GET" | "POST", path: string, body?: unknown, idem
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
       "Paddle-Version": "1",
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
