@@ -15,6 +15,13 @@
       "when": 1761010000000,
       "tag": "0001_paddle_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792593388289,
+      "tag": "0002_cancel_at",
+      "breakpoints": true
     }
   ]
 }
