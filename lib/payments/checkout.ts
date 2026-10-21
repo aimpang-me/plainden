@@ -34,7 +34,7 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     const open = await openCheckoutFor(account.providerCustomerId, priceId);
     if (open) return { transactionId: open };
   }
-  const acquired = await acquireCheckout(db, userId, price.lookupKey);
+  const acquired = await acquireCheckout(db, userId, price.lookupKey, cancelUnpaidTransaction);
   if ("transactionId" in acquired) return { transactionId: acquired.transactionId };
   const transactionId = await createOwnedTransaction(db, acquired.ownerId, userId, price.lookupKey, priceId, account);
   return { transactionId };
@@ -136,7 +136,11 @@ async function createOwnedTransaction(
         .set({ providerCustomerId: customerId })
         .where(and(eq(user.id, userId), isNull(user.providerCustomerId)));
     }
-    await bindCheckoutIntent(db, intentId, transactionId);
+    const bound = await bindCheckoutIntent(db, intentId, transactionId);
+    if (!bound) {
+      await cancelUnpaidTransaction(transactionId);
+      throw new CheckoutError("upstream", "Checkout is already in progress");
+    }
     return transactionId;
   } catch (error) {
     await releaseCheckoutIntent(db, intentId);
@@ -144,19 +148,40 @@ async function createOwnedTransaction(
   }
 }
 
-async function paddle(method: "GET" | "POST", path: string, body?: unknown): Promise<unknown> {
+async function cancelUnpaidTransaction(transactionId: string): Promise<"canceled" | "paid"> {
+  const path = `/transactions/${encodeURIComponent(transactionId)}`;
+  try {
+    await paddle("PATCH", path, { status: "canceled" });
+    return "canceled";
+  } catch (error) {
+    if (!(error instanceof CheckoutError)) throw error;
+    const payload = await paddle("GET", path);
+    const status = text(record(record(payload)?.data), "status");
+    if (status === "canceled") return "canceled";
+    if (status === "completed" || status === "billed" || status === "paid") return "paid";
+    throw error;
+  }
+}
+
+async function paddle(method: "GET" | "POST" | "PATCH", path: string, body?: unknown): Promise<unknown> {
   const key = process.env.PADDLE_API_KEY;
   if (!key) throw new PaymentsNotConfigured();
   const base = process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "https://api.paddle.com" : "https://sandbox-api.paddle.com";
-  const response = await fetch(`${base}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      "Paddle-Version": "1",
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "Paddle-Version": "1",
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch {
+    throw new CheckoutError("upstream", "Paddle refused the request");
+  }
   if (!response.ok) throw new CheckoutError("upstream", "Paddle refused the request");
   return response.json();
 }

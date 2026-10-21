@@ -29,6 +29,7 @@ afterEach(async () => {
   delete process.env.CHECKOUT_ENABLED;
   delete process.env.NEXT_PUBLIC_SITE_URL;
   delete process.env.BETTER_AUTH_URL;
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
@@ -205,11 +206,15 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
   process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
   process.env.PADDLE_PRICE_MONTHLY = "pri_month";
   process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
-  const calls: unknown[] = [];
-  vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
-    if (init.method === "GET") return Response.json({ data: [] });
-    calls.push(JSON.parse(String(init.body)));
-    return new Response(JSON.stringify({ data: { id: "txn_1", customer_id: "ctm_saved" } }), { status: 200 });
+  const calls: Array<{ method: string; url: string; body: unknown }> = [];
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    const method = init.method ?? "GET";
+    if (method === "GET") return Response.json({ data: [] });
+    const body = JSON.parse(String(init.body));
+    calls.push({ method, url: String(url), body });
+    if (method === "PATCH") return Response.json({ data: { id: "txn_1", status: "canceled" } });
+    const id = calls.filter((call) => call.method === "POST").length === 1 ? "txn_1" : "txn_year";
+    return Response.json({ data: { id, customer_id: "ctm_saved" } });
   });
   const month = {
     priceLookupKey: "plainden_pdf_month",
@@ -219,14 +224,21 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
   };
   await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_1" });
   await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_1" });
-  expect(calls).toEqual([expect.objectContaining({ customer: { email: "ada@example.com" } })]);
+  expect(calls).toEqual([
+    expect.objectContaining({ method: "POST", body: expect.objectContaining({ customer: { email: "ada@example.com" } }) }),
+  ]);
   process.env.PADDLE_PRICE_YEARLY = "pri_year";
-  await expect(createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" })).rejects.toThrow(
-    "Finish or cancel your open checkout first.",
+  await expect(createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" })).resolves.toEqual({
+    transactionId: "txn_year",
+  });
+  expect(calls[1]).toEqual({
+    method: "PATCH",
+    url: "https://sandbox-api.paddle.com/transactions/txn_1",
+    body: { status: "canceled" },
+  });
+  expect(calls[2]).toEqual(
+    expect.objectContaining({ method: "POST", body: expect.objectContaining({ customer_id: "ctm_saved" }) }),
   );
-  await db.execute(sql`UPDATE "checkout_intents" SET "expiresAt" = now() - interval '1 second'`);
-  await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" });
-  expect(calls[1]).toEqual(expect.objectContaining({ customer_id: "ctm_saved" }));
   await db.insert(subscription).values({
     id: "sub_open",
     userId: "user_1",
@@ -246,7 +258,7 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
       cancelPath: "/pricing",
     }),
   ).rejects.toThrow("You already have a subscription. Manage billing to change it.");
-  expect(calls).toHaveLength(2);
+  expect(calls).toHaveLength(3);
   process.env.CHECKOUT_ENABLED = "false";
   await expect(createPortal({ subject: { userId: "user_1" }, returnPath: "/account" })).rejects.toThrow("Checkout is turned off.");
   delete process.env.CHECKOUT_ENABLED;
@@ -518,10 +530,15 @@ test("a second price is refused while one checkout is open", async () => {
     releaseFirst = resolve;
   });
   vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (init.method === "PATCH") {
+      posts.push(url);
+      return Response.json({ data: { id: "txn_month", status: "canceled" } });
+    }
     if (init.method !== "POST") return Response.json({ data: [] });
     posts.push(url);
     if (posts.length === 1) await holdFirst;
-    return Response.json({ data: { id: "txn_month", customer_id: "ctm_race" } });
+    const id = posts.filter((item) => item.endsWith("/transactions")).length === 1 ? "txn_month" : "txn_year";
+    return Response.json({ data: { id, customer_id: "ctm_race" } });
   });
   const month = {
     priceLookupKey: "plainden_pdf_month",
@@ -541,10 +558,155 @@ test("a second price is refused while one checkout is open", async () => {
   expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
   releaseFirst();
   await expect(pending).resolves.toEqual({ transactionId: "txn_month" });
-  const again = await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" }).catch((error: unknown) => error);
-  expect(again).toBeInstanceOf(CheckoutError);
-  expect(checkoutErrorCopy(again)).toBe("Finish or cancel your open checkout first.");
-  expect(posts).toEqual(["https://sandbox-api.paddle.com/transactions"]);
+  await expect(createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" })).resolves.toEqual({
+    transactionId: "txn_year",
+  });
+  expect(posts).toEqual([
+    "https://sandbox-api.paddle.com/transactions",
+    "https://sandbox-api.paddle.com/transactions/txn_month",
+    "https://sandbox-api.paddle.com/transactions",
+  ]);
+});
+
+test("a paid transaction is not canceled when the price changes", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.PADDLE_PRICE_YEARLY = "pri_year";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    const method = init.method ?? "GET";
+    if (method === "GET" && String(url).endsWith("/transactions/txn_paid")) {
+      return Response.json({ data: { id: "txn_paid", status: "completed" } });
+    }
+    if (method === "GET") return Response.json({ data: [] });
+    posts.push(`${method} ${url}`);
+    if (method === "PATCH") return new Response("already completed", { status: 409 });
+    return Response.json({ data: { id: "txn_paid", customer_id: "ctm_paid" } });
+  });
+  const month = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_paid" });
+  const year = await createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" }).catch((error: unknown) => error);
+  expect(year).toBeInstanceOf(CheckoutError);
+  expect((year as CheckoutError).code).toBe("open-checkout");
+  expect(posts).toEqual([
+    "POST https://sandbox-api.paddle.com/transactions",
+    "PATCH https://sandbox-api.paddle.com/transactions/txn_paid",
+  ]);
+});
+
+test("a canceled transaction can be replaced with the other price", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.PADDLE_PRICE_YEARLY = "pri_year";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    const method = init.method ?? "GET";
+    if (method === "GET" && String(url).endsWith("/transactions/txn_old")) {
+      return Response.json({ data: { id: "txn_old", status: "canceled" } });
+    }
+    if (method === "GET") return Response.json({ data: [] });
+    posts.push(`${method} ${url}`);
+    if (method === "PATCH") return new Response("already canceled", { status: 409 });
+    const id = posts.filter((item) => item.startsWith("POST")).length === 1 ? "txn_old" : "txn_year";
+    return Response.json({ data: { id, customer_id: "ctm_old" } });
+  });
+  const month = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_old" });
+  await expect(createCheckout({ ...month, priceLookupKey: "plainden_pdf_year" })).resolves.toEqual({
+    transactionId: "txn_year",
+  });
+  expect(posts).toEqual([
+    "POST https://sandbox-api.paddle.com/transactions",
+    "PATCH https://sandbox-api.paddle.com/transactions/txn_old",
+    "POST https://sandbox-api.paddle.com/transactions",
+  ]);
+});
+
+test("a checkout that loses its intent does not return the orphan transaction", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const posts: string[] = [];
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    const method = init.method ?? "GET";
+    if (method === "GET") return Response.json({ data: { id: "txn_orphan", status: "canceled" } });
+    posts.push(`${method} ${url}`);
+    if (method === "PATCH") return Response.json({ data: { id: "txn_orphan", status: "canceled" } });
+    await db.execute(sql`UPDATE "checkout_intents" SET "id" = 'replaced' WHERE "userId" = 'user_1'`);
+    return Response.json({ data: { id: "txn_orphan", customer_id: "ctm_orphan" } });
+  });
+  const failure = await createCheckout({
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(CheckoutError);
+  expect((failure as CheckoutError).code).toBe("upstream");
+  expect(checkoutErrorCopy(failure)).toBe("Checkout could not start. Try again.");
+  expect(posts).toEqual([
+    "POST https://sandbox-api.paddle.com/transactions",
+    "PATCH https://sandbox-api.paddle.com/transactions/txn_orphan",
+  ]);
+  const left = await db.execute(sql`SELECT "id", "transactionId" FROM "checkout_intents"`);
+  expect(left.rows).toEqual([{ id: "replaced", transactionId: null }]);
+});
+
+test("a hung Paddle call stops within twenty seconds and releases the checkout", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const timeout = vi.spyOn(AbortSignal, "timeout").mockImplementation((ms: number) => {
+    if (ms !== 20_000) throw new Error(`Paddle timeout is ${ms}`);
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 0);
+    return controller.signal;
+  });
+  let calls = 0;
+  vi.stubGlobal("fetch", (_url: string, init: RequestInit) => {
+    calls += 1;
+    if (calls > 1) return Promise.resolve(Response.json({ data: { id: "txn_after", customer_id: "ctm_after" } }));
+    return new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted", "AbortError"));
+      });
+    });
+  });
+  const input = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  try {
+    const failure = await createCheckout(input).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(CheckoutError);
+    expect((failure as CheckoutError).code).toBe("upstream");
+    expect(timeout).toHaveBeenCalledWith(20_000);
+  } finally {
+    timeout.mockRestore();
+  }
+  await expect(createCheckout(input)).resolves.toEqual({ transactionId: "txn_after" });
 });
 
 test("an expired unbound checkout is taken over with a one minute lease", async () => {
