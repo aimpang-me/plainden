@@ -2,9 +2,8 @@ import { and, eq, or } from "drizzle-orm";
 import { subscription } from "../../db/schema";
 import type { Entitlement, Subject } from "../contract/types";
 import { getDb } from "../db/client";
+import { subscriptionGrantsAccess } from "../payments/access";
 import { parseSubject } from "./subject";
-
-const entitledStatuses = new Set(["active", "trialing"]);
 
 export async function getEntitlement(subject: Subject, entitlementKey: string): Promise<Entitlement> {
   const parsed = parseSubject(subject);
@@ -23,7 +22,7 @@ export async function getEntitlement(subject: Subject, entitlementKey: string): 
 async function entitlementForUser(userId: string, entitlementKey: string): Promise<Entitlement> {
   const db = await getDb();
   const rows = await db
-    .select({ status: subscription.status })
+    .select({ status: subscription.status, currentPeriodEnd: subscription.currentPeriodEnd })
     .from(subscription)
     .where(
       and(
@@ -31,6 +30,7 @@ async function entitlementForUser(userId: string, entitlementKey: string): Promi
         or(eq(subscription.entitlementKey, entitlementKey), eq(subscription.entitlementKey, "all")),
       ),
     );
-  const paid = rows.some((row) => entitledStatuses.has(row.status));
+  const now = new Date();
+  const paid = rows.some((row) => subscriptionGrantsAccess(row.status, row.currentPeriodEnd, now));
   return { entitlementKey, plan: paid ? "paid" : "free" };
 }

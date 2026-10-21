@@ -92,7 +92,7 @@ decideLimit(input: { plan: "free" | "paid"; limits: { free: LimitTable; paid: Li
 
 Import `checkLimit`, `getEntitlement`, and `decideLimit` from `lib/entitlements`. Import `useEntitlement` from `lib/entitlements/use-entitlement`. That module is a client module.
 
-`getEntitlement` treats every device subject as free and does not open the database. A user subject is paid when `subscriptions` has `status` `active` or `trialing` for that `entitlementKey` or for `all`. `canceled` stays free.
+`getEntitlement` treats every device subject as free and does not open the database. A user subject is paid when `subscriptions` has `status` `active` or `trialing` for that `entitlementKey` or for `all`. `past_due` stays paid until `currentPeriodEnd` plus 3 days. `paused` and `canceled` stay free.
 
 `checkLimit` reads limits from the registry, then from `lib/catalog/planned.ts`. An unknown entitlement returns `{ ok: false, plan: "free", kind: "unknown", limit: 0, reason: "unknown entitlement <key>" }`. Over the cap, `reason` is `<plan> <kind> allows <limit>` and `kind` is the limit kind. `savedItems` checks the cap and does not write `usage`. Other kinds increment `usage` when the decision is allowed. This signature stays. Visitor text comes from `lib/entitlements/visitor-copy.ts`.
 
@@ -110,7 +110,7 @@ Import `checkLimit`, `getEntitlement`, and `decideLimit` from `lib/entitlements`
 
 `lib/db/apply.ts` creates tables with `CREATE TABLE IF NOT EXISTS` from the Drizzle table config. `drizzle-kit generate` is not run in this phase. F-d owns the first migration.
 
-`db/schema.ts` exports `schema`, `tables`, and the tables `user`, `session`, `account`, `verification`, `subscription`, `usage`, `savedInvoice`, `qrCode`, and `policyDoc`. SQL names are `user`, `session`, `account`, `verification`, `subscriptions`, `usage`, `saved_invoices`, `qr_codes`, and `policy_docs`. Column names match Better Auth camelCase field names. `usage` has check `usage_one_subject`: exactly one of `userId` or `deviceId` is set.
+`db/schema.ts` exports `schema`, `tables`, and the tables `user`, `session`, `account`, `verification`, `subscription`, `processedEvent`, `usage`, `savedInvoice`, `qrCode`, and `policyDoc`. SQL names are `user`, `session`, `account`, `verification`, `subscriptions`, `processed_events`, `usage`, `saved_invoices`, `qr_codes`, and `policy_docs`. Column names match Better Auth camelCase field names. `usage` has check `usage_one_subject`: exactly one of `userId` or `deviceId` is set.
 
 `drizzle.config.ts` globs `./db/schema.ts` and `./tools/*/schema.ts` and writes `./db/migrations`.
 
@@ -126,9 +126,9 @@ createPortal(input: PortalInput): Promise<PortalResult>
 handleWebhook(input: WebhookInput): Promise<WebhookResult>
 ```
 
-`CheckoutInput` is `{ priceLookupKey, subject, successPath, cancelPath }`. `CheckoutResult` and `PortalResult` are `{ url }`. `PortalInput` is `{ subject, returnPath }`. `WebhookInput` is `{ rawBody, signature }`. `WebhookResult` is `{ handled: true }`.
+`CheckoutInput` is `{ priceLookupKey, subject, successPath, cancelPath }`. `CheckoutResult` is `{ transactionId }`. `PortalResult` is `{ url }`. `PortalInput` is `{ subject, returnPath }`. `WebhookInput` is `{ rawBody, signature }`. `WebhookResult` is `{ handled: true }`.
 
-`lib/payments/index.ts` exports `payments`, `createCheckout`, `createPortal`, `handleWebhook`, and `PaymentsNotConfigured`. Checkout, portal, and webhook verification call Stripe. They throw `PaymentsNotConfigured` with message `Payments are not configured` when the Stripe secret for that call is missing.
+`lib/payments/index.ts` exports `payments`, `createCheckout`, `createPortal`, `handleWebhook`, and `PaymentsNotConfigured`. Checkout, portal, and webhook verification call Paddle Billing. They throw `PaymentsNotConfigured` with message `Payments are not configured` when the Paddle secret for that call is missing. `CHECKOUT_ENABLED=false` throws `Checkout is turned off.` Production checkout and portal throw `Site URL is not configured` when `NEXT_PUBLIC_SITE_URL` or `BETTER_AUTH_URL` is unset.
 
 ## UI primitives
 

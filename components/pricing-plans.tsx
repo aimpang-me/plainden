@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { checkoutAction, portalAction } from "@/app/pricing/actions";
+import { checkoutAction } from "@/app/pricing/actions";
+import { openPaddleCheckout } from "@/components/paddle-checkout";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import {
@@ -28,12 +29,27 @@ const freeLimits = [
 const cardClass =
   "flex h-full flex-col gap-5 rounded-[10px] border border-line bg-paper p-5 shadow-[0_1px_2px_rgba(40,30,10,0.05),0_4px_14px_rgba(40,30,10,0.05)]";
 
-export function PricingPlans() {
+export function PricingPlans({ checkoutEnabled }: { checkoutEnabled: boolean }) {
   const tools = singleToolPlans();
   const bundle = bundlePlan();
   const [interval, setInterval] = useState<BillingInterval>("month");
   const [toolKey, setToolKey] = useState(tools[0]?.entitlementKey ?? "");
+  const [error, setError] = useState("");
   const selected = tools.find((tool) => tool.entitlementKey === toolKey) ?? tools[0];
+
+  async function startCheckout(formData: FormData) {
+    setError("");
+    const result = await checkoutAction(formData);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    try {
+      await openPaddleCheckout(result.transactionId);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Payments are not configured.");
+    }
+  }
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -53,7 +69,7 @@ export function PricingPlans() {
                 "Cookie and refund policies are included with Privacy and terms.",
               ]}
             />
-            <form action={checkoutAction} className="mt-auto grid gap-4">
+            <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto grid gap-4">
               <input type="hidden" name="lookupKey" value={lookupKeyFor(selected, interval)} />
               <Select
                 label="Tool"
@@ -62,7 +78,7 @@ export function PricingPlans() {
                 options={tools.map((tool) => ({ value: tool.entitlementKey, label: tool.name }))}
                 onChange={(event) => setToolKey(event.target.value)}
               />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={!checkoutEnabled}>
                 Checkout
               </Button>
             </form>
@@ -71,19 +87,20 @@ export function PricingPlans() {
         <li className={cardClass}>
           <PlanHeading name="All tools" price={priceLabel(bundle, interval)} recommended />
           <FeatureList items={["Limits removed on every tool."]} />
-          <form action={checkoutAction} className="mt-auto">
+          <form action={checkoutEnabled ? startCheckout : undefined} className="mt-auto">
             <input type="hidden" name="lookupKey" value={lookupKeyFor(bundle, interval)} />
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={!checkoutEnabled}>
               Checkout
             </Button>
           </form>
         </li>
       </ul>
-      <form action={portalAction}>
-        <Button type="submit" variant="plain">
-          Open billing portal
-        </Button>
-      </form>
+      {checkoutEnabled ? null : <p>Checkout is turned off.</p>}
+      {error ? (
+        <p role="alert" className="text-sm text-muted">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

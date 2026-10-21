@@ -6,13 +6,22 @@ export type SecurityHeader = {
 };
 
 const turnstile = "https://challenges.cloudflare.com";
+const paddleScript = "https://cdn.paddle.com";
+const paddleConnect = [
+  "https://cdn.paddle.com",
+  "https://sandbox-api.paddle.com",
+  "https://api.paddle.com",
+  "https://sandbox-checkout-service.paddle.com",
+  "https://checkout-service.paddle.com",
+] as const;
+const paddleFrames = ["https://sandbox-buy.paddle.com", "https://buy.paddle.com"] as const;
 
 function scriptSources(mode: HeaderMode): readonly string[] {
   switch (mode) {
     case "production":
-      return ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "blob:", turnstile];
+      return ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "blob:", turnstile, paddleScript];
     case "development":
-      return ["'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'", "blob:", turnstile];
+      return ["'self'", "'unsafe-inline'", "'unsafe-eval'", "'wasm-unsafe-eval'", "blob:", turnstile, paddleScript];
     default: {
       const unreachable: never = mode;
       throw new Error(`unknown header mode ${unreachable}`);
@@ -32,10 +41,10 @@ function policy(mode: HeaderMode): string {
     { name: "style-src", sources: ["'self'", "'unsafe-inline'"] },
     { name: "img-src", sources: ["'self'", "blob:", "data:"] },
     { name: "font-src", sources: ["'self'"] },
-    { name: "connect-src", sources: ["'self'", "blob:", turnstile] },
+    { name: "connect-src", sources: ["'self'", "blob:", turnstile, ...paddleConnect] },
     { name: "media-src", sources: ["'self'", "blob:"] },
     { name: "worker-src", sources: ["'self'", "blob:"] },
-    { name: "frame-src", sources: [turnstile] },
+    { name: "frame-src", sources: [turnstile, ...paddleFrames] },
     { name: "object-src", sources: ["'none'"] },
     { name: "base-uri", sources: ["'self'"] },
     { name: "form-action", sources: ["'self'"] },

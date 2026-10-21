@@ -29,5 +29,5 @@ Preconditions:
 ## Gotchas
 
 - `$5/mo` can also appear in the page introduction. The proof checks that the text is present, and that the hidden invoice key is the checkout value.
-- Each paid plan has a Checkout button and the page has Open billing portal. The drive checks that those buttons exist. Do not click them. Stripe is not configured for this server.
+- Each paid plan has a Checkout button. Manage billing is on the account page for a subscriber. Do not click Checkout. The overlay needs a Paddle client token.
 - Receipt shares the invoice plan. Cookie and refund share the legal plan. They are not separate prices in the picker.

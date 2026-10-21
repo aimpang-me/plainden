@@ -7,7 +7,7 @@ export class PaymentsNotConfigured extends Error {
 
 export class WebhookSignatureError extends Error {
   constructor() {
-    super("Invalid Stripe webhook signature");
+    super("Invalid Paddle webhook signature");
     this.name = "WebhookSignatureError";
   }
 }
