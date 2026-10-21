@@ -15,7 +15,7 @@ test("an all-tools subscription is All tools and a single tool stays One tool", 
       [{ entitlementKey: "pdf", status: "active", currentPeriodEnd: null, cancelAt: null }],
       now,
     ),
-  ).toEqual({ plan: "One tool", ends: null });
+  ).toEqual({ plan: "Pro: Merge PDF", ends: null });
   expect(accountPlanCopy([], now)).toEqual({ plan: "Free", ends: null });
 });
 

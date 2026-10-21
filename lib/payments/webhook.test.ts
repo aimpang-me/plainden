@@ -255,6 +255,64 @@ test("checkout reuses one customer, blocks an open subscription, and fails close
   ).rejects.toThrow("Site URL is not configured");
 });
 
+test("manage billing opens the active subscription, not the customer overview", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  await db.update(user).set({ providerCustomerId: "ctm_saved" }).where(eq(user.id, "user_1"));
+  const now = new Date("2026-10-20T00:00:00.000Z");
+  await db.insert(subscription).values([
+    {
+      id: "sub_old",
+      userId: "user_1",
+      entitlementKey: "invoice",
+      status: "canceled",
+      priceLookupKey: "plainden_invoice_month",
+      providerCustomerId: "ctm_saved",
+      providerSubscriptionId: "sub_old",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "sub_live",
+      userId: "user_1",
+      entitlementKey: "pdf",
+      status: "active",
+      priceLookupKey: "plainden_pdf_month",
+      providerCustomerId: "ctm_saved",
+      providerSubscriptionId: "sub_live",
+      createdAt: now,
+      updatedAt: now,
+    },
+  ]);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  const calls: unknown[] = [];
+  vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+    calls.push(JSON.parse(String(init.body)));
+    return new Response(
+      JSON.stringify({
+        data: {
+          urls: {
+            general: { overview: "https://sandbox-customer-portal.paddle.com/overview" },
+            subscriptions: [
+              {
+                id: "sub_live",
+                view_subscription: "https://sandbox-customer-portal.paddle.com/subscriptions/sub_live",
+                cancel_subscription: "https://sandbox-customer-portal.paddle.com/subscriptions/sub_live/cancel",
+              },
+            ],
+          },
+        },
+      }),
+      { status: 200 },
+    );
+  });
+  await expect(createPortal({ subject: { userId: "user_1" }, returnPath: "/account" })).resolves.toEqual({
+    url: "https://sandbox-customer-portal.paddle.com/subscriptions/sub_live",
+  });
+  expect(calls).toEqual([{ subscription_ids: ["sub_live"] }]);
+});
+
 test("a portal cancel keeps the price and records when Pro ends", async () => {
   const db = await freshDb();
   await insertUser(db);
@@ -289,7 +347,7 @@ test("a portal cancel keeps the price and records when Pro ends", async () => {
       ],
       new Date("2026-10-21T00:00:00.000Z"),
     ),
-  ).toEqual({ plan: "One tool", ends: "Pro ends November 21, 2026" });
+  ).toEqual({ plan: "Pro: Merge PDF", ends: "Pro ends November 21, 2026" });
   const cleared = subscriptionEvent(
     "evt_clear",
     "subscription.updated",
