@@ -1,12 +1,5 @@
 import { plannedTools } from "./planned";
 
-export type ShellTool = {
-  id: string;
-  href: string;
-  label: string;
-  slugs: readonly string[];
-};
-
 export const shellToolOrder = [
   "invoice",
   "receipt",
@@ -20,7 +13,18 @@ export const shellToolOrder = [
   "cookie-refund",
 ] as const;
 
-const shellLabels: Record<(typeof shellToolOrder)[number], string> = {
+export type ShellToolId = (typeof shellToolOrder)[number];
+
+export type ShellTool = {
+  id: ShellToolId;
+  href: string;
+  label: string;
+  name: string;
+  description: string;
+  slugs: readonly string[];
+};
+
+const shellLabels: Record<ShellToolId, string> = {
   invoice: "Invoice generator",
   receipt: "Receipt maker",
   legal: "Privacy and terms",
@@ -38,6 +42,13 @@ export function shellTools(): ShellTool[] {
   return shellToolOrder.flatMap((id) => {
     const tool = byId.get(id);
     if (!tool) return [];
-    return [{ id, href: `/${tool.slugs[0]}`, label: shellLabels[id], slugs: tool.slugs }];
+    return [{
+      id,
+      href: `/${tool.slugs[0]}`,
+      label: shellLabels[id],
+      name: tool.name,
+      description: tool.description,
+      slugs: tool.slugs,
+    }];
   });
 }
