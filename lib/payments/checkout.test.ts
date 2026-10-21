@@ -521,6 +521,46 @@ test("a price switch does not hand the old transaction to a concurrent request",
   ]);
 });
 
+test("a failed price switch restores the old checkout so a retry does not wait", async () => {
+  const db = await freshDb();
+  await insertUser(db);
+  process.env.PADDLE_API_KEY = "pdl_test_plainden_checkout_fixture";
+  process.env.PADDLE_PRICE_MONTHLY = "pri_month";
+  process.env.PADDLE_PRICE_YEARLY = "pri_year";
+  process.env.NEXT_PUBLIC_PADDLE_ENV = "sandbox";
+  let posts = 0;
+  let cancelAttempts = 0;
+  vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    const method = init.method ?? "GET";
+    const target = String(url);
+    if (method === "GET" && !target.endsWith("/transactions/txn_month")) return Response.json({ data: [] });
+    if (method === "PATCH" || method === "GET") {
+      cancelAttempts += 1;
+      if (cancelAttempts <= 2) return new Response("upstream", { status: 500 });
+      return Response.json({ data: { id: "txn_month", status: "canceled" } });
+    }
+    posts += 1;
+    const id = posts === 1 ? "txn_month" : "txn_year";
+    return Response.json({ data: { id, customer_id: "ctm_switch" } });
+  });
+  const month = {
+    priceLookupKey: "plainden_pdf_month",
+    subject: { userId: "user_1" },
+    successPath: "/account",
+    cancelPath: "/pricing",
+  };
+  const year = { ...month, priceLookupKey: "plainden_pdf_year" };
+  await expect(createCheckout(month)).resolves.toEqual({ transactionId: "txn_month" });
+  const failure = await createCheckout(year).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(CheckoutError);
+  expect((failure as CheckoutError).code).toBe("upstream");
+  const left = await db.execute(sql`SELECT "priceLookupKey", "transactionId" FROM "checkout_intents"`);
+  expect(left.rows).toEqual([{ priceLookupKey: "plainden_pdf_month", transactionId: "txn_month" }]);
+  const started = Date.now();
+  await expect(createCheckout(year)).resolves.toEqual({ transactionId: "txn_year" });
+  expect(Date.now() - started).toBeLessThan(2_000);
+});
+
 test("an expired unbound checkout is taken over with a one minute lease", async () => {
   const db = await freshDb();
   await insertUser(db);

@@ -7,6 +7,7 @@ import {
   acquireCheckout,
   bindCheckoutIntent,
   releaseCheckoutIntent,
+  restoreCheckoutIntent,
   takeOverCheckout,
   type AcquiredCheckout,
 } from "./checkout-intent";
@@ -36,25 +37,11 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     const open = await openCheckoutFor(account.providerCustomerId, priceId);
     if (open) return { transactionId: open };
   }
-  let acquired = await acquireCheckout(db, userId, price.lookupKey);
-  if (acquired.kind === "switch") {
-    const switched = await switchCheckout(db, acquired, price.lookupKey);
-    acquired = switched ? { kind: "owner", id: switched } : await acquireCheckout(db, userId, price.lookupKey);
-  }
-  switch (acquired.kind) {
-    case "reuse":
-      return { transactionId: acquired.transactionId };
-    case "owner":
-      return {
-        transactionId: await createOwnedTransaction(db, acquired.id, userId, price.lookupKey, priceId, account),
-      };
-    case "switch":
-      throw new CheckoutError("upstream", "Checkout is already in progress");
-    default: {
-      const unreachable: never = acquired;
-      throw new CheckoutError("upstream", `unexpected checkout claim ${unreachable}`);
-    }
-  }
+  const ready = await ownerOrReuse(db, userId, price.lookupKey, await acquireCheckout(db, userId, price.lookupKey));
+  if (ready.kind === "reuse") return { transactionId: ready.transactionId };
+  return {
+    transactionId: await createOwnedTransaction(db, ready.id, userId, price.lookupKey, priceId, account),
+  };
 }
 
 export async function createPortal(input: PortalInput): Promise<PortalResult> {
@@ -165,6 +152,22 @@ async function createOwnedTransaction(
   }
 }
 
+type ReadyCheckout = Exclude<AcquiredCheckout, { kind: "switch" }>;
+
+async function ownerOrReuse(
+  db: AppDatabase,
+  userId: string,
+  priceLookupKey: string,
+  acquired: AcquiredCheckout,
+): Promise<ReadyCheckout> {
+  if (acquired.kind !== "switch") return acquired;
+  const ownerId = await switchCheckout(db, acquired, priceLookupKey);
+  if (ownerId) return { kind: "owner", id: ownerId };
+  const again = await acquireCheckout(db, userId, priceLookupKey);
+  if (again.kind === "switch") throw new CheckoutError("upstream", "Checkout is already in progress");
+  return again;
+}
+
 async function switchCheckout(
   db: AppDatabase,
   acquired: Extract<AcquiredCheckout, { kind: "switch" }>,
@@ -172,18 +175,23 @@ async function switchCheckout(
 ): Promise<string | null> {
   const ownerId = await takeOverCheckout(db, acquired.intentId, acquired.transactionId, priceLookupKey);
   if (!ownerId) return null;
-  const outcome = await cancelUnpaidTransaction(acquired.transactionId);
-  switch (outcome) {
-    case "paid":
-      await releaseCheckoutIntent(db, ownerId);
-      throw new CheckoutError("open-checkout", "Finish or cancel your open checkout first.");
-    case "canceled":
-      return ownerId;
-    default: {
-      const unreachable: never = outcome;
-      throw new CheckoutError("upstream", `unexpected cancel result ${unreachable}`);
-    }
+  let outcome: "canceled" | "paid";
+  try {
+    outcome = await cancelUnpaidTransaction(acquired.transactionId);
+  } catch (error) {
+    const restored = await restoreCheckoutIntent(db, ownerId, {
+      id: acquired.intentId,
+      priceLookupKey: acquired.priceLookupKey,
+      transactionId: acquired.transactionId,
+    }).catch(() => false);
+    if (!restored) await releaseCheckoutIntent(db, ownerId).catch(() => undefined);
+    throw error;
   }
+  if (outcome === "paid") {
+    await releaseCheckoutIntent(db, ownerId);
+    throw new CheckoutError("open-checkout", "Finish or cancel your open checkout first.");
+  }
+  return ownerId;
 }
 
 async function cancelUnpaidTransaction(transactionId: string): Promise<"canceled" | "paid"> {
