@@ -116,9 +116,9 @@ continues
   lines.push("action: add sample.srt and second.srt");
   lines.push("action: click Convert");
   await page.getByRole("button", { name: "Convert" }).click();
-  await expectStatus(page, "free batchCount allows 1");
+  await expectStatus(page, "The free plan converts one subtitle file at a time.");
   if ((await page.getByRole("link", { name: "See pricing" }).count()) < 1) fail("batch block missed See pricing");
-  lines.push("status: free batchCount allows 1");
+  lines.push("status: The free plan converts one subtitle file at a time.");
   lines.push("visible: link See pricing");
   const aria = await page.locator("main").ariaSnapshot();
   writeFileSync(path.join(evidence, "aria.txt"), `${aria}\n`);

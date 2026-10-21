@@ -100,9 +100,9 @@ try {
   lines.push("action: add oversize.bin");
   lines.push("action: click Merge PDFs");
   await page.getByRole("button", { name: "Merge PDFs" }).click();
-  await expectStatus(page, "free fileSize allows 26214400");
+  await expectStatus(page, "The free plan allows files up to 25 MB.");
   if ((await page.getByRole("link", { name: "See pricing" }).count()) < 1) fail("size block missed See pricing");
-  lines.push("status: free fileSize allows 26214400");
+  lines.push("status: The free plan allows files up to 25 MB.");
   lines.push("visible: link See pricing");
   await page.getByRole("button", { name: "Remove oversize.bin" }).click();
   lines.push("action: remove oversize.bin");
@@ -162,9 +162,9 @@ try {
 
   lines.push("action: click Merge PDFs");
   await page.getByRole("button", { name: "Merge PDFs" }).click();
-  await expectStatus(page, "free perDay allows 5");
+  await expectStatus(page, "The free plan allows 5 PDF runs a day.");
   if ((await page.getByRole("link", { name: "See pricing" }).count()) < 1) fail("day block missed See pricing");
-  lines.push("status: free perDay allows 5");
+  lines.push("status: The free plan allows 5 PDF runs a day.");
   lines.push("visible: link See pricing");
   const aria = await page.locator("main").ariaSnapshot();
   writeFileSync(path.join(evidence, "aria.txt"), `${aria}\n`);

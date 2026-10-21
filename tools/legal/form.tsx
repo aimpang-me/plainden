@@ -184,7 +184,7 @@ export function PolicyForm({ slug, preset, plan }: PolicyFormProps) {
     });
     if (response.status === 401) {
       setUpgrade(null);
-      setStatus("sign in required");
+      setStatus("Sign in to publish.");
       return;
     }
     const body: unknown = await response.json();

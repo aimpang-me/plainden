@@ -17,13 +17,15 @@ afterEach(async () => {
 
 test("a free device cannot send a pdf larger than 25 MB", async () => {
   const over = await checkLimit({ deviceId: "dev_1" }, "pdf", LimitKind.fileSize, 26_214_401);
-  expect(over).toEqual({ ok: false, limit: 26_214_400, reason: "free fileSize allows 26214400" });
+  expect(over).toEqual({ ok: false, plan: "free", kind: "fileSize", limit: 26_214_400, reason: "free fileSize allows 26214400" });
   expect(await checkLimit({ deviceId: "dev_1" }, "pdf", LimitKind.fileSize, 1)).toEqual({ ok: true });
 });
 
 test("an unknown entitlement is blocked", async () => {
   expect(await checkLimit({ deviceId: "dev_1" }, "missing", LimitKind.perDay, 1)).toEqual({
     ok: false,
+    plan: "free",
+    kind: "unknown",
     limit: 0,
     reason: "unknown entitlement missing",
   });
@@ -71,6 +73,8 @@ test("an active subscription and the all-tools plan pass, a canceled plan stays 
   expect(await checkLimit({ userId: "user_pdf" }, "pdf", LimitKind.fileSize, 30_000_000)).toEqual({ ok: true });
   expect(await checkLimit({ userId: "user_pdf" }, "pdf", LimitKind.fileSize, 209_715_201)).toEqual({
     ok: false,
+    plan: "paid",
+    kind: "fileSize",
     limit: 209_715_200,
     reason: "paid fileSize allows 209715200",
   });

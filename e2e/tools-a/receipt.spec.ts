@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectPdf, openTool, pageCount, pdfText, readDownload, seedAllToolsPlan, signIn, withViewports } from "./support";
+import { expectPdf, expectPreviewTotal, openTool, pageCount, pdfText, readDownload, seedAllToolsPlan, signIn, withViewports } from "./support";
 
 test.describe.configure({ timeout: 90_000 });
 
@@ -23,7 +23,8 @@ withViewports(() => {
     await page.getByLabel("Unit price").fill("10");
     await page.getByLabel("Payment method").selectOption("card");
     const preview = page.getByRole("heading", { name: "Preview" }).locator("xpath=..");
-    await expect(preview).toContainText("Total $10.00");
+    await expectPreviewTotal(page, "$10.00");
+    await expect(page.getByText("Saving receipts is part of the paid plan.")).toBeVisible();
     await expect(preview).toContainText("PAID");
     const pending = page.waitForEvent("download");
     await page.getByRole("button", { name: "Download PDF" }).click();
@@ -48,7 +49,7 @@ withViewports(() => {
       await expect(page.getByLabel("Receipt number")).toHaveValue(tail.number);
       await expect(page.getByLabel("Payment method")).toHaveValue(tail.method);
       const preview = page.getByRole("heading", { name: "Preview" }).locator("xpath=..");
-      await expect(preview).toContainText(`Total ${tail.total}`);
+      await expectPreviewTotal(page, tail.total);
       await expect(preview).toContainText("PAID");
     }
   });

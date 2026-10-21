@@ -20,7 +20,7 @@ Preconditions:
 - Doctor reports the verification server at `http://127.0.0.1:3100`.
 
 - **Static PNG.** Run `node .cursor/skills/verify-plainden/scripts/plainden-verify.mjs drive qr`. The drive opens `/qr-code-generator-no-expiration`, clicks `Create`, and expects status `Downloaded PNG.`
-- **Free publish.** The drive opens `/dynamic-qr-code`, clicks `Create`, and expects status `free savedItems allows 0`.
+- **Free publish.** The drive opens `/dynamic-qr-code`, clicks `Create`, and expects status `Saving QR codes is part of the paid plan.`
 - **Missing id.** `GET /q/not-a-code` returns 404.
 - **Proof.** The drive writes `evidence/qr/actions.txt`, `evidence/qr/aria.txt`, and `evidence/qr/page.png`.
 

@@ -9,6 +9,7 @@ import { FileDrop } from "@/components/ui/file-drop";
 import { Select } from "@/components/ui/select";
 import type { ToolProps } from "@/lib/contract/types";
 import { useEntitlement } from "@/lib/entitlements/use-entitlement";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { config } from "./config";
 import { compressVideo } from "./engine";
 import { gateVideo } from "./gate";
@@ -56,7 +57,7 @@ export default function Tool({ slug, preset }: ToolProps) {
     if (!decision.ok) {
       setPhase((current) => {
         if (current.kind === "done") URL.revokeObjectURL(current.url);
-        return { kind: "blocked", message: decision.reason };
+        return { kind: "blocked", message: visitorLimitCopy("video", decision) };
       });
       return;
     }

@@ -66,9 +66,9 @@ test("response status follows the publish result", async () => {
   const invalid = toPolicyResponse({ ok: false, error: "invalid", message: "Unknown kind." });
   expect(invalid.status).toBe(400);
   expect(await invalid.json()).toEqual({ ok: false, error: "invalid", message: "Unknown kind." });
-  const limit = toPolicyResponse({ ok: false, error: "limit", message: "free savedItems allows 0" });
+  const limit = toPolicyResponse({ ok: false, error: "limit", message: "Hosting a policy is part of the paid plan." });
   expect(limit.status).toBe(403);
-  expect(await limit.json()).toEqual({ ok: false, error: "limit", message: "free savedItems allows 0" });
+  expect(await limit.json()).toEqual({ ok: false, error: "limit", message: "Hosting a policy is part of the paid plan." });
 });
 
 test("a value that is not 32 lowercase hex is not a hosted policy", async () => {
@@ -81,7 +81,7 @@ test("a free user cannot publish a policy", async () => {
   await database();
   await seedUser("user_free", false);
   const result = await publish("user_free", { kind: "privacy", answers });
-  expect(result).toEqual({ ok: false, error: "limit", message: "free savedItems allows 0" });
+  expect(result).toEqual({ ok: false, error: "limit", message: "Hosting a policy is part of the paid plan." });
   const db = await getDb();
   expect(await db.select().from(policyDoc)).toEqual([]);
 });
@@ -135,7 +135,7 @@ test("a paid user keeps one public id through republish, edits, and cancellation
     kind: "privacy",
     answers: { ...answers, businessName: "Replacement Co" },
   });
-  expect(refused).toEqual({ ok: false, error: "limit", message: "free savedItems allows 0" });
+  expect(refused).toEqual({ ok: false, error: "limit", message: "Hosting a policy is part of the paid plan." });
   const afterCancel = await db.select().from(policyDoc);
   expect(afterCancel).toHaveLength(1);
   expect(afterCancel[0]?.body).toBe(editedText);

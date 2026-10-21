@@ -64,7 +64,7 @@ for (const viewport of viewports) {
       try {
         await page.getByLabel("Video file").setInputFiles(big);
         await page.getByRole("button", { name: "Compress video" }).click();
-        await expect(page.getByRole("status")).toHaveText(`free fileSize allows ${limit}`);
+        await expect(page.getByRole("status")).toHaveText("The free plan allows files up to 100 MB.");
         await expect(page.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/pricing");
       } finally {
         rmSync(dir, { recursive: true, force: true });

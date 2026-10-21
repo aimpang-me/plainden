@@ -173,7 +173,7 @@ async function driveScaffold(page, dir) {
   lines.push("action: fill Count 4");
   lines.push("action: click Check");
   await page.getByRole("button", { name: "Check" }).click();
-  const blocked = "free perMonth allows 3";
+  const blocked = "The free plan allows a count of 3.";
   await page.getByRole("status").filter({ hasText: blocked }).waitFor({ timeout: 10_000 });
   const blockedText = await page.getByRole("status").innerText();
   lines.push(`status: ${blockedText}`);
@@ -301,7 +301,7 @@ async function driveInvoice(page, dir) {
     ["Unit price", "10"],
   ];
   await fillDocument(page, fields);
-  await page.getByText("Total $20.00", { exact: true }).waitFor({ timeout: 10_000 });
+  await page.locator("p").filter({ has: page.getByText("Total", { exact: true }) }).filter({ hasText: "$20.00" }).first().waitFor({ timeout: 10_000 });
   const footer = await page.getByText("made with plainden").count();
   if (footer < 1) fail("free invoice footer was missing");
   if ((await page.getByText("A logo is part of the paid plan.").count()) < 1) fail("free logo note was missing");
@@ -317,7 +317,7 @@ async function driveInvoice(page, dir) {
   }
   await page.getByRole("button", { name: "Download PDF" }).click();
   lines.push("action: click Download PDF");
-  const blocked = "free perMonth allows 3";
+  const blocked = "The free plan includes 3 invoices a month.";
   await page.getByRole("status").filter({ hasText: blocked }).waitFor({ timeout: 10_000 });
   const status = await page.getByRole("status").innerText();
   lines.push(`status: ${status}`);
@@ -339,7 +339,7 @@ async function driveReceipt(page, dir) {
   ];
   await fillDocument(page, fields);
   await page.getByLabel("Payment method").selectOption("card");
-  await page.getByText("Total $10.00", { exact: true }).waitFor({ timeout: 10_000 });
+  await page.locator("p").filter({ has: page.getByText("Total", { exact: true }) }).filter({ hasText: "$10.00" }).first().waitFor({ timeout: 10_000 });
   const stamp = await page.getByText("PAID", { exact: true }).count();
   if (stamp < 1) fail("PAID stamp was missing");
   const downloadPromise = page.waitForEvent("download");
@@ -501,7 +501,7 @@ async function driveQr(page, dir) {
   await page.goto(`${base}/dynamic-qr-code`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("html[data-hydrated='true']", { timeout: 30_000 });
   await page.getByRole("button", { name: "Create" }).click();
-  const blocked = "free savedItems allows 0";
+  const blocked = "Saving QR codes is part of the paid plan.";
   await page.getByRole("status").filter({ hasText: blocked }).waitFor({ timeout: 10_000 });
   const dynamicStatus = await page.getByRole("status").innerText();
   if (dynamicStatus !== blocked) fail(`dynamic status was ${JSON.stringify(dynamicStatus)}`);

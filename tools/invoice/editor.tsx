@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { LimitKind } from "@/lib/contract/limits";
 import type { LimitTable } from "@/lib/contract/types";
 import { decideLimit } from "@/lib/entitlements/decide-limit";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import {
   clientsFromSavedList,
   CURRENCIES,
@@ -88,7 +89,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
     const decision = decideLimit({ plan: activePlan, limits, kind: LimitKind.perMonth, amount: used + 1 });
     if (!decision.ok) {
       setBlocked(true);
-      setMessage(decision.reason);
+      setMessage(visitorLimitCopy(draft.kind, decision));
       return;
     }
     const result = await exportPdf(draft, activePlan);
@@ -227,7 +228,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
           </Button>
           <p role="status">{message}</p>
           {ready && blocked ? <UpgradePrompt reason={message} /> : null}
-          {ready && !saveDecision.ok ? <UpgradePrompt reason={saveDecision.reason} /> : null}
+          {ready && !saveDecision.ok ? <UpgradePrompt reason={visitorLimitCopy(draft.kind, saveDecision)} /> : null}
         </form>
       </Card>
       <div className="min-[801px]:sticky min-[801px]:top-6">
@@ -244,20 +245,20 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
         </p>
         {preview.lines.map((line) => (
           <p key={line.key} className="flex items-baseline justify-between gap-4">
-            <span>{line.description} </span>
+            <span>{line.description}</span>
             <span className="tabular-nums">{line.amount}</span>
           </p>
         ))}
         <p className="flex items-baseline justify-between gap-4">
-          <span>Subtotal </span>
+          <span>Subtotal</span>
           <span className="tabular-nums">{preview.subtotal}</span>
         </p>
         <p className="flex items-baseline justify-between gap-4">
-          <span>{preview.taxLabel} </span>
+          <span>{preview.taxLabel}</span>
           <span className="tabular-nums">{preview.tax}</span>
         </p>
         <p className="flex items-baseline justify-between gap-4">
-          <span>Total </span>
+          <span>Total</span>
           <span className="tabular-nums">{preview.total}</span>
         </p>
         {preview.notes ? <p>{preview.notes}</p> : null}

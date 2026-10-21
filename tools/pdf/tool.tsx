@@ -9,6 +9,7 @@ import { FileDrop } from "@/components/ui/file-drop";
 import { Input } from "@/components/ui/input";
 import type { ToolProps } from "@/lib/contract/types";
 import { useEntitlement } from "@/lib/entitlements/use-entitlement";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { config } from "./config";
 import { encodeJpegWithCanvas } from "./encode";
 import { opForSlug, runPdf, type PdfOp } from "./engine";
@@ -79,7 +80,7 @@ export default function Tool({ slug, preset }: ToolProps) {
     const decision = gatePdf(entitlement.plan, total, operationsUsed(localStorage, new Date()) + 1);
     if (!decision.ok) {
       setBlocked(true);
-      setMessage(decision.reason);
+      setMessage(visitorLimitCopy("pdf", decision));
       return;
     }
     setRunning(true);

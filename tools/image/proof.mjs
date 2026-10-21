@@ -119,7 +119,7 @@ try {
   await page.getByRole("button", { name: "Compress images" }).click();
   await page.getByRole("link", { name: "See pricing" }).waitFor({ timeout: 15_000 });
   const blocked = await page.getByRole("status").innerText();
-  if (blocked !== "free batchCount allows 10") fail(`batch status was ${blocked}`);
+  if (blocked !== "The free plan allows 10 images at a time.") fail(`batch status was ${blocked}`);
   lines.push(`status: ${blocked}`);
   await page.screenshot({ path: path.join(evidence, "upgrade.png"), fullPage: true });
 

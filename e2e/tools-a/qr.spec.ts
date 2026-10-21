@@ -31,7 +31,7 @@ withViewports(() => {
     await expect(page.getByRole("heading", { level: 1, name: "Dynamic QR code with scan counts" })).toBeVisible();
     await expect(page.getByLabel("Output")).toHaveValue("publish");
     await page.getByRole("button", { name: "Create" }).click();
-    await expect(page.getByRole("status")).toHaveText("free savedItems allows 0");
+    await expect(page.getByRole("status")).toHaveText("Saving QR codes is part of the paid plan.");
     await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
   });
 });

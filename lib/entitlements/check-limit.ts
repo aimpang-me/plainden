@@ -17,7 +17,9 @@ export async function checkLimit(
   amount: number,
 ): Promise<LimitDecision> {
   const limits = limitsFor(entitlementKey);
-  if (!limits) return { ok: false, limit: 0, reason: `unknown entitlement ${entitlementKey}` };
+  if (!limits) {
+    return { ok: false, plan: "free", kind: "unknown", limit: 0, reason: `unknown entitlement ${entitlementKey}` };
+  }
   const entitlement = await getEntitlement(subject, entitlementKey);
   if (kind === LimitKind.savedItems) {
     return decideLimit({ plan: entitlement.plan, limits, kind, amount });

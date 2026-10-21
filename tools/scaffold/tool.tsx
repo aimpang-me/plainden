@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { LimitKind } from "@/lib/contract/limits";
 import type { ToolProps } from "@/lib/contract/types";
 import { decideLimit } from "@/lib/entitlements/decide-limit";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { useEntitlement } from "@/lib/entitlements/use-entitlement";
 import { config } from "./config";
 
@@ -39,7 +40,7 @@ export default function Tool({ slug, preset }: ToolProps) {
       return;
     }
     setBlocked(true);
-    setMessage(decision.reason);
+    setMessage(visitorLimitCopy("scaffold", decision));
   }
 
   return (

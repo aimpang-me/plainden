@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { ToolProps } from "@/lib/contract/types";
 import { useEntitlement } from "@/lib/entitlements/use-entitlement";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { config } from "./config";
 import {
   convertSubtitle,
@@ -93,7 +94,7 @@ export default function Tool({ slug, preset }: ToolProps) {
     const decision = gateBatch(entitlement.plan, files.length);
     if (!decision.ok) {
       setBlocked(true);
-      setMessage(decision.reason);
+      setMessage(visitorLimitCopy("subtitles", decision));
       return;
     }
     const chosen = job.lockOutput ? job.output : output;

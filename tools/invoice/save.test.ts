@@ -66,7 +66,7 @@ test("a free user cannot save an invoice", async () => {
   await database();
   await seedUser("user_free", false);
   const result = await saveDocument("user_free", { id, document: document() });
-  expect(result).toEqual({ ok: false, error: "limit", message: "free savedItems allows 0" });
+  expect(result).toEqual({ ok: false, error: "limit", message: "Saving invoices is part of the paid plan." });
 });
 
 test("a paid user saves and reloads the same total", async () => {

@@ -73,7 +73,7 @@ withViewports(() => {
     await openTool(page, "/compress-pdf");
     await page.getByLabel("PDF file", { exact: true }).setInputFiles(files.huge);
     await page.getByRole("button", { name: "Compress PDF" }).click();
-    await expect(page.getByRole("status")).toHaveText("free fileSize allows 26214400");
+    await expect(page.getByRole("status")).toHaveText("The free plan allows files up to 25 MB.");
     await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
 
     await openTool(page, "/jpg-to-pdf");
@@ -83,7 +83,7 @@ withViewports(() => {
       await expect(page.getByRole("status")).toHaveText("Made a PDF with 1 page.");
     }
     await page.getByRole("button", { name: "Make PDF" }).click();
-    await expect(page.getByRole("status")).toHaveText("free perDay allows 5");
+    await expect(page.getByRole("status")).toHaveText("The free plan allows 5 PDF runs a day.");
     await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
   });
 });

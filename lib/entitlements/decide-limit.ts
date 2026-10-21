@@ -19,6 +19,8 @@ export function decideLimit(input: {
   if (input.amount <= limit) return { ok: true };
   return {
     ok: false,
+    plan: input.plan,
+    kind: input.kind,
     limit,
     reason: `${input.plan} ${input.kind} allows ${limit}`,
   };

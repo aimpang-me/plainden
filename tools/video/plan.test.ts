@@ -10,12 +10,16 @@ test("free and paid video file sizes", () => {
   expect(gateVideo("free", 100 * mb)).toEqual({ ok: true });
   expect(gateVideo("free", 100 * mb + 1)).toEqual({
     ok: false,
+    plan: "free",
+    kind: "fileSize",
     limit: 100 * mb,
     reason: "free fileSize allows 104857600",
   });
   expect(gateVideo("paid", 500 * mb)).toEqual({ ok: true });
   expect(gateVideo("paid", 500 * mb + 1)).toEqual({
     ok: false,
+    plan: "paid",
+    kind: "fileSize",
     limit: 500 * mb,
     reason: "paid fileSize allows 524288000",
   });

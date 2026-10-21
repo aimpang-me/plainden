@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { ToolProps } from "@/lib/contract/types";
 import { useEntitlement } from "@/lib/entitlements/use-entitlement";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { config } from "./config";
 import {
   acceptsFilename,
@@ -101,7 +102,7 @@ function Converter({ slug, preset }: ToolProps) {
     }
     const decision = gateBytes(entitlement.plan, file.size);
     if (!decision.ok) {
-      publish({ kind: "blocked", text: decision.reason });
+      publish({ kind: "blocked", text: visitorLimitCopy("data", decision) });
       return;
     }
     const bytes = new Uint8Array(await file.arrayBuffer());

@@ -3,6 +3,7 @@ import { savedInvoice } from "@/db/schema";
 import { LimitKind } from "@/lib/contract/limits";
 import { getDb } from "@/lib/db/client";
 import { checkLimit } from "@/lib/entitlements/check-limit";
+import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { parseIssued, titleOf, toWire, type Issued } from "./document";
 import type { ToolId } from "./month-count";
 
@@ -43,7 +44,7 @@ export async function saveDocument(userId: string, input: unknown): Promise<Save
   const owned = await db.select({ id: savedInvoice.id }).from(savedInvoice).where(eq(savedInvoice.userId, userId));
   const amount = owned.some((item) => item.id === input.id) ? owned.length : owned.length + 1;
   const decision = await checkLimit({ userId }, "invoice", LimitKind.savedItems, amount);
-  if (!decision.ok) return { ok: false, error: "limit", message: decision.reason };
+  if (!decision.ok) return { ok: false, error: "limit", message: visitorLimitCopy(parsed.issued.kind, decision) };
   const body = toWire(parsed.issued);
   if (row && canonical(row.body) === canonical(body)) return { ok: true, id: row.id };
   const now = new Date();

@@ -263,12 +263,16 @@ test("batch size follows the free and paid caps", () => {
   expect(gateBatch("free", 1)).toEqual({ ok: true });
   expect(gateBatch("free", 2)).toEqual({
     ok: false,
+    plan: "free",
+    kind: "batchCount",
     limit: 1,
     reason: "free batchCount allows 1",
   });
   expect(gateBatch("paid", 50)).toEqual({ ok: true });
   expect(gateBatch("paid", 51)).toEqual({
     ok: false,
+    plan: "paid",
+    kind: "batchCount",
     limit: 50,
     reason: "paid batchCount allows 50",
   });

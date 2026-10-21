@@ -53,7 +53,8 @@ export type Entitlement = {
 
 export type LimitDecision =
   | { ok: true }
-  | { ok: false; limit: number; reason: string };
+  | { ok: false; plan: "free" | "paid"; kind: LimitKind; limit: number; reason: string }
+  | { ok: false; plan: "free" | "paid"; kind: "unknown"; limit: 0; reason: string };
 
 export type RegisteredTool = {
   config: ToolConfig;

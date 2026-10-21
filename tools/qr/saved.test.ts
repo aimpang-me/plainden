@@ -69,7 +69,7 @@ test("a free user cannot publish and a paid user can", async () => {
   await addUser("user_paid", "paid@example.com", "active");
 
   const blocked = await handle({ id: "user_free" }, publishCommand("https://example.com/free"));
-  expect(blocked).toEqual({ ok: false, code: "over-cap", reason: "free savedItems allows 0" });
+  expect(blocked).toEqual({ ok: false, code: "over-cap", reason: "Saving QR codes is part of the paid plan." });
 
   const published = await handle({ id: "user_paid" }, publishCommand("https://example.com/landed"));
   expect(published.ok).toBe(true);
@@ -88,7 +88,7 @@ test("twenty publishes through the handler stay under the paid cap", async () =>
     expect(published.ok, `publish ${index} ${JSON.stringify(published)}`).toBe(true);
   }
   const extra = await handle({ id: "user_many" }, publishCommand("https://example.com/extra"));
-  expect(extra).toEqual({ ok: false, code: "over-cap", reason: "paid savedItems allows 20" });
+  expect(extra).toEqual({ ok: false, code: "over-cap", reason: "The paid plan saves 20 QR codes." });
 });
 
 test("the 21st code is refused and an edit at the cap still saves", async () => {
@@ -103,7 +103,7 @@ test("the 21st code is refused and an edit at the cap still saves", async () => 
     });
   }
   const blocked = await handle({ id: "user_full" }, publishCommand("https://example.com/extra"));
-  expect(blocked).toEqual({ ok: false, code: "over-cap", reason: "paid savedItems allows 20" });
+  expect(blocked).toEqual({ ok: false, code: "over-cap", reason: "The paid plan saves 20 QR codes." });
 
   const parsed = parseCommand({
     type: "replace",
@@ -140,7 +140,7 @@ test("a lapsed plan cannot edit and the redirect still counts scans", async () =
   expect(await handle({ id: "user_old" }, parsed.command)).toEqual({
     ok: false,
     code: "over-cap",
-    reason: "free savedItems allows 0",
+    reason: "Saving QR codes is part of the paid plan.",
   });
 
   const first = await GET(new Request("http://127.0.0.1/q/" + id), { params: Promise.resolve({ id }) });

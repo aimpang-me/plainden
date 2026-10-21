@@ -27,6 +27,12 @@ export function withViewports(register: (viewport: ViewportName) => void): void 
   }
 }
 
+export async function expectPreviewTotal(page: Page, amount: string): Promise<void> {
+  const preview = page.getByRole("heading", { name: "Preview" }).locator("xpath=..");
+  const row = preview.locator("p").filter({ has: page.getByText("Total", { exact: true }) });
+  await expect(row).toContainText(amount);
+}
+
 export async function openTool(page: Page, slug: string): Promise<void> {
   await page.goto(slug);
   await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
