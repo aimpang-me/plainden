@@ -1,20 +1,23 @@
 import { readFileSync } from "node:fs";
-import { vercelConfigHeaders } from "../../lib/security/csp.ts";
-import { rateLimitFlag } from "../../lib/security/rateLimit.ts";
+import { securityHeaders } from "../../lib/security/csp.ts";
 
 const parsed: unknown = JSON.parse(readFileSync("vercel.json", "utf8"));
-const expected = { framework: "nextjs", headers: vercelConfigHeaders() };
 
-if (JSON.stringify(parsed) !== JSON.stringify(expected)) {
-  console.error("vercel.json does not match securityHeaders production");
+if (JSON.stringify(parsed) !== JSON.stringify({ framework: "nextjs" })) {
+  console.error("vercel.json must not duplicate the CSP. proxy.ts is the only header source");
   process.exit(1);
 }
 
-if (rateLimitFlag.enforced !== false || rateLimitFlag.sharedStore !== false) {
-  console.error("rate limit flag was switched on without a shared store");
+const production = securityHeaders("production");
+const csp = production.find((header) => header.key === "Content-Security-Policy");
+const hsts = production.find((header) => header.key === "Strict-Transport-Security");
+const permissions = production.find((header) => header.key === "Permissions-Policy");
+
+if (!csp || !hsts || !permissions) {
+  console.error("production security headers are missing CSP, HSTS, or Permissions-Policy");
   process.exit(1);
 }
 
-console.log("csp matches vercel.json");
-console.log("rate limit enforced: false");
-console.log("rate limit shared store: false");
+console.log("csp source: proxy.ts");
+console.log("hsts: present");
+console.log("permissions-policy: present");

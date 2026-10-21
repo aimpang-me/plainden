@@ -7,6 +7,7 @@ describe("policy proxy", () => {
     const response = proxy(new NextRequest("http://127.0.0.1:3100/p/not-a-policy"));
     expect(response.status).toBe(404);
     expect(response.headers.get("content-security-policy")).toContain("script-src");
+    expect(response.headers.get("permissions-policy")).toBe("camera=(), microphone=(), geolocation=()");
   });
 
   it("lets a 32 hex policy id through", () => {

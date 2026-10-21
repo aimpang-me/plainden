@@ -2,7 +2,9 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { getAuth } from "./server";
+import { verification } from "../../db/schema";
+import { getDb } from "../db/client";
+import { getAuth, magicLinkExpiresInSeconds } from "./server";
 
 const dirs: string[] = [];
 
@@ -38,6 +40,13 @@ test("the test Turnstile token sends a magic link file", async () => {
     magicLinkUrl: string;
   };
   expect(message.to).toBe("ada@example.com");
+  const db = await getDb();
+  const rows = await db.select().from(verification);
+  const expiresAt = rows[0]?.expiresAt;
+  if (!expiresAt) throw new Error("expected a verification row");
+  const remainingMs = expiresAt.getTime() - Date.now();
+  expect(remainingMs).toBeGreaterThan((magicLinkExpiresInSeconds - 60) * 1000);
+  expect(remainingMs).toBeLessThan((magicLinkExpiresInSeconds + 60) * 1000);
   expect(message.magicLinkUrl).toContain("/api/auth/magic-link/verify?token=");
   expect(message.magicLinkUrl).toContain("callbackURL=%2Faccount");
 });

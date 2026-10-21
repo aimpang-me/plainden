@@ -1,8 +1,10 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { savedInvoice } from "@/db/schema";
 import { LimitKind } from "@/lib/contract/limits";
 import { getDb } from "@/lib/db/client";
 import { checkLimit } from "@/lib/entitlements/check-limit";
+import { getEntitlement } from "@/lib/entitlements/get-entitlement";
+import { limitsFor } from "@/lib/entitlements/limits-for";
 import { visitorLimitCopy } from "@/lib/entitlements/visitor-copy";
 import { parseIssued, titleOf, toWire, type Issued } from "./document";
 import type { ToolId } from "./month-count";
@@ -52,15 +54,53 @@ export async function saveDocument(userId: string, input: unknown): Promise<Save
     await db.update(savedInvoice).set({ title: titleOf(parsed.issued), body, updatedAt: now }).where(eq(savedInvoice.id, row.id));
     return { ok: true, id: row.id };
   }
-  await db.insert(savedInvoice).values({
-    id: input.id,
-    userId,
-    title: titleOf(parsed.issued),
-    body,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const entitlement = await getEntitlement({ userId }, "invoice");
+  const limits = limitsFor("invoice");
+  const cap = (entitlement.plan === "paid" ? limits?.paid : limits?.free)?.savedItems;
+  if (typeof cap !== "number") {
+    await db.insert(savedInvoice).values({
+      id: input.id,
+      userId,
+      title: titleOf(parsed.issued),
+      body,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return { ok: true, id: input.id };
+  }
+  const inserted = await db.execute(sql`
+    WITH room AS (
+      SELECT count(*)::int AS total FROM "saved_invoices" WHERE "userId" = ${userId}
+    )
+    INSERT INTO "saved_invoices" ("id", "userId", "title", "body", "createdAt", "updatedAt")
+    SELECT ${input.id}, ${userId}, ${titleOf(parsed.issued)}, ${JSON.stringify(body)}::jsonb, ${now}, ${now}
+    FROM room
+    WHERE room.total < ${cap}
+    RETURNING "id"
+  `);
+  if (!insertedId(inserted)) {
+    return {
+      ok: false,
+      error: "limit",
+      message: visitorLimitCopy(parsed.issued.kind, {
+        plan: entitlement.plan,
+        kind: LimitKind.savedItems,
+        limit: cap,
+      }),
+    };
+  }
   return { ok: true, id: input.id };
+}
+
+function insertedId(result: unknown): string | null {
+  const rows = Array.isArray(result)
+    ? result
+    : result && typeof result === "object" && "rows" in result && Array.isArray(result.rows)
+      ? result.rows
+      : [];
+  const first = rows[0];
+  if (!first || typeof first !== "object" || !("id" in first)) return null;
+  return typeof first.id === "string" ? first.id : null;
 }
 
 export async function listDocuments(userId: string, kind: ToolId): Promise<readonly Issued[]> {

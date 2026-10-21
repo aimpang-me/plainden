@@ -4,10 +4,12 @@ import { nextCookies } from "better-auth/next-js";
 import { captcha, magicLink } from "better-auth/plugins";
 import { account, session, user, verification } from "../../db/schema";
 import { getDb } from "../db/client";
+import { isProductionRuntime } from "../runtime";
 import { sendMail } from "./send-mail";
 
 const devSecret = "plainden-dev-secret-0123456789abcdef";
 const turnstileTestSecret = "1x0000000000000000000000000000000AA";
+export const magicLinkExpiresInSeconds = 15 * 60;
 
 let authPromise: ReturnType<typeof createAuth> | null = null;
 
@@ -28,17 +30,23 @@ async function createAuth() {
   return betterAuth({
     secret,
     baseURL,
-    trustedOrigins: [baseURL, "http://localhost:3100", "http://127.0.0.1:3100"],
+    trustedOrigins: trustedOriginsFor(baseURL),
     database: drizzleAdapter(db, {
       provider: "pg",
       usePlural: false,
       camelCase: true,
       schema: { user, session, account, verification },
     }),
-    advanced: { useSecureCookies: baseURL.startsWith("https://") },
+    advanced: {
+      useSecureCookies: isProductionRuntime() || baseURL.startsWith("https://"),
+      defaultCookieAttributes: { sameSite: "lax", httpOnly: true },
+    },
+    rateLimit: { enabled: true, window: 60, max: 100 },
     emailAndPassword: { enabled: false },
     plugins: [
       magicLink({
+        expiresIn: magicLinkExpiresInSeconds,
+        rateLimit: { window: 60, max: 60 },
         sendMagicLink: async ({ email, url }) => {
           await sendMail({
             to: email,
@@ -72,9 +80,20 @@ function authSecret(): string {
   return devSecret;
 }
 
+export function trustedOriginsFor(baseURL: string): string[] {
+  if (isProductionRuntime()) return [trimOrigin(baseURL)];
+  const port = process.env.PORT ?? "3100";
+  return [...new Set([trimOrigin(baseURL), `http://localhost:${port}`, `http://127.0.0.1:${port}`])];
+}
+
+function trimOrigin(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
 function authBaseUrl(): string {
   const configured = process.env.BETTER_AUTH_URL;
   if (configured) return configured;
+  if (isProductionRuntime()) throw new Error("BETTER_AUTH_URL is required in production");
   const port = process.env.PORT ?? "3100";
   return `http://127.0.0.1:${port}`;
 }

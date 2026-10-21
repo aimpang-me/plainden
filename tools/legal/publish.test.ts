@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { afterEach, expect, test } from "vitest";
 import { policyDoc, subscription, user } from "@/db/schema";
 import { getDb } from "@/lib/db/client";
-import { publish, readOwned, readPublished, toPolicyResponse } from "./publish";
+import { publish, readOwned, readPublished, toPolicyResponse, type PublishResult } from "./publish";
 
 const dirs: string[] = [];
 const now = new Date("2026-10-20T12:00:00.000Z");
@@ -54,8 +54,13 @@ async function seedUser(userId: string, paid: boolean) {
   });
 }
 
-function expectedPublicId(userId: string, kind: string): string {
+function unsaltedPublicId(userId: string, kind: string): string {
   return createHash("sha256").update(`plainden-policy:v1:${userId}:${kind}`).digest("hex").slice(0, 32);
+}
+
+function publishedId(result: PublishResult): string {
+  if (!result.ok) throw new Error(`expected a published policy, got ${result.error}`);
+  return result.publicId;
 }
 
 test("response status follows the publish result", async () => {
@@ -91,8 +96,10 @@ test("a paid user keeps one public id through republish, edits, and cancellation
   await seedUser("user_paid", true);
   const invalid = await publish("user_paid", { kind: "nope" });
   expect(invalid).toEqual({ ok: false, error: "invalid", message: "Unknown kind." });
-  const publicId = expectedPublicId("user_paid", "privacy");
   const saved = await publish("user_paid", { kind: "privacy", answers });
+  const publicId = publishedId(saved);
+  expect(publicId).toMatch(/^[0-9a-f]{32}$/);
+  expect(publicId).not.toBe(unsaltedPublicId("user_paid", "privacy"));
   expect(saved).toEqual({ ok: true, publicId, path: `/p/${publicId}` });
   const db = await getDb();
   const inserted = await db.select().from(policyDoc);
@@ -146,7 +153,6 @@ test("a paid user keeps one public id through republish, edits, and cancellation
 test("two publishes of a new policy keep the same public id", async () => {
   await database();
   await seedUser("user_race", true);
-  const publicId = expectedPublicId("user_race", "cookie");
   const raw = {
     kind: "cookie",
     answers: {
@@ -160,6 +166,9 @@ test("two publishes of a new policy keep the same public id", async () => {
     },
   };
   const [first, second] = await Promise.all([publish("user_race", raw), publish("user_race", raw)]);
+  const publicId = publishedId(first);
+  expect(publicId).toMatch(/^[0-9a-f]{32}$/);
+  expect(publicId).not.toBe(unsaltedPublicId("user_race", "cookie"));
   expect(first).toEqual({ ok: true, publicId, path: `/p/${publicId}` });
   expect(second).toEqual({ ok: true, publicId, path: `/p/${publicId}` });
   const db = await getDb();

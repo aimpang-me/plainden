@@ -4,6 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzleNeon, type NeonHttpDatabase } from "drizzle-orm/neon-http";
 import { drizzle as drizzlePglite, type PgliteDatabase } from "drizzle-orm/pglite";
 import { schema } from "../../db/schema";
+import { isProductionRuntime } from "../runtime";
 import { applySchema } from "./apply";
 
 export type AppDatabase = PgliteDatabase<typeof schema> | NeonHttpDatabase<typeof schema>;
@@ -40,6 +41,11 @@ export async function openNeon(databaseUrl: string): Promise<AppDatabase> {
 }
 
 export function getDb(): Promise<AppDatabase> {
+  if (isProductionRuntime()) {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) throw new Error("DATABASE_URL is required in production");
+    return cached(neonCache(), databaseUrl, () => openNeon(databaseUrl));
+  }
   const dataDir = process.env.PGLITE_DATA_DIR;
   if (dataDir) return cached(pgliteCache(), dataDir, () => openDatabase(dataDir));
   const databaseUrl = process.env.DATABASE_URL;
