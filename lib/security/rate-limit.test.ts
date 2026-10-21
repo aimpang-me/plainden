@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "vitest";
 import { takeRateLimit } from "./enforce-rate-limit";
 import {
   createRateLimitStore,
+  MemoryRateLimitStore,
   resetRateLimitStore,
   UpstashRateLimitStore,
   rateBuckets,

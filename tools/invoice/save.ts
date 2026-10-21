@@ -83,11 +83,9 @@ export async function saveDocument(userId: string, input: unknown): Promise<Save
       ok: false,
       error: "limit",
       message: visitorLimitCopy(parsed.issued.kind, {
-        ok: false,
         plan: entitlement.plan,
         kind: LimitKind.savedItems,
         limit: cap,
-        reason: "",
       }),
     };
   }
