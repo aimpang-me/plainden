@@ -5,11 +5,9 @@ import path from "node:path";
 import { expect, test, type Download, type Page, type TestInfo } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 import QRCode from "qrcode";
-import Stripe from "stripe";
+import { signPaddleWebhook } from "../../lib/payments/signature";
 
-export const webhookSecret = "whsec_plainden_e2e";
-
-const stripe = new Stripe("sk_test_plainden_webhook_fixture");
+export const webhookSecret = "pdl_whsec_plainden_e2e";
 
 export const viewports = [
   { name: "desktop", width: 1280, height: 800 },
@@ -132,45 +130,41 @@ export async function signIn(page: Page, info: TestInfo): Promise<void> {
   await expect(page.getByRole("status")).toHaveText("Check your email for a sign-in link.");
   const link = await readMagicLink(email);
   await page.goto(link);
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page.getByText(email)).toHaveCount(1);
 }
 
-export async function seedAllToolsPlan(page: Page): Promise<void> {
+export async function seedAllToolsPlan(page: Page): Promise<string> {
   const session = await page.request.get("/api/auth/get-session");
   expect(session.ok()).toBeTruthy();
   const body = (await session.json()) as { user?: { id?: string } };
   const userId = body.user?.id;
   expect(userId).toEqual(expect.any(String));
-  if (!userId) return;
+  if (!userId) throw new Error("signed-in session has no user");
   const eventId = `evt_${crypto.randomUUID()}`;
   const subscriptionId = `sub_${crypto.randomUUID()}`;
   const payload = {
-    id: eventId,
-    object: "event",
-    type: "checkout.session.completed",
+    event_id: eventId,
+    event_type: "transaction.completed",
+    occurred_at: new Date().toISOString(),
     data: {
-      object: {
-        id: `cs_${eventId}`,
-        object: "checkout.session",
-        customer: "cus_e2e",
-        subscription: subscriptionId,
-        mode: "subscription",
-        payment_status: "paid",
-        metadata: {
-          userId,
-          entitlementKey: "all",
-          priceLookupKey: "plainden_all_month",
-        },
+      id: `txn_${eventId}`,
+      customer_id: `ctm_${userId}`,
+      subscription_id: subscriptionId,
+      custom_data: {
+        userId,
+        entitlementKey: "all",
+        priceLookupKey: "plainden_all_month",
       },
     },
   };
   const rawBody = JSON.stringify(payload);
-  const signature = stripe.webhooks.generateTestHeaderString({ payload: rawBody, secret: webhookSecret });
-  const response = await page.request.post("/api/stripe/webhook", {
-    headers: { "stripe-signature": signature, "content-type": "application/json" },
+  const signature = signPaddleWebhook(rawBody, webhookSecret, 1_700_000_000);
+  const response = await page.request.post("/api/paddle/webhook", {
+    headers: { "paddle-signature": signature, "content-type": "application/json" },
     data: rawBody,
   });
   expect(response.status(), await response.text()).toBe(200);
+  return subscriptionId;
 }
 
 async function readMagicLink(email: string): Promise<string> {

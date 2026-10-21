@@ -9,6 +9,7 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("createdAt", { withTimezone: true, mode: "date" }).notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true, mode: "date" }).notNull(),
+  providerCustomerId: text("providerCustomerId").unique(),
 });
 
 export const session = pgTable("session", {
@@ -59,9 +60,9 @@ export const subscription = pgTable("subscriptions", {
   entitlementKey: text("entitlementKey").notNull(),
   status: text("status").notNull(),
   priceLookupKey: text("priceLookupKey").notNull(),
-  stripeCustomerId: text("stripeCustomerId"),
-  stripeSubscriptionId: text("stripeSubscriptionId"),
-  stripeEventCreated: integer("stripeEventCreated"),
+  providerCustomerId: text("providerCustomerId"),
+  providerSubscriptionId: text("providerSubscriptionId"),
+  providerEventAt: timestamp("providerEventAt", { withTimezone: true, mode: "date" }),
   currentPeriodEnd: timestamp("currentPeriodEnd", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("createdAt", { withTimezone: true, mode: "date" }).notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true, mode: "date" }).notNull(),
@@ -122,12 +123,18 @@ export const policyDoc = pgTable("policy_docs", {
   updatedAt: timestamp("updatedAt", { withTimezone: true, mode: "date" }).notNull(),
 });
 
+export const processedEvent = pgTable("processed_events", {
+  id: text("id").primaryKey(),
+  occurredAt: timestamp("occurredAt", { withTimezone: true, mode: "date" }).notNull(),
+});
+
 export const schema = {
   user,
   session,
   account,
   verification,
   subscription,
+  processedEvent,
   usage,
   savedInvoice,
   qrCode,
@@ -140,6 +147,7 @@ export const tables = [
   account,
   verification,
   subscription,
+  processedEvent,
   usage,
   savedInvoice,
   qrCode,

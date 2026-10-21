@@ -83,12 +83,12 @@ async function list(userId: string): Promise<HandleResult> {
 const missingAccount = "That account could not be found.";
 
 function capReason(plan: "free" | "paid", limit: number): string {
-  return visitorLimitCopy("qr", { ok: false, plan, kind: LimitKind.savedItems, limit, reason: "" });
+  return visitorLimitCopy("qr", { plan, kind: LimitKind.savedItems, limit });
 }
 
 async function publish(userId: string, targetUrl: HttpUrl, logo: LogoDataUrl | null): Promise<HandleResult> {
   const limits = limitsFor(config.entitlementKey);
-  if (!limits) return { ok: false, code: "invalid", reason: "This action is not available." };
+  if (!limits) return { ok: false, code: "invalid", reason: visitorLimitCopy("qr", { plan: "free", kind: "unknown", limit: 0 }) };
   const entitlement = await getEntitlement({ userId }, config.entitlementKey);
   const cap = (entitlement.plan === "paid" ? limits.paid : limits.free)[LimitKind.savedItems];
   if (cap === 0) {

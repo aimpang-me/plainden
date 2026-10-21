@@ -16,26 +16,28 @@ test("scaffold check blocks a count of 4 and allows a count of 1", async ({ page
   await expect(page.getByRole("link", { name: "See pricing" })).toBeVisible();
 });
 
-test("the landing page hides later waves and a direct legal url opens the generator", async ({ page }) => {
+test("the landing page lists every tool and a direct legal url opens the generator", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("link", { name: "support@plainden.com" })).toHaveAttribute(
     "href",
     "mailto:support@plainden.com",
   );
-  await expect(page.getByRole("link", { name: "Invoice generator" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "PDF tools" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "QR code generator" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Small tools that run in the browser" })).toBeVisible();
   for (const name of [
-    "Privacy and terms generator",
+    "Invoice generator",
+    "Receipt maker",
+    "Privacy and terms",
+    "PDF tools",
+    "QR code",
     "Image tools",
     "Video compressor",
     "Data converter",
-    "Subtitle converter",
-    "Cookie and refund policy generator",
-    "Receipt generator",
+    "Subtitles",
+    "Cookie and refund",
   ]) {
-    await expect(page.getByRole("link", { name })).toHaveCount(0);
+    await expect(page.getByRole("link", { name, exact: true }).first()).toBeVisible();
   }
+  await expect(page.getByRole("link", { name: "QR code generator" })).toBeVisible();
   await page.goto("/privacy-policy-generator");
   await expect(page.getByRole("heading", { level: 1, name: "Privacy policy generator" })).toBeVisible();
   await expect(page.getByText("This tool is not built yet.")).toHaveCount(0);
@@ -71,7 +73,8 @@ test("pricing shows three plans and keeps checkout keys off the page", async ({ 
     .locator("input[name=lookupKey]");
   await expect(bundleKey).toHaveValue("plainden_all_year");
   await expect(page.getByRole("button", { name: "Checkout" })).toHaveCount(2);
-  await expect(page.getByRole("button", { name: "Open billing portal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open billing portal" })).toHaveCount(0);
+  await expect(page.getByText("Free plan").first()).toBeVisible();
 });
 
 test("the theme toggle switches to dark and back", async ({ page }) => {

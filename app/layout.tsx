@@ -1,11 +1,15 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { connection } from "next/server";
+import { AppShell } from "@/components/app-shell";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { shellTools } from "@/lib/catalog/shell";
+import { planLabelFor } from "@/lib/payments/plan-label";
 import { siteOrigin } from "@/lib/seo";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 const themeScript =
   'try{var t=localStorage.getItem("plainden-theme");if(t==="dark"||t==="light"){document.documentElement.dataset.theme=t}}catch(e){}';
@@ -20,18 +24,36 @@ export function generateMetadata(): Metadata {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={inter.className} data-theme="light" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} data-theme="light" suppressHydrationWarning>
       <body>
         <a className="skip-link" href="#content">
           Skip to content
         </a>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <SiteHeader />
-        <main id="content" className="mx-auto w-full max-w-[1120px] px-8 pb-28 pt-24 max-[800px]:px-5 max-[800px]:pb-16 max-[800px]:pt-14">
+        <AppShell tools={shellTools()} planLabel={<PlanSlot />} drawerPlanLabel={<PlanSlot />}>
           {children}
-        </main>
-        <SiteFooter />
+        </AppShell>
       </body>
     </html>
   );
+}
+
+function PlanSlot() {
+  return (
+    <Suspense fallback={null}>
+      <PlanLabel />
+    </Suspense>
+  );
+}
+
+async function PlanLabel() {
+  await connection();
+  let planLabel = "Free plan";
+  try {
+    const current = await getCurrentUser();
+    if (current) planLabel = await planLabelFor(current.id);
+  } catch {
+    planLabel = "Free plan";
+  }
+  return <span className="block text-[11px] text-muted">{planLabel}</span>;
 }

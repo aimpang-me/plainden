@@ -2,7 +2,6 @@ import { afterEach, expect, test } from "vitest";
 import { takeRateLimit } from "./enforce-rate-limit";
 import {
   createRateLimitStore,
-  MemoryRateLimitStore,
   resetRateLimitStore,
   UpstashRateLimitStore,
   rateBuckets,
@@ -55,14 +54,22 @@ test("an upstash count above the limit is a refusal", async () => {
   expect(calls[0]?.[0]).toBe("INCR");
 });
 
-test("production without a shared store throws, and memory is the dev fallback", () => {
+test("an unset store counts in memory and warns, and upstash without credentials throws", async () => {
   restore("NODE_ENV", "production");
   delete process.env.NEXT_PHASE;
   delete process.env.RATE_LIMIT_STORE;
-  expect(() => createRateLimitStore()).toThrow("A shared rate limit store is required in production");
-  restore("NODE_ENV", "test");
-  delete process.env.RATE_LIMIT_STORE;
-  expect(createRateLimitStore()).toBeInstanceOf(MemoryRateLimitStore);
+  const warnings: string[] = [];
+  const store = createRateLimitStore((message) => warnings.push(message));
+  const first = await store.consume("write:preview", { limit: 1, windowMs: 60_000 }, 1_000);
+  const second = await store.consume("write:preview", { limit: 1, windowMs: 60_000 }, 1_000);
+  expect(warnings).toEqual(["RATE_LIMIT_STORE is unset. Using the in-memory rate limit store."]);
+  expect(first.allowed).toBe(true);
+  expect(second).toMatchObject({ allowed: false, retryAfterMs: 60_000 });
+
+  process.env.RATE_LIMIT_STORE = "upstash";
+  delete process.env.UPSTASH_REDIS_REST_URL;
+  delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  expect(() => createRateLimitStore()).toThrow("UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required");
 });
 
 test("takeRateLimit returns 429 once the bucket is full", async () => {

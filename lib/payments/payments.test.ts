@@ -4,7 +4,7 @@ import { createCheckout, createPortal, handleWebhook } from "./index";
 
 const subject = { userId: "user_1" } as const;
 
-test("payment calls fail closed until Stripe is configured", async () => {
+test("payment calls fail closed until Paddle is configured", async () => {
   await expect(
     createCheckout({
       priceLookupKey: "plainden_pdf_month",

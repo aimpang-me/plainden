@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-checkout-off/
 /out/
 
 # production

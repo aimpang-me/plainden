@@ -13,7 +13,7 @@ One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with
 5. Edit only the paths you own (section 5). Need a change elsewhere? Write it in `notes/<id>/requests.md` and work around it. Test sample files go in `tools/<x>/fixtures/` (you own it).
 6. Never commit `package.json` changes or `package-lock.json` (except F). Install what you need with `npm install --no-save <pkg>@<version> ...` (this leaves `package.json` and the lockfile untouched, so rebase works). Put every library you need in ONE such command line at the top of `notes/<id>/deps.md`, with a why for each, and re-run that whole line after every rebase (npm prunes no-save packages when you install another one, so never run it in pieces). F adds them all and regenerates the lockfile at merge. Libraries used by more than one tool (`pdf-lib`, Playwright) are installed by F1 at a pinned version; use those, do not install your own copy.
 7. Notes go only in `notes/<your-id>/`. Never edit another worker's notes or the shared `notes/` root.
-8. Done = your check passes, `next build` and `eslint .` pass, and `notes/<id>/report.md` (10 lines max) says what works and what doesn't. `next build` runs in production mode and does not read `.env.development`. `next build` must pass with no env vars set. Server clients read env vars only when called, never at import time. Better Auth, the Drizzle client for Neon, Stripe, Resend, and any other client that reads env vars follow that rule. F1 checks that server clients read env vars only when called and that `next build` passes with no env vars set. F-b checks both again after F-b adds those clients.
+8. Done = your check passes, `next build` and `eslint .` pass, and `notes/<id>/report.md` (10 lines max) says what works and what doesn't. `next build` runs in production mode and does not read `.env.development`. `next build` must pass with no env vars set. Server clients read env vars only when called, never at import time. Better Auth, the Drizzle client for Neon, Paddle, Resend, and any other client that reads env vars follow that rule. F1 checks that server clients read env vars only when called and that `next build` passes with no env vars set. F-b checks both again after F-b adds those clients.
 9. Branch `worker/<id>`, own worktree, commit often, rebase on `main` before you finish. Each worker pushes its branch `worker/<id>` to origin. F fetches worker branches from origin, merges them, and pushes `main`. Never merge to `main` yourself (except F).
 
 ## 2. Stack
@@ -23,7 +23,7 @@ One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with
 | App | Next.js 16, TypeScript, App Router, Tailwind. Lint with `eslint .` (no `next lint`). |
 | Auth | Better Auth, email magic link. It creates its own user/session/account/verification tables. Do not use `@better-auth/stripe`. |
 | Database | Postgres + Drizzle. Local and tests: PGlite. Production: Neon. |
-| Payments | Stripe Checkout + Customer Portal + webhooks, behind `lib/payments/types.ts` so Paddle can be added later. |
+| Payments | Paddle Billing sandbox. Checkout overlay, customer portal, and webhooks. `lib/payments` is the only payments seam. |
 | Email | Resend (production), file transport (dev) |
 | Errors, analytics | Sentry, PostHog |
 | Bot protection | Cloudflare Turnstile |
@@ -32,7 +32,7 @@ One Next.js site, `plainden.com`, with 10 small tools at `/tool-name`. Free with
 
 ## 3. Dev environment (no accounts needed)
 
-`next build` runs in production mode and does not read `.env.development`. Server clients read env vars only when called, never at import time. Better Auth, the Drizzle client for Neon, Stripe, Resend, and any other client that reads env vars follow that rule. `next build` must pass with no env vars set. F1 checks that server clients read env vars only when called and that `next build` passes with no env vars set. F-b checks both again after F-b adds those clients.
+`next build` runs in production mode and does not read `.env.development`. Server clients read env vars only when called, never at import time. Better Auth, the Drizzle client for Neon, Paddle, Resend, and any other client that reads env vars follow that rule. `next build` must pass with no env vars set. F1 checks that server clients read env vars only when called and that `next build` passes with no env vars set. F-b checks both again after F-b adds those clients.
 
 Committed in `.env.development`:
 
@@ -41,8 +41,8 @@ Committed in `.env.development`:
 | Database | PGlite, one per worktree |
 | Email | `EMAIL_TRANSPORT=file`: magic links written to `.dev-mail/`, Playwright reads the link there |
 | Turnstile | test keys `1x00000000000000000000AA` (site) and `1x0000000000000000000000000000000AA` (secret) |
-| Stripe webhooks | signed fixtures via `stripe.webhooks.generateTestHeaderString` |
-| Stripe checkout end-to-end | owner runs it later with real test keys; workers do not |
+| Paddle webhooks | signed fixtures via HMAC of `ts:rawBody` with `PADDLE_WEBHOOK_SECRET` |
+| Paddle checkout end-to-end | owner runs it later with real sandbox keys; workers do not |
 | Port | `PORT=3100+N` (F=3100, T1=3101 … T8=3108, S=3109, V=3110); `playwright.config` reads it |
 
 ## 4. The 10 tools

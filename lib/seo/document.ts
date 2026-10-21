@@ -74,6 +74,7 @@ export function sitemapXml(input: ListInput = {}): string {
 }
 
 export function buildRobots(input: ListInput = {}): MetadataRoute.Robots {
+  if (input.sitePublic !== true) return { rules: { userAgent: "*", disallow: "/" } };
   return {
     rules: { userAgent: "*", allow: "/", disallow: "/account" },
     sitemap: `${siteOrigin(input.origin)}/sitemap.xml`,

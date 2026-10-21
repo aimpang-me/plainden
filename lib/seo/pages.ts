@@ -48,6 +48,7 @@ export type ListInput = {
   disabledIds?: readonly string[];
   tools?: readonly RegisteredTool[];
   origin?: string;
+  sitePublic?: boolean;
 };
 
 export function siteOrigin(explicit?: string): string {

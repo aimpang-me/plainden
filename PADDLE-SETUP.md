@@ -1,6 +1,18 @@
-# Apply for Paddle approval
+# Paddle Billing sandbox
 
-You do this in the Paddle dashboard. This repo does not call Paddle. Stripe implements `createCheckout`, `createPortal`, and `handleWebhook`. Those functions are the seam a later Paddle adapter would replace.
+The app calls Paddle Billing. Checkout opens the Paddle.js overlay from a server-created transaction. The webhook is `POST /api/paddle/webhook`. The signature header is `Paddle-Signature`. `PADDLE_WEBHOOK_SECRET` is the HMAC key.
+
+Set `NEXT_PUBLIC_PADDLE_ENV` to `sandbox` until you switch the live account. The API base is `https://sandbox-api.paddle.com` unless that value is `production`.
+
+`PADDLE_PRICE_MONTHLY` and `PADDLE_PRICE_YEARLY` are the two sandbox price ids. Every paid catalog row uses one of those ids for its interval. The cards still show $5 a month, $50 a year, $9 a month, and $90 a year. The lookup key in `custom_data` decides which tool the subscription unlocks. The sandbox charge is whatever those two price ids cost in Paddle.
+
+`CHECKOUT_ENABLED=false` turns checkout and the portal off. In production, checkout and the portal also refuse to run when `NEXT_PUBLIC_SITE_URL` or `BETTER_AUTH_URL` is unset.
+
+One Paddle customer id is stored on the user. A second open subscription is refused.
+
+## Apply for Paddle approval
+
+You do this in the Paddle dashboard. Sandbox checkout can run before the live domain is approved.
 
 Paddle reviews four public pages. Submit `plainden.com` only after all four are live.
 

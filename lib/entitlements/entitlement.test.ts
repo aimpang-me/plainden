@@ -85,6 +85,35 @@ test("an active subscription and the all-tools plan pass, a canceled plan stays 
   expect(stored).toEqual([{ status: "active" }]);
 });
 
+test("past_due keeps access until three days after the period ends", async () => {
+  const db = await freshDb();
+  const now = new Date();
+  await db.insert(user).values({
+    id: "user_due",
+    name: "Dee",
+    email: "dee@example.com",
+    emailVerified: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(subscription).values({
+    id: "sub_due",
+    userId: "user_due",
+    entitlementKey: "pdf",
+    status: "past_due",
+    priceLookupKey: "plainden_pdf_month",
+    currentPeriodEnd: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+    createdAt: now,
+    updatedAt: now,
+  });
+  expect(await getEntitlement({ userId: "user_due" }, "pdf")).toEqual({ entitlementKey: "pdf", plan: "paid" });
+  await db
+    .update(subscription)
+    .set({ currentPeriodEnd: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000) })
+    .where(eq(subscription.id, "sub_due"));
+  expect(await getEntitlement({ userId: "user_due" }, "pdf")).toEqual({ entitlementKey: "pdf", plan: "free" });
+});
+
 async function freshDb() {
   const dir = await mkdtemp(path.join(tmpdir(), "plainden-"));
   dirs.push(dir);

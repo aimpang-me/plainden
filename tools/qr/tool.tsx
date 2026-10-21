@@ -97,9 +97,6 @@ export default function Tool({ slug, preset }: ToolProps) {
 function QrPreview({ src }: { src: string }) {
   return (
     <div className="grid gap-3">
-      <p>
-        <span className="inline-block rounded-full bg-accent-soft px-2.5 py-0.5 text-xs text-accent">Live preview</span>
-      </p>
       <Image src={src} alt="QR code" width={512} height={512} unoptimized className="h-64 w-64" />
     </div>
   );
