@@ -16,7 +16,7 @@ export default function PricingPage() {
       {page ? <JsonLd page={page} origin={origin} /> : null}
       <header className="max-w-3xl">
         <PageHeading>Pricing</PageHeading>
-        <p className="mt-2 text-pretty text-[13px] text-muted">
+        <p className="mt-2 text-pretty text-[13px] text-secondary">
           Free with limits, $5 a month for one tool, or $9 a month for every tool. Receipt shares the invoice plan. Cookie and refund share the legal plan.
         </p>
       </header>

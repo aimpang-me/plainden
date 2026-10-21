@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import type { ShellTool, ShellToolId } from "@/lib/catalog/shell";
 import { SiteFooter } from "./site-footer";
 import { ThemeToggle } from "./theme-toggle";
@@ -31,7 +30,64 @@ const iconPaths: Record<Exclude<ShellToolId, "cookie-refund">, string> = {
   subtitles: "M1.5 3h13v10h-13z M4 9.5h3 M8.5 9.5h3.5 M4 7h8",
 };
 
-const drawerMove = { duration: 0.22, ease: "easeOut" } as const;
+type StaggerWindow = {
+  stepMs: number;
+  enterMs: number;
+  cap: number;
+  windowMs: number;
+};
+
+const staggerFallback: StaggerWindow = {
+  stepMs: 40,
+  enterMs: 200,
+  cap: 12,
+  windowMs: 40 * 11 + 200,
+};
+
+function parseMilliseconds(value: string): number | null {
+  const match = /^(-?\d+(?:\.\d+)?)ms$/.exec(value.trim());
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
+function parseCap(value: string): number | null {
+  const text = value.trim();
+  if (!/^[1-9]\d*$/.test(text)) return null;
+  return Number(text);
+}
+
+function readStaggerWindow(styles: CSSStyleDeclaration): StaggerWindow {
+  const stepMs = parseMilliseconds(styles.getPropertyValue("--stagger-step"));
+  const enterMs = parseMilliseconds(styles.getPropertyValue("--duration-enter"));
+  const cap = parseCap(styles.getPropertyValue("--stagger-cap"));
+  if (stepMs === null || enterMs === null || cap === null) return staggerFallback;
+  if (stepMs < 30 || stepMs > 80 || enterMs < 1 || enterMs > 299) return staggerFallback;
+  return { stepMs, enterMs, cap, windowMs: stepMs * (cap - 1) + enterMs };
+}
+
+function armFirstPaint(root: HTMLElement): () => void {
+  const hold = readStaggerWindow(getComputedStyle(root));
+  const timeout = globalThis.setTimeout(() => {
+    root.dataset.entered = "";
+  }, hold.windowMs);
+  return () => {
+    globalThis.clearTimeout(timeout);
+  };
+}
+
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 900px)");
+    const apply = () => setNarrow(query.matches);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+  return narrow;
+}
 
 export function AppShell({
   tools,
@@ -46,6 +102,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const narrow = useNarrow();
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const titleId = useId();
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -57,8 +114,14 @@ export function AppShell({
     setSlot(slotRef.current);
   }, []);
 
+  useEffect(() => armFirstPaint(document.documentElement), []);
+
   useEffect(() => {
-    if (!open) return;
+    if (!narrow) setOpen(false);
+  }, [narrow]);
+
+  useEffect(() => {
+    if (!open || !narrow) return;
     closeRef.current?.focus();
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -71,95 +134,84 @@ export function AppShell({
       window.removeEventListener("keydown", onKey);
       menuRef.current?.focus();
     };
-  }, [open]);
+  }, [open, narrow]);
 
   return (
-    <MotionConfig reducedMotion="user">
-      <ActionSlotContext.Provider value={slot}>
-        <div className="min-h-screen overflow-x-clip bg-app min-[901px]:grid min-[901px]:grid-cols-[232px_minmax(0,1fr)] min-[901px]:items-start">
-          <aside className="sticky top-0 hidden h-screen flex-col border-r border-line bg-panel px-2.5 py-3.5 min-[901px]:flex">
-            <Sidebar tools={tools} pathname={pathname} planLabel={planLabel} />
-          </aside>
-          <div className="flex min-h-screen min-w-0 flex-col">
-            <header className="sticky top-0 z-20 flex min-h-[52px] flex-wrap items-center gap-2.5 border-b border-line bg-app px-6 py-2 max-[900px]:px-3.5">
-              <button
-                ref={menuRef}
-                type="button"
-                className="inline-grid h-8 w-8 place-items-center rounded-lg border border-line bg-paper min-[901px]:hidden"
-                aria-label="Menu"
-                aria-expanded={open}
-                aria-controls="app-drawer"
-                onClick={() => setOpen(true)}
-              >
-                <MenuIcon />
-              </button>
-              <p className="min-w-0 truncate text-[13px]">
-                {pathname === "/" ? (
-                  <span className="font-medium">Tools</span>
-                ) : (
-                  <>
-                    <Link href="/" className="text-muted no-underline max-[900px]:hidden">
-                      Tools
-                    </Link>
-                    <span className="text-muted max-[900px]:hidden"> › </span>
-                    <span className="font-medium">{current}</span>
-                  </>
-                )}
-              </p>
-              <div className="ml-auto flex items-center gap-2">
-                <ThemeToggle />
-                <div ref={slotRef} className="flex items-center gap-2" />
-              </div>
-            </header>
-            <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col px-6 py-7 max-[900px]:px-3.5 max-[900px]:py-4">
-              <main id="content" className="flex-1">
-                {children}
-              </main>
-              <SiteFooter />
+    <ActionSlotContext.Provider value={slot}>
+      <div
+        className="shell min-h-screen overflow-x-clip bg-canvas min-[901px]:grid min-[901px]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] min-[901px]:items-start"
+        data-drawer={open ? "open" : "closed"}
+      >
+        <aside className="sticky top-0 hidden h-screen flex-col bg-sidebar px-2.5 py-3.5 min-[901px]:flex">
+          <Sidebar tools={tools} pathname={pathname} planLabel={planLabel} />
+        </aside>
+        <div className="flex min-h-screen min-w-0 flex-col">
+          <header className="sticky top-0 z-20 flex min-h-[52px] flex-wrap items-center gap-2.5 border-b border-line bg-canvas px-6 py-2 max-[900px]:px-3.5">
+            <button
+              ref={menuRef}
+              type="button"
+              className="press motion-hover inline-grid h-8 w-8 place-items-center rounded-control text-text min-[901px]:hidden"
+              aria-label="Menu"
+              aria-expanded={open}
+              aria-controls="app-drawer"
+              onClick={() => setOpen(true)}
+            >
+              <MenuIcon />
+            </button>
+            <p className="min-w-0 truncate text-[13px]">
+              {pathname === "/" ? (
+                <span className="font-medium">Tools</span>
+              ) : (
+                <>
+                  <Link href="/" className="text-secondary no-underline max-[900px]:hidden">
+                    Tools
+                  </Link>
+                  <span className="text-secondary max-[900px]:hidden"> › </span>
+                  <span className="font-medium">{current}</span>
+                </>
+              )}
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <ThemeToggle />
+              <div ref={slotRef} className="flex items-center gap-2" />
             </div>
+          </header>
+          <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col px-6 py-7 max-[900px]:px-3.5 max-[900px]:py-4">
+            <main id="content" className="flex-1">
+              {children}
+            </main>
+            <SiteFooter />
           </div>
-          <AnimatePresence>
-            {open ? (
-              <motion.button
-                key="backdrop"
-                type="button"
-                aria-label="Close menu"
-                className="fixed inset-0 z-30 bg-ink/20 min-[901px]:hidden"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={drawerMove}
-                onClick={() => setOpen(false)}
-              />
-            ) : null}
-            {open ? (
-              <motion.div
-                key="drawer"
-                id="app-drawer"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby={titleId}
-                className="fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col border-r border-line bg-panel px-2.5 py-3.5 min-[901px]:hidden"
-                initial={{ x: -232 }}
-                animate={{ x: 0 }}
-                exit={{ x: -232 }}
-                transition={drawerMove}
-              >
-                <div className="mb-1 flex items-center justify-between px-2.5">
-                  <p id={titleId} className="font-serif text-[17px]">
-                    plainden
-                  </p>
-                  <button ref={closeRef} type="button" className="text-[13px] text-muted" onClick={() => setOpen(false)}>
-                    Close
-                  </button>
-                </div>
-                <Sidebar tools={tools} pathname={pathname} planLabel={drawerPlanLabel} hideBrand onNavigate={() => setOpen(false)} />
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
-      </ActionSlotContext.Provider>
-    </MotionConfig>
+        <button
+          type="button"
+          className="drawer-backdrop"
+          aria-label="Close menu"
+          inert={!open || !narrow}
+          tabIndex={open && narrow ? 0 : -1}
+          onClick={() => setOpen(false)}
+        />
+        <div
+          id="app-drawer"
+          className="drawer flex flex-col bg-sidebar px-2.5 py-3.5"
+          role={open && narrow ? "dialog" : undefined}
+          aria-modal={open && narrow ? true : undefined}
+          aria-labelledby={open && narrow ? titleId : undefined}
+          inert={!open || !narrow}
+        >
+          <div className="mb-1 flex items-center justify-between px-2.5">
+            <p id={titleId} className="title flex items-center gap-2 text-[17px]">
+              <span className="size-[18px] shrink-0 rounded-pill bg-text" aria-hidden="true" />
+              plainden
+            </p>
+            <button ref={closeRef} type="button" className="press text-[13px] text-secondary" onClick={() => setOpen(false)}>
+              Close
+            </button>
+          </div>
+          <Sidebar tools={tools} pathname={pathname} planLabel={drawerPlanLabel} hideBrand onNavigate={() => setOpen(false)} />
+        </div>
+      </div>
+    </ActionSlotContext.Provider>
   );
 }
 
@@ -179,32 +231,35 @@ function Sidebar({
   return (
     <>
       {hideBrand ? null : (
-        <Link href="/" className="px-2.5 pb-3 font-serif text-[17px] text-ink no-underline" onClick={onNavigate}>
+        <Link href="/" className="title flex items-center gap-2 px-2.5 pb-3 text-[17px] text-text no-underline" onClick={onNavigate}>
+          <span className="size-[18px] shrink-0 rounded-pill bg-text" aria-hidden="true" />
           plainden
         </Link>
       )}
       <nav aria-label="Sidebar" className="grid min-h-0 flex-1 content-start gap-0.5 overflow-y-auto">
-        <p className="px-2.5 pb-1 pt-2 text-[11px] text-faint">Tools</p>
-        {tools.map((tool) => {
-          const active = tool.slugs.some((slug) => pathname === `/${slug}`);
-          return (
-            <Link
-              key={tool.id}
-              href={tool.href}
-              aria-current={active ? "page" : undefined}
-              onClick={onNavigate}
-              className={`flex items-center gap-2 rounded-[7px] px-2.5 py-1 text-[13px] no-underline ${
-                active ? "bg-fill font-medium text-ink" : "text-muted hover:bg-fill hover:text-ink"
-              }`}
-            >
-              <ToolIcon id={tool.id} />
-              <span className="truncate">{tool.label}</span>
-            </Link>
-          );
-        })}
-        <p className="px-2.5 pb-1 pt-3 text-[11px] text-faint">Saved</p>
-        <p className="px-2.5 py-1 text-[13px] text-muted">Nothing saved yet.</p>
-        <Link href="/pricing" onClick={onNavigate} className="mt-2 rounded-[7px] px-2.5 py-1 text-[13px] text-ink no-underline hover:bg-fill">
+        <p className="px-2.5 pb-1 pt-2 text-[11px] text-tertiary">Tools</p>
+        <div className="stagger grid gap-0.5">
+          {tools.map((tool) => {
+            const active = tool.slugs.some((slug) => pathname === `/${slug}`);
+            return (
+              <Link
+                key={tool.id}
+                href={tool.href}
+                aria-current={active ? "page" : undefined}
+                onClick={onNavigate}
+                className={`nav-link motion-hover flex items-center gap-2 px-2.5 py-1 text-[13px] no-underline ${
+                  active ? "bg-hover font-medium text-text" : "text-secondary"
+                }`}
+              >
+                <ToolIcon id={tool.id} />
+                <span className="truncate">{tool.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+        <p className="px-2.5 pb-1 pt-3 text-[11px] text-tertiary">Saved</p>
+        <p className="px-2.5 py-1 text-[13px] text-secondary">Nothing saved yet.</p>
+        <Link href="/pricing" onClick={onNavigate} className="nav-link motion-hover mt-2 px-2.5 py-1 text-[13px] text-text no-underline">
           Pricing
         </Link>
       </nav>
@@ -212,9 +267,9 @@ function Sidebar({
         href="/account"
         aria-label="Sign in"
         onClick={onNavigate}
-        className="mt-auto flex items-center gap-2 border-t border-line px-2 pt-3 no-underline"
+        className="mt-auto flex items-center gap-2 px-2 pt-3 no-underline"
       >
-        <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-fill text-[11px] font-semibold" aria-hidden="true">
+        <span className="grid h-[26px] w-[26px] place-items-center rounded-pill bg-hover text-[11px] font-semibold" aria-hidden="true">
           ·
         </span>
         <span>

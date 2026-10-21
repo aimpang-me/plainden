@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { PageActions } from "@/components/app-shell";
 import { UpgradePrompt } from "@/components/upgrade-prompt";
 import { Button } from "@/components/ui/button";
@@ -254,7 +253,7 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
       </Card>
       <div className="min-[901px]:sticky min-[901px]:top-[68px]">
       <Card title="Preview">
-        <p className="font-serif text-[22px]">{preview.heading}</p>
+        <p className="title text-[22px]">{preview.heading}</p>
         <p>{preview.from.name}</p>
         {preview.from.address ? <p>{preview.from.address}</p> : null}
         <p>{preview.to.name}</p>
@@ -278,23 +277,12 @@ export function DocumentEditor({ draft, plan, limits, transport, onDraft }: Edit
         </p>
         <p className="flex items-baseline justify-between gap-4">
           <span>Total</span>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={preview.total}
-              className="tabular-nums"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12, ease: "easeOut" }}
-            >
-              {preview.total}
-            </motion.span>
-          </AnimatePresence>
+          <span className="tabular-nums">{preview.total}</span>
         </p>
         {preview.notes ? <p>{preview.notes}</p> : null}
         {preview.stamp ? (
           <p>
-            <span className="inline-flex rounded-full bg-paid px-2 py-0.5 text-[11px] text-paid-ink">{preview.stamp}</span>
+            <span className="pill pill-paid">{preview.stamp}</span>
           </p>
         ) : null}
         {preview.footer ? <p>{preview.footer}</p> : null}
