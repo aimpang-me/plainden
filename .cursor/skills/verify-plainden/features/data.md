@@ -24,4 +24,4 @@ Preconditions:
 ## Gotchas
 
 - Saved presets on this page stay in `localStorage`. The server table is `data_presets` behind `POST /api/data-presets`, and a free plan cannot save there.
-- The page stays off the landing page while data is in the default hidden set. Open the URL directly.
+- Data converter is linked from the landing page. Open `/csv-to-json` directly for the convert action.

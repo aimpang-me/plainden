@@ -24,4 +24,4 @@ Preconditions:
 ## Gotchas
 
 - HEIC conversion loads `heic-to` on submit. This drive uses a PNG, so it does not load that package.
-- The page stays off the landing page while image is in the default hidden set. Open the URL directly.
+- Image tools is linked from the landing page. Open `/compress-image` directly for the compress action.

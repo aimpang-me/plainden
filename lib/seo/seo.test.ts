@@ -115,25 +115,33 @@ test("home and pricing metadata stay on the plainden origin", () => {
   }
 });
 
-test("the default tool list hides unbuilt tools and keeps the built ones", () => {
+test("the default sitemap lists every tool and a disabled list drops that tool", () => {
   const previous = process.env.TOOLS_DISABLED;
   delete process.env.TOOLS_DISABLED;
-  const xml = sitemapXml({ origin });
-  if (previous === undefined) delete process.env.TOOLS_DISABLED;
-  else process.env.TOOLS_DISABLED = previous;
-  expect(xml).toContain("https://plainden.com/invoice-generator");
-  expect(xml).toContain("https://plainden.com/merge-pdf");
-  expect(xml).toContain("https://plainden.com/qr-code-generator");
-  expect(xml).not.toContain("https://plainden.com/receipt-generator");
-  expect(xml).not.toContain("https://plainden.com/privacy-policy-generator");
-  expect(xml).not.toContain("https://plainden.com/merge-pdf-files");
-  expect(xml).not.toContain("https://plainden.com/compress-image");
-  expect(xml).not.toContain("https://plainden.com/compress-video");
-  expect(xml).not.toContain("https://plainden.com/csv-to-json");
-  expect(xml).not.toContain("https://plainden.com/srt-to-vtt");
-  expect(xml).not.toContain("https://plainden.com/cookie-policy-generator");
-  expect(pageByPath("/merge-pdf", { origin })?.title).toBe("Merge PDF");
-  expect(pageByPath("/terms-and-conditions-generator", { origin })?.title).toBe("Terms and conditions generator");
+  try {
+    const xml = sitemapXml({ origin });
+    expect(xml).toContain("https://plainden.com/invoice-generator");
+    expect(xml).toContain("https://plainden.com/receipt-generator");
+    expect(xml).toContain("https://plainden.com/privacy-policy-generator");
+    expect(xml).toContain("https://plainden.com/cookie-policy-generator");
+    expect(xml).toContain("https://plainden.com/merge-pdf");
+    expect(xml).toContain("https://plainden.com/qr-code-generator");
+    expect(xml).toContain("https://plainden.com/compress-image");
+    expect(xml).toContain("https://plainden.com/compress-video");
+    expect(xml).toContain("https://plainden.com/csv-to-json");
+    expect(xml).toContain("https://plainden.com/srt-to-vtt");
+    expect(xml).not.toContain("https://plainden.com/merge-pdf-files");
+    expect(pageByPath("/merge-pdf", { origin })?.title).toBe("Merge PDF");
+    expect(pageByPath("/terms-and-conditions-generator", { origin })?.title).toBe("Terms and conditions generator");
+    process.env.TOOLS_DISABLED = "image,video";
+    const hidden = sitemapXml({ origin });
+    expect(hidden).not.toContain("https://plainden.com/compress-image");
+    expect(hidden).not.toContain("https://plainden.com/compress-video");
+    expect(hidden).toContain("https://plainden.com/invoice-generator");
+  } finally {
+    if (previous === undefined) delete process.env.TOOLS_DISABLED;
+    else process.env.TOOLS_DISABLED = previous;
+  }
 });
 
 test("unknown paths and primary slugs are not long-tail pages", () => {

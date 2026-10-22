@@ -13,16 +13,24 @@ test("robots and the sitemap follow the private default", async ({ page, request
   expect(xml).toContain("/invoice-generator");
   expect(xml).toContain("/merge-pdf");
   expect(xml).toContain("/qr-code-generator");
+  expect(xml).toContain("/compress-image");
+  expect(xml).toContain("/receipt-generator");
+  expect(xml).toContain("/compress-video");
+  expect(xml).toContain("/csv-to-json");
+  expect(xml).toContain("/srt-to-vtt");
+  expect(xml).toContain("/cookie-policy-generator");
   expect(xml).not.toContain("/merge-pdf-files");
-  expect(xml).not.toContain("/compress-image");
 
   await page.goto("/merge-pdf-files");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await page.goto("/compress-image");
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  const imageRobots = page.locator('meta[name="robots"]');
+  if ((await imageRobots.count()) > 0) {
+    await expect(imageRobots).not.toHaveAttribute("content", /noindex/);
+  }
   await page.goto("/merge-pdf");
-  const indexed = page.locator('meta[name="robots"]');
-  if ((await indexed.count()) > 0) {
-    await expect(indexed).not.toHaveAttribute("content", /noindex/);
+  const mergeRobots = page.locator('meta[name="robots"]');
+  if ((await mergeRobots.count()) > 0) {
+    await expect(mergeRobots).not.toHaveAttribute("content", /noindex/);
   }
 });
