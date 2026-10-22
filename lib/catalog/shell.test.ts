@@ -1,13 +1,19 @@
 import { expect, test } from "vitest";
-import { plannedTools } from "./planned";
-import { shellTools } from "./shell";
+import { shellToolOrder, shellTools } from "./shell";
 import { disabledToolIds } from "./visibility";
 
-test("an empty switch keeps the default hidden tools and none shows every tool", () => {
-  expect(disabledToolIds("")).toEqual(disabledToolIds(undefined));
-  expect(shellTools("").map((tool) => tool.id)).toEqual(["invoice", "pdf", "qr"]);
+test("an unset switch shows every tool and a list hides the named ids", () => {
+  expect(disabledToolIds(undefined)).toEqual([]);
+  expect(disabledToolIds("")).toEqual([]);
   expect(disabledToolIds("none")).toEqual([]);
-  expect(shellTools("none")).toHaveLength(plannedTools.length);
+  expect(shellTools().map((tool) => tool.id)).toEqual([...shellToolOrder]);
+  expect(shellTools("").map((tool) => tool.id)).toEqual([...shellToolOrder]);
+  expect(shellTools("none").map((tool) => tool.id)).toEqual([...shellToolOrder]);
+  expect(shellTools("image, legal, receipt, video, data, subtitles, cookie-refund").map((tool) => tool.id)).toEqual([
+    "invoice",
+    "pdf",
+    "qr",
+  ]);
   expect(shellTools("invoice").map((tool) => tool.id)).not.toContain("invoice");
   expect(shellTools("invoice").map((tool) => tool.id)).toContain("pdf");
 });

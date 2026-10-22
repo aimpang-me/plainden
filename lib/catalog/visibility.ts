@@ -1,12 +1,4 @@
-const defaultDisabled = [
-  "image",
-  "legal",
-  "receipt",
-  "video",
-  "data",
-  "subtitles",
-  "cookie-refund",
-] as const;
+const defaultDisabled: readonly string[] = [];
 
 export function disabledToolIds(raw?: string): readonly string[] {
   const value = raw !== undefined ? raw : process.env.TOOLS_DISABLED;

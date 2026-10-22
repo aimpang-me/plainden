@@ -25,4 +25,4 @@ Preconditions:
 ## Gotchas
 
 - The ffmpeg core loads from `/ffmpeg/` and then from blob URLs. The first compress waits on that load.
-- The page stays off the landing page while video is in the default hidden set. Open the URL directly.
+- Video compressor is linked from the landing page. Open `/compress-video-for-discord` directly for the compress action.

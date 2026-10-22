@@ -29,7 +29,7 @@ Reference for names the app reads. `next build` does not read `.env.development`
 | `BETTER_AUTH_URL` | `lib/auth/server.ts` and `lib/payments/checkout.ts`. Also allowed as a write Origin. | Yes in production. Checkout and the portal refuse to run when it is unset. Development defaults to `http://127.0.0.1:$PORT`. Loopback trusted origins are added only outside production. |
 | `NEXT_PUBLIC_SITE_URL` | `lib/seo/pages.ts` inside `siteOrigin`. Also allowed as a write Origin. Checkout reads it in production. | Yes in production for checkout and the portal. Public pages default to `https://plainden.com`. |
 | `NEXT_PUBLIC_SITE_PUBLIC` | `lib/seo/pages.ts` inside `siteIsPublic`, used by `robots.ts`. | No. Unset or any value other than `true` disallows every path. `true` allows `/` and disallows `/account`. |
-| `TOOLS_DISABLED` | `lib/catalog/visibility.ts` inside `disabledToolIds`. | No. When unset or empty, the default hidden set is image, legal, receipt, video, data, subtitles, and cookie-refund. A set value replaces that list. `none` shows every tool. |
+| `TOOLS_DISABLED` | `lib/catalog/visibility.ts` inside `disabledToolIds`. | No. When unset, empty, or `none`, every tool is shown. A comma-separated list hides those tool ids. |
 
 `BETTER_AUTH_SECRETS` is read by the Better Auth package for secret rotation, not by an application module.
 

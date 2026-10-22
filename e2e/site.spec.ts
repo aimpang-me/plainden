@@ -1,25 +1,25 @@
 import { expect, test } from "@playwright/test";
 
-test("the landing page hides later waves and a direct legal url opens the generator", async ({ page }) => {
+test("the landing page lists every tool and a direct legal url opens the generator", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("link", { name: "support@plainden.com" })).toHaveAttribute(
     "href",
     "mailto:support@plainden.com",
   );
   await expect(page.getByRole("heading", { level: 1, name: "Small tools that run in the browser" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
-  await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
-  await expect(page.getByRole("link", { name: "Refunds" })).toHaveAttribute("href", "/refund");
+  await expect(page.getByRole("link", { name: "Terms", exact: true })).toHaveAttribute("href", "/terms");
+  await expect(page.getByRole("link", { name: "Privacy", exact: true })).toHaveAttribute("href", "/privacy");
+  await expect(page.getByRole("link", { name: "Refunds", exact: true })).toHaveAttribute("href", "/refund");
   await expect(page.getByRole("button", { name: "Decline" })).toBeVisible();
-  for (const name of ["Invoice generator", "PDF tools", "QR code generator"]) {
-    await expect(page.getByRole("link", { name, exact: true }).first()).toBeVisible();
-  }
-  await expect(page.getByRole("link", { name: "QR code", exact: true })).toBeVisible();
   for (const name of [
+    "Invoice generator",
     "Receipt maker",
     "Receipt generator",
     "Privacy and terms",
     "Privacy and terms generator",
+    "PDF tools",
+    "QR code",
+    "QR code generator",
     "Image tools",
     "Video compressor",
     "Data converter",
@@ -28,7 +28,7 @@ test("the landing page hides later waves and a direct legal url opens the genera
     "Cookie and refund",
     "Cookie and refund policy generator",
   ]) {
-    await expect(page.getByRole("link", { name, exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name, exact: true }).first()).toBeVisible();
   }
   await page.goto("/privacy-policy-generator");
   await expect(page.getByRole("heading", { level: 1, name: "Privacy policy generator" })).toBeVisible();

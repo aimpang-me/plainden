@@ -23,4 +23,4 @@ Preconditions:
 
 ## Gotchas
 
-- The page stays off the landing page while subtitles is in the default hidden set. Open the URL directly.
+- Subtitle converter is linked from the landing page. Open `/srt-to-vtt` directly for the convert action.

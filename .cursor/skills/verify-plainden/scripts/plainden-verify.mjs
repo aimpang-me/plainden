@@ -510,13 +510,7 @@ async function driveSeo(page, dir) {
     "https://plainden.com/invoice-generator",
     "https://plainden.com/merge-pdf",
     "https://plainden.com/qr-code-generator",
-  ];
-  for (const loc of required) {
-    if (!sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap missed ${loc}`);
-  }
-  const hidden = [
     "https://plainden.com/privacy-policy-generator",
-    "https://plainden.com/merge-pdf-files",
     "https://plainden.com/compress-image",
     "https://plainden.com/receipt-generator",
     "https://plainden.com/compress-video",
@@ -524,8 +518,11 @@ async function driveSeo(page, dir) {
     "https://plainden.com/srt-to-vtt",
     "https://plainden.com/cookie-policy-generator",
   ];
-  for (const loc of hidden) {
-    if (sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap listed hidden ${loc}`);
+  for (const loc of required) {
+    if (!sitemapBody.includes(`<loc>${loc}</loc>`)) fail(`sitemap missed ${loc}`);
+  }
+  if (sitemapBody.includes("<loc>https://plainden.com/merge-pdf-files</loc>")) {
+    fail("sitemap listed the short merge long-tail");
   }
   const robots = await page.request.get(`${base}/robots.txt`);
   const robotsBody = await robots.text();
